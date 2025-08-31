@@ -6,7 +6,10 @@ if not exist venv (
     venv\Scripts\pip install -r requirements.txt
 )
 
+REM Activate the virtual environment
+call venv\Scripts\activate
+
 REM Run the main entry point
-venv\Scripts\python -m metaeditor_safetensors %*
+python src\metaeditor_safetensors\main.py %*
 
 pause
