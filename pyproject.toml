@@ -1,11 +1,15 @@
 [tool.poetry]
 name = "metaeditor_safetensors"
-version = "0.1.0"
-description = "A project for editing safetensors."
-authors = ["Your Name <you@example.com>"]
+version = "1.0.0"
+description = "Metadata editor for safetensors"
+authors = ["KPandaK"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+
+packages = [
+    { include = "metaeditor_safetensors", from = "src" }
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
