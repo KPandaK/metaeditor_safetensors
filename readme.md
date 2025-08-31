@@ -34,17 +34,5 @@ python src/metaeditor_safetensors/main.py
 ```
 Or use the GUI for interactive editing.
 
-## File Structure
-- `src/metaeditor_safetensors/` - All source code
-  - `main.py` - Entry point
-  - `editor.py` - Core editing logic
-  - `config.py` - Configuration
-  - `gui_tooltips.py` - GUI tooltips
-  - `utils.py` - Utility functions
-- `test/` - Example safetensors files for testing
-
-## Contributing
-Pull requests and issues are welcome!
-
 ## License
 MIT License
