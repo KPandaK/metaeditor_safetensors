@@ -1,0 +1,38 @@
+name: Update Version File
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on any tag starting with 'v' (like v1.0.0, v1.2.3, etc.)
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for all tags and branches
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract version from tag
+      id: get_version
+      run: |
+        # Remove 'v' prefix from tag (v1.0.0 -> 1.0.0)
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+    
+    - name: Update _version.py file
+      run: |
+        echo '__version__ = "${{ steps.get_version.outputs.version }}"' > src/metaeditor_safetensors/_version.py
+        echo "Updated _version.py with version ${{ steps.get_version.outputs.version }}"
+    
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add src/metaeditor_safetensors/_version.py
+        git commit -m "Update version to ${{ steps.get_version.outputs.version }}"
+        git push origin HEAD:main
