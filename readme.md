@@ -4,9 +4,7 @@ A lightweight Python tool and GUI for inspecting and editing `.safetensors` file
 
 ## Features
 - View and edit metadata in safetensors files
-- Detect duplicate keys and header issues
-- GUI tooltips for user guidance
-- Simple command-line and GUI usage
+- Simple GUI usage
 
 ## Installation
 
@@ -32,7 +30,7 @@ Run the main application:
 ```sh
 python src/metaeditor_safetensors/main.py
 ```
-Or use the GUI for interactive editing.
+Use the GUI for interactive editing.
 
 ## License
 MIT License
