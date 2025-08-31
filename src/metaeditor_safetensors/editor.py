@@ -2,6 +2,7 @@ import base64
 import gc
 import io
 import os
+import webbrowser
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import tkinter.font as tkfont
@@ -11,7 +12,7 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 from tkcalendar import DateEntry
 from tooltips import ToolTip
-from config import MODELSPEC_FIELDS, MODELSPEC_TOOLTIPS, MODELSPEC_KEY_MAP
+from config import MODELSPEC_FIELDS, MODELSPEC_TOOLTIPS, MODELSPEC_KEY_MAP, GITHUB_URL
 from utils import compute_sha256, merge_metadata, utc_to_local, local_to_utc
 
 class SafetensorsEditor(tk.Tk):
@@ -30,6 +31,10 @@ class SafetensorsEditor(tk.Tk):
 		self.filepath_var = tk.StringVar()
 		tk.Entry(file_frame, textvariable=self.filepath_var, width=60, state="readonly", font=default_font).pack(side="left", padx=5)
 		tk.Button(file_frame, text="Browse", command=self.browse_file, font=default_font).pack(side="left", padx=5)
+
+		# About button
+		self.about_btn = tk.Button(file_frame, text="?", command=self.show_about, font=default_font, width=2)
+		self.about_btn.pack(side="right", padx=5)
 
 		# ModelSpec fields
 		self.field_vars = {field: tk.StringVar() for field in MODELSPEC_FIELDS if field != "date" and field != "description"}
@@ -85,8 +90,8 @@ class SafetensorsEditor(tk.Tk):
 		# Action buttons
 		btn_frame = tk.Frame(self)
 		btn_frame.pack(fill="x", padx=5, pady=5)
-		tk.Button(btn_frame, text="Exit", command=self.quit, font=default_font).pack(side="right", padx=5)        
-		tk.Button(btn_frame, text="Save Changes", command=self.save_changes, font=default_font).pack(side="right", padx=5)        
+		tk.Button(btn_frame, text="Exit", command=self.quit, font=default_font).pack(side="right", padx=5)
+		tk.Button(btn_frame, text="Save Changes", command=self.save_changes, font=default_font).pack(side="right", padx=5)
 		self.showraw_btn = tk.Button(btn_frame, text="Show Raw", command=self.toggle_showraw, font=default_font)
 		self.showraw_btn.pack(side="right", padx=5)
 
@@ -300,11 +305,11 @@ class SafetensorsEditor(tk.Tk):
 			save_file(tensors, tmp_path, metadata=self.metadata)
 			tensors = {}
 			gc.collect()
-			messagebox.showinfo("Success", f"Successfully saved to:\n{filepath}")
 		except Exception as e:
 			if os.path.exists(tmp_path):
 				os.remove(tmp_path)
 			messagebox.showerror("Error", f"Error saving file:\n{e}")
+			return
 
 		# If no, create a backup copy
 		# If yes, delete the original file
@@ -316,8 +321,14 @@ class SafetensorsEditor(tk.Tk):
 		elif choice == "yes":
 			os.remove(filepath)
 
-		os.rename(tmp_path, filepath)
-
+		try:
+			os.rename(tmp_path, filepath)
+		except Exception as e:
+			if os.path.exists(tmp_path):
+				os.remove(tmp_path)
+			messagebox.showerror("Error", f"Error finalizing save:\n{e}")
+			return
+		messagebox.showinfo("Success", f"Successfully saved to:\n{filepath}")
 
 	def set_button_states(self, showraw=None, set_img=None, view_img=None):
 		if showraw is not None:
@@ -331,3 +342,24 @@ class SafetensorsEditor(tk.Tk):
 		thumb_data = self.thumbnail_var.get() if hasattr(self, 'thumbnail_var') else ""
 		state = "normal" if thumb_data else "disabled"
 		self.set_button_states(view_img=state)
+
+	def show_about(self):
+		# Use a Toplevel window for clickable link
+		about_win = tk.Toplevel(self)
+		about_win.title("About MetaEditor Safetensors")
+		about_win.geometry("350x180")
+		about_win.resizable(False, False)
+
+		tk.Label(about_win, text="MetaEditor Safetensors", font=("TkDefaultFont", 12, "bold")).pack(pady=(12,2))
+		tk.Label(about_win, text="Version 1.0", font=("TkDefaultFont", 10)).pack()
+		tk.Label(about_win, text="A simple tool for viewing and editing safetensors metadata.", wraplength=320, justify="center").pack(pady=(6,2))
+		tk.Label(about_win, text="Author: KPandaK", font=("TkDefaultFont", 9)).pack(pady=(2,8))
+		
+		def open_github(event=None):
+			webbrowser.open_new(GITHUB_URL)
+
+		link = tk.Label(about_win, text="GitHub Repository", fg="blue", cursor="hand2", font=("TkDefaultFont", 10, "underline"))
+		link.pack()
+		link.bind("<Button-1>", open_github)
+
+		tk.Button(about_win, text="Close", command=about_win.destroy).pack(pady=10)
