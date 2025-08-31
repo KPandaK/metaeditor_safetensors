@@ -25,3 +25,5 @@ MODELSPEC_KEY_MAP = {
 	"tags": "modelspec.tags",
 	"merged from": "modelspec.merged_from"
 }
+
+GITHUB_URL = "https://github.com/KPandaK/metaeditor_safetensors"
