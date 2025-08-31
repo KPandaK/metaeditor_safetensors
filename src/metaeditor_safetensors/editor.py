@@ -1,20 +1,18 @@
 import base64
-import io
-import shutil
-import time
 import gc
+import io
+import os
 import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
 import tkinter.font as tkfont
-from datetime import datetime, timezone, timedelta
-from tooltips import ToolTip
+from datetime import datetime
 from PIL import Image, ImageTk
 from safetensors import safe_open
 from safetensors.torch import save_file
 from tkcalendar import DateEntry
-from tkinter import filedialog, messagebox, ttk
-
+from tooltips import ToolTip
 from config import MODELSPEC_FIELDS, MODELSPEC_TOOLTIPS, MODELSPEC_KEY_MAP
-from utils import compute_sha256, merge_metadata
+from utils import compute_sha256, merge_metadata, utc_to_local, local_to_utc
 
 class SafetensorsEditor(tk.Tk):
 	def __init__(self):
@@ -92,9 +90,7 @@ class SafetensorsEditor(tk.Tk):
 		self.showraw_btn = tk.Button(btn_frame, text="Show Raw", command=self.toggle_showraw, font=default_font)
 		self.showraw_btn.pack(side="right", padx=5)
 
-		self.showraw_btn.config(state="disabled")
-		self.set_img_btn.config(state="disabled")
-		self.view_img_btn.config(state="disabled")
+		self.set_button_states(showraw="disabled", set_img="disabled", view_img="disabled")
 
 		self.metadata = {}
 		self.sidecar = None
@@ -110,9 +106,7 @@ class SafetensorsEditor(tk.Tk):
 		else:
 			# Only disable buttons if no file is loaded
 			if not self.filepath_var.get():
-				self.showraw_btn.config(state="disabled")
-				self.set_img_btn.config(state="disabled")
-				self.view_img_btn.config(state="disabled")
+				self.set_button_states(showraw="disabled", set_img="disabled", view_img="disabled")
 
 	def toggle_showraw(self):
 		if self.sidecar and self.sidecar.winfo_exists():
@@ -131,7 +125,7 @@ class SafetensorsEditor(tk.Tk):
 
 		self.sidecar = tk.Toplevel(self)
 		self.sidecar.title("Raw Metadata")
-		self.sidecar.geometry(f"400x600+{sidecar_x}+{sidecar_y}")
+		self.sidecar.geometry(f"800x400+{sidecar_x}+{sidecar_y}")
 		self.sidecar.resizable(True, True)
 		self.sidecar.protocol("WM_DELETE_WINDOW", self.toggle_showraw)
 
@@ -154,7 +148,7 @@ class SafetensorsEditor(tk.Tk):
 		key_lengths = []
 
 		def insert_items(parent, d):
-			for k, v in d.items():
+			for k, v in sorted(d.items()):
 				key_lengths.append(len(str(k)))
 				if isinstance(v, dict):
 					node = tree.insert(parent, "end", text=k, values=("",))
@@ -165,7 +159,7 @@ class SafetensorsEditor(tk.Tk):
 
 		if key_lengths:
 			max_key_len = max(key_lengths)
-			tree.column("#0", width=max(100, min(40 + max_key_len * 8, 400)), stretch=False)
+			tree.column("#0", width=max(100, min(20 + max_key_len * 7, 400)), stretch=False)
 		else:
 			tree.column("#0", width=100, stretch=False)
 		tree.column("value", width=200, stretch=True)
@@ -173,22 +167,18 @@ class SafetensorsEditor(tk.Tk):
 	def load_metadata(self, filepath):
 		try:
 			with safe_open(filepath, framework="pt") as f:
-				metadata = f.metadata() or {}
-			model_metadata = metadata
+				model_metadata = f.metadata().copy() or {}
 			self.metadata = model_metadata
 			self.populate_fields(model_metadata)
-			self.showraw_btn.config(state="normal")
-			self.set_img_btn.config(state="normal")
-			self.view_img_btn.config(state="normal")
+			self.set_button_states(showraw="normal", set_img="normal")
+			self.update_view_img_state()
 			if self.sidecar and self.sidecar.winfo_exists():
 				self.populate_sidecar_tree(model_metadata)
 		except Exception as e:
 			messagebox.showerror("Error", f"Error reading file:\n{e}")
 			self.metadata = {}
 			self.populate_fields({})
-			self.showraw_btn.config(state="disabled")
-			self.set_img_btn.config(state="disabled")
-			self.view_img_btn.config(state="disabled")
+			self.set_button_states(showraw="disabled", set_img="disabled", view_img="disabled")
 			if self.sidecar and self.sidecar.winfo_exists():
 				self.populate_sidecar_tree({})
 
@@ -199,8 +189,7 @@ class SafetensorsEditor(tk.Tk):
 				date_str = metadata.get(key, "")
 				if date_str:
 					try:
-						dt_utc = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-						dt_local = dt_utc.astimezone()
+						dt_local = utc_to_local(date_str)
 						self.date_picker.set_date(dt_local.date())
 						self.hour_var.set(dt_local.strftime("%H"))
 						self.minute_var.set(dt_local.strftime("%M"))
@@ -216,7 +205,9 @@ class SafetensorsEditor(tk.Tk):
 				self.description_text.delete("1.0", tk.END)
 				self.description_text.insert(tk.END, metadata.get(key, ""))
 			elif field == "thumbnail":
-				self.thumbnail_var.set(metadata.get(key, ""))
+				thumb_data = metadata.get(key, "")
+				self.thumbnail_var.set(thumb_data)
+				self.update_view_img_state()
 			else:
 				self.field_vars[field].set(metadata.get(key, ""))
 
@@ -268,18 +259,6 @@ class SafetensorsEditor(tk.Tk):
 			icon="question"
 		)
 
-		tensors = {}
-		try:
-			with safe_open(filepath, framework="pt") as f:
-				existing_metadata = f.metadata().copy() or {}
-				for k in f.keys():
-					tensors[k] = f.get_tensor(k)
-			gc.collect()
-		except Exception as e:
-			messagebox.showerror("Error", f"Error reading file for merge:\n{e}")
-			return
-
-		updated_metadata = {}
 		for field in MODELSPEC_FIELDS:
 			key = MODELSPEC_KEY_MAP.get(field, field)
 			if field == "date":
@@ -287,39 +266,68 @@ class SafetensorsEditor(tk.Tk):
 				hour_val = self.hour_var.get()
 				minute_val = self.minute_var.get()
 				try:
-					local_dt = datetime.strptime(f"{date_val} {hour_val}:{minute_val}", "%Y-%m-%d %H:%M")
-					offset_sec = -time.timezone if (time.localtime().tm_isdst == 0) else -time.altzone
-					offset = timedelta(seconds=offset_sec)
-					local_dt = local_dt.replace(tzinfo=timezone(offset))
-					dt_utc = local_dt.astimezone(timezone.utc)
-					updated_metadata[key] = dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+					dt_utc_str = local_to_utc(date_val, hour_val, minute_val)
+					self.metadata[key] = dt_utc_str
 				except Exception:
-					updated_metadata[key] = ""
+					self.metadata[key] = ""
 			elif field == "description":
-				updated_metadata[key] = self.description_text.get("1.0", tk.END).strip()
+				self.metadata[key] = self.description_text.get("1.0", tk.END).strip()
 			elif field == "thumbnail":
-				updated_metadata[key] = self.thumbnail_var.get()
+				self.metadata[key] = self.thumbnail_var.get()
 			else:
 				value = self.field_vars[field].get()
 				if value:
-					updated_metadata[key] = value
+					self.metadata[key] = value
 
-		merged_metadata = existing_metadata.copy()
-		merged_metadata.update(updated_metadata)
-
-		if "modelspec.hash_sha256" not in merged_metadata:
+		if "modelspec.hash_sha256" not in self.metadata:
 			try:
-				merged_metadata["modelspec.hash_sha256"] = compute_sha256(filepath)
+				self.metadata["modelspec.hash_sha256"] = compute_sha256(filepath)
 			except Exception as e:
 				messagebox.showerror("Error", f"Could not compute sha256:\n{e}")
 				return
 
-		if choice == "no":
-			backup_path = filepath + ".bak"
-			shutil.copy(filepath, backup_path)
-
+		tensors = {}
 		try:
-			save_file(tensors, filepath, metadata=merged_metadata)
+			with safe_open(filepath, framework="pt") as f:
+				for k in f.keys():
+					tensors[k] = f.get_tensor(k)
+		except Exception as e:
+			messagebox.showerror("Error", f"Error reading file for merge:\n{e}")
+			return
+
+		tmp_path = filepath + ".tmp"
+		try:
+			save_file(tensors, tmp_path, metadata=self.metadata)
+			tensors = {}
+			gc.collect()
 			messagebox.showinfo("Success", f"Successfully saved to:\n{filepath}")
 		except Exception as e:
+			if os.path.exists(tmp_path):
+				os.remove(tmp_path)
 			messagebox.showerror("Error", f"Error saving file:\n{e}")
+
+		# If no, create a backup copy
+		# If yes, delete the original file
+		if choice == "no":
+			backup_path = filepath + ".bak"
+			if os.path.exists(backup_path):
+				os.remove(backup_path)
+			os.rename(filepath, backup_path)
+		elif choice == "yes":
+			os.remove(filepath)
+
+		os.rename(tmp_path, filepath)
+
+
+	def set_button_states(self, showraw=None, set_img=None, view_img=None):
+		if showraw is not None:
+			self.showraw_btn.config(state=showraw)
+		if set_img is not None:
+			self.set_img_btn.config(state=set_img)
+		if view_img is not None:
+			self.view_img_btn.config(state=view_img)
+
+	def update_view_img_state(self):
+		thumb_data = self.thumbnail_var.get() if hasattr(self, 'thumbnail_var') else ""
+		state = "normal" if thumb_data else "disabled"
+		self.set_button_states(view_img=state)
