@@ -1,0 +1,16 @@
+# Development dependencies
+# Include all runtime dependencies
+-r requirements.txt
+
+# Version management from git tags
+setuptools_scm>=8.0.0
+
+# Build tools
+build>=0.10.0
+twine>=4.0.0
+
+# Binary packaging
+pyinstaller>=5.0.0
+
+# Development tools (optional)
+# pytest>=7.0.0  # If you ever want to switch from unittest
