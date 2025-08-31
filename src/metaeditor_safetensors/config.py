@@ -26,4 +26,15 @@ MODELSPEC_KEY_MAP = {
 	"merged from": "modelspec.merged_from"
 }
 
+# File Size Limits
+LARGE_FILE_WARNING_SIZE = 10 * 1024 * 1024 * 1024  # 10GB
+THUMBNAIL_SIZE_WARNING = 2 * 1024 * 1024  # 2MB
+THUMBNAIL_TARGET_SIZE = 256  # pixels
+THUMBNAIL_QUALITY = 85
+
+# Input Validation
+MAX_FIELD_LENGTH = 1000  # Maximum length for text fields
+MAX_DESCRIPTION_LENGTH = 5000  # Longer limit for description
+REQUIRED_FIELDS = []  # Fields that must have values (empty = none required)
+
 GITHUB_URL = "https://github.com/KPandaK/metaeditor_safetensors"
