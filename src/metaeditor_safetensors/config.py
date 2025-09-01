@@ -1,7 +1,3 @@
-MODELSPEC_FIELDS = [
-	"title", "description", "author", "date", "license", "usage hint", "thumbnail", "tags", "merged from"
-]
-
 MODELSPEC_TOOLTIPS = {
 	"title": "A human-readable name for the model.",
 	"description": "A user-friendly description of the model and its purpose.",
@@ -26,11 +22,16 @@ MODELSPEC_KEY_MAP = {
 	"merged from": "modelspec.merged_from"
 }
 
-# File Size Limits
-LARGE_FILE_WARNING_SIZE = 10 * 1024 * 1024 * 1024  # 10GB
+# Generate fields list from the key map
+MODELSPEC_FIELDS = list(MODELSPEC_KEY_MAP.keys())
+
+# Thumbnail Settings
 THUMBNAIL_SIZE_WARNING = 2 * 1024 * 1024  # 2MB
 THUMBNAIL_TARGET_SIZE = 256  # pixels
 THUMBNAIL_QUALITY = 85
+
+# File Operations
+CHUNK_SIZE = 32 * 1024 * 1024  # 32MB chunks for file operations
 
 # Input Validation
 MAX_FIELD_LENGTH = 1000  # Maximum length for text fields

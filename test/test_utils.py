@@ -8,10 +8,25 @@ import hashlib
 # Add src to path so we can import our modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from metaeditor_safetensors.utils import compute_sha256, utc_to_local, local_to_utc, process_image, resize_image
+from metaeditor_safetensors.utils import compute_sha256, utc_to_local, local_to_utc
+from metaeditor_safetensors.commands.set_thumbnail import SetThumbnailCommand
+
+
+class MockEditor:
+    """Mock editor for testing commands."""
+    def update_status(self, message):
+        pass
+    
+    def clear_status(self):
+        pass
 
 
 class TestUtils(unittest.TestCase):
+    
+    def setUp(self):
+        """Set up test fixtures."""
+        self.mock_editor = MockEditor()
+        self.command = SetThumbnailCommand(self.mock_editor)
     
     def test_compute_sha256(self):
         """Test SHA256 computation on a mock safetensors file"""
@@ -102,21 +117,21 @@ class TestUtils(unittest.TestCase):
         img = Image.new('RGB', (400, 200), color='red')
         
         # Resize to 100px target
-        resized = resize_image(img, 100)
+        resized = self.command._resize_image(img, 100)
 
         # Should be 100x50 (width was the longer dimension)
         self.assertEqual(resized.size, (100, 50))
         
         # Test portrait image (200x400)
         img_portrait = Image.new('RGB', (200, 400), color='blue')
-        resized_portrait = resize_image(img_portrait, 100)
+        resized_portrait = self.command._resize_image(img_portrait, 100)
 
         # Should be 50x100 (height was the longer dimension)
         self.assertEqual(resized_portrait.size, (50, 100))
         
         # Test square image (300x300)
         img_square = Image.new('RGB', (300, 300), color='green')
-        resized_square = resize_image(img_square, 150)
+        resized_square = self.command._resize_image(img_square, 150)
 
         # Should be 150x150
         self.assertEqual(resized_square.size, (150, 150))
@@ -137,7 +152,7 @@ class TestUtils(unittest.TestCase):
         
         try:
             # Process the image
-            result = process_image(tmp_name, target_size=256)
+            result = self.command._process_image(tmp_name, target_size=256)
             
             # Should succeed
             self.assertTrue(result['success'])
@@ -159,7 +174,7 @@ class TestUtils(unittest.TestCase):
         
         try:
             # Process the file
-            result = process_image(tmp_name)
+            result = self.command._process_image(tmp_name)
             
             # Should fail gracefully
             self.assertFalse(result['success'])
@@ -189,7 +204,7 @@ class TestUtils(unittest.TestCase):
                 tmp_name = tmp.name
             
             try:
-                result = process_image(tmp_name, target_size=256)
+                result = self.command._process_image(tmp_name, target_size=256)
                 
                 self.assertTrue(result['success'], f"Failed for {img_format}")
                 self.assertIn('data_uri', result)

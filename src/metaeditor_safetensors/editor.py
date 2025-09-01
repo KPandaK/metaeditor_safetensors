@@ -1,28 +1,21 @@
-import base64
-import gc
-import io
 import os
 import logging
-import shutil
-import webbrowser
-import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import messagebox
 import tkinter.font as tkfont
 from datetime import datetime
-from PIL import Image, ImageTk
-from safetensors import safe_open
-from safetensors.torch import save_file
 from tkcalendar import DateEntry
 from tooltips import ToolTip
 from config import (
 	MODELSPEC_FIELDS, MODELSPEC_TOOLTIPS, MODELSPEC_KEY_MAP, GITHUB_URL,
-	LARGE_FILE_WARNING_SIZE, THUMBNAIL_SIZE_WARNING, 
-	THUMBNAIL_TARGET_SIZE, THUMBNAIL_QUALITY, MAX_FIELD_LENGTH, 
-	MAX_DESCRIPTION_LENGTH, REQUIRED_FIELDS
+	MAX_FIELD_LENGTH, MAX_DESCRIPTION_LENGTH, REQUIRED_FIELDS
 )
-from utils import compute_sha256, utc_to_local, local_to_utc, process_image
-from metadata import update_safetensors_metadata
+from utils import compute_sha256, utc_to_local, local_to_utc
+from commands import (
+	BrowseFileCommand, LoadMetadataCommand, SaveCommand,
+	SetThumbnailCommand
+)
+from ui import ImageViewerWindow, AboutWindow, RawViewWindow
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,9 +24,9 @@ logger = logging.getLogger(__name__)
 class SafetensorsEditor(tk.Tk):
 	def __init__(self):
 		super().__init__()
+
+		# Set up the main window
 		self.title("Safetensors Metadata Editor")
-		
-		# Set minimum window size but allow resizing
 		self.minsize(500, 350)
 		self.resizable(True, True)
 		
@@ -51,13 +44,14 @@ class SafetensorsEditor(tk.Tk):
 		tk.Label(main_frame, text="Select a file:", font=default_font, anchor="w", justify="left").pack(fill="x", pady=(0, 5))
 		file_frame = tk.Frame(main_frame)
 		file_frame.pack(fill="x", pady=(0, 10))
-		self.filepath_var = tk.StringVar()
+		self.filepath = tk.StringVar()
 		
 		# Entry field should expand to fill available space
-		entry = tk.Entry(file_frame, textvariable=self.filepath_var, state="readonly", font=default_font)
+		entry = tk.Entry(file_frame, textvariable=self.filepath, state="readonly", font=default_font)
 		entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
 		
-		tk.Button(file_frame, text="Browse", command=self.browse_file, font=default_font).pack(side="left", padx=5)
+		self.browse_btn = tk.Button(file_frame, text="Browse (Ctrl+O)", command=self.browse_file, font=default_font)
+		self.browse_btn.pack(side="left", padx=5)
 
 		# About button
 		self.about_btn = tk.Button(file_frame, text="?", command=self.show_about, font=default_font, width=2)
@@ -89,10 +83,10 @@ class SafetensorsEditor(tk.Tk):
 			elif field == "thumbnail":
 				thumb_frame = tk.Frame(fields_frame)
 				thumb_frame.grid(row=i, column=1, sticky="ew", padx=5, pady=2)
-				self.thumbnail_var = tk.StringVar()
-				self.set_img_btn = tk.Button(thumb_frame, text="Set Image", command=self.set_thumbnail_image, font=default_font)
+				self.thumbnail = tk.StringVar()
+				self.set_img_btn = tk.Button(thumb_frame, text="Set Image (Ctrl+I)", command=self.set_thumbnail, font=default_font)
 				self.set_img_btn.pack(side="left", padx=2, anchor="w")
-				self.view_img_btn = tk.Button(thumb_frame, text="View Image", command=self.view_thumbnail_image, font=default_font)
+				self.view_img_btn = tk.Button(thumb_frame, text="View Image (Ctrl+V)", command=self.toggle_view_thumbnail, font=default_font)
 				self.view_img_btn.pack(side="left", padx=2, anchor="w")
 				self.set_img_btn.config(state="disabled")
 				self.view_img_btn.config(state="disabled")
@@ -117,175 +111,166 @@ class SafetensorsEditor(tk.Tk):
 		# Action buttons
 		btn_frame = tk.Frame(main_frame)
 		btn_frame.pack(fill="x")
-		tk.Button(btn_frame, text="Exit", command=self.quit, font=default_font).pack(side="right", padx=5)
-		tk.Button(btn_frame, text="Save Changes", command=self.save_changes, font=default_font).pack(side="right", padx=5)
-		self.showraw_btn = tk.Button(btn_frame, text="Show Raw", command=self.toggle_showraw, font=default_font)
+		tk.Button(btn_frame, text="Exit (Esc)", command=self.quit, font=default_font).pack(side="right", padx=5)
+		self.save_btn = tk.Button(btn_frame, text="Save Changes (Ctrl+S)", command=self.save, font=default_font)
+		self.save_btn.pack(side="right", padx=5)
+		self.showraw_btn = tk.Button(btn_frame, text="Show Raw (F12)", command=self.toggle_showraw, font=default_font)
 		self.showraw_btn.pack(side="right", padx=5)
 
-		self.set_button_states(showraw="disabled", set_img="disabled", view_img="disabled")
+		# Initialize button states (no file loaded initially)
+		self.update_button_states()
 
 		# Status bar for progress indication
-		self.status_var = tk.StringVar()
-		self.status_var.set("Ready")
+		self.status = tk.StringVar()
+		self.status.set("Ready")
 		status_frame = tk.Frame(self, relief=tk.SUNKEN, bd=1)
 		status_frame.pack(side=tk.BOTTOM, fill=tk.X)
-		self.status_label = tk.Label(status_frame, textvariable=self.status_var, anchor=tk.W, padx=5)
+		self.status_label = tk.Label(status_frame, textvariable=self.status, anchor=tk.W, padx=5)
 		self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
 		self.metadata = {}
-		self.sidecar = None
-		self.image_viewer = None
+		self.raw_view = RawViewWindow(self)
+		self.image_viewer = ImageViewerWindow(self)
+		self.about_window = AboutWindow(self)
+		
+		# Set up keyboard shortcuts
+		self.setup_keyboard_shortcuts()
 		
 		# Allow window to size itself
 		self.update_idletasks()
 		self.geometry("")  # Let tkinter calculate size
-	
-	def update_status_threadsafe(self, message):
-		"""Thread-safe status update using after()"""
-		self.after(0, lambda: self.update_status(message))
 
-	def update_status(self, message):
-		"""Update the status bar with a message"""
-		self.status_var.set(message)
-		self.update_idletasks()
+	def setup_keyboard_shortcuts(self):
+		"""Set up keyboard shortcuts for common operations"""
+		# File operations
+		self.bind_all('<Control-o>', lambda e: self.browse_file())
+		self.bind_all('<Control-s>', lambda e: self.save())
+		
+		# Window operations
+		self.bind_all('<Escape>', lambda e: self.quit())
+		self.bind_all('<F12>', lambda e: self.toggle_showraw())
+		
+		# Image operations (when available)
+		self.bind_all('<Control-i>', lambda e: self.set_thumbnail() if hasattr(self, 'set_img_btn') and self.set_img_btn['state'] == 'normal' else None)
+		self.bind_all('<Control-v>', lambda e: self.toggle_view_thumbnail() if hasattr(self, 'view_img_btn') and self.view_img_btn['state'] == 'normal' else None)
+		
+		# Help
+		self.bind_all('<F1>', lambda e: self.show_about())
 
-	def clear_status(self):
-		"""Clear the status bar"""
-		self.status_var.set("Ready")
-
+	# Commands
 	def browse_file(self):
-		filepath = filedialog.askopenfilename(
-			filetypes=[("Safetensors Files", "*.safetensors")],
-			title="Select a safetensors file"
-		)
-		if filepath:
-			# Validate file exists and is readable
-			if not os.access(filepath, os.R_OK):
-				messagebox.showerror("Error", f"File is not readable: {filepath}")
-				return
-			
-			# Check file size (warn for very large files)
-			file_size = os.path.getsize(filepath)
-			file_size_mb = file_size / (1024**2)
-			file_size_gb = file_size / (1024**3)
-			
-			if file_size > LARGE_FILE_WARNING_SIZE:
-				if file_size_gb > 1:
-					size_str = f"{file_size_gb:.1f} GB"
-				else:
-					size_str = f"{file_size_mb:.0f} MB"
-					
-				choice = messagebox.askyesno(
-					"Large File Warning", 
-					f"File is very large ({size_str}).\n"
-					f"Loading may take a while and use significant memory.\n\n"
-					f"Estimated memory usage: ~{file_size_mb * 2:.0f} MB\n"
-					f"Continue?"
-				)
-				if not choice:
-					return
-			
-			logger.info(f"Loading file: {filepath} ({file_size_mb:.1f} MB)")
+		command = BrowseFileCommand(self)
+		success = command.execute()
+
+		if success:
+			filepath = command.result
+			# Update UI and load the file
+			file_size_mb = os.path.getsize(filepath) / (1024**2)
 			self.update_status(f"Loading file ({file_size_mb:.1f} MB)...")
-			self.filepath_var.set(filepath)
+			self.filepath.set(filepath)
 			self.load_metadata(filepath)
 		else:
-			# Only disable buttons if no file is loaded
-			if not self.filepath_var.get():
-				self.set_button_states(showraw="disabled", set_img="disabled", view_img="disabled")
-
-	def toggle_showraw(self):
-		if self.sidecar and self.sidecar.winfo_exists():
-			self.close_sidecar()
-			self.showraw_btn.config(text="Show Raw")
-		else:
-			self.open_sidecar()
-			self.showraw_btn.config(text="Hide Raw")
-
-	def open_sidecar(self):
-		main_x = self.winfo_x()
-		main_y = self.winfo_y()
-		main_width = self.winfo_width()
-		sidecar_x = main_x + main_width + 10
-		sidecar_y = main_y
-
-		self.sidecar = tk.Toplevel(self)
-		self.sidecar.title("Raw Metadata")
-		self.sidecar.geometry(f"800x400+{sidecar_x}+{sidecar_y}")
-		self.sidecar.resizable(True, True)
-		self.sidecar.protocol("WM_DELETE_WINDOW", self.toggle_showraw)
-
-		tree = ttk.Treeview(self.sidecar, columns=("value",), show="tree headings")
-		tree.heading("#0", text="Key")
-		tree.heading("value", text="Value")
-		tree.pack(fill="both", expand=True, padx=10, pady=10)
-		self.sidecar_tree = tree
-
-		self.populate_sidecar_tree(self.metadata)
-
-	def close_sidecar(self):
-		if self.sidecar and self.sidecar.winfo_exists():
-			self.sidecar.destroy()
-			self.sidecar = None
-
-	def populate_sidecar_tree(self, metadata):
-		tree = self.sidecar_tree
-		tree.delete(*tree.get_children())
-		key_lengths = []
-
-		def insert_items(parent, d):
-			for k, v in sorted(d.items()):
-				key_lengths.append(len(str(k)))
-				if isinstance(v, dict):
-					node = tree.insert(parent, "end", text=k, values=("",))
-					insert_items(node, v)
-				else:
-					tree.insert(parent, "end", text=k, values=(str(v),))
-		insert_items("", metadata)
-
-		if key_lengths:
-			max_key_len = max(key_lengths)
-			tree.column("#0", width=max(100, min(20 + max_key_len * 7, 400)), stretch=False)
-		else:
-			tree.column("#0", width=100, stretch=False)
-		tree.column("value", width=200, stretch=True)
+			# Update button states if browse was cancelled
+			self.update_button_states()
 
 	def load_metadata(self, filepath):
-		try:
-			self.update_status("Reading file metadata...")
-			
-			# Try to open and read metadata
-			with safe_open(filepath, framework="pt") as f:
-				model_metadata = f.metadata().copy() or {}
-			
+		command = LoadMetadataCommand(self, filepath)
+		success = command.execute()
+		
+		if success:
+			# Command succeeded - update UI with the loaded metadata
+			model_metadata = command.result
 			self.update_status("Updating interface...")
 			
-			# Success - update UI
 			self.metadata = model_metadata
 			self.populate_fields(model_metadata)
-			self.set_button_states(showraw="normal", set_img="normal")
-			self.update_view_img_state()
-			if self.sidecar and self.sidecar.winfo_exists():
-				self.populate_sidecar_tree(model_metadata)
 			
-			self.clear_status()
-			logger.info(f"Loaded metadata from: {filepath}")
+			# Update raw view if it exists
+			if self.raw_view.is_open():
+				self.raw_view.update_metadata(model_metadata)
 			
-		except Exception as e:
-			# Single catch-all with logging
-			self.clear_status()
-			logger.error(f"Error loading {filepath}: {e}")
-			messagebox.showerror("Error", f"Error reading file:\n{e}")
-			self._reset_ui_state()
-
-	def _reset_ui_state(self):
-		"""Reset UI to safe state after load failure"""
 		self.clear_status()
-		self.metadata = {}
-		self.populate_fields({})
-		self.set_button_states(showraw="disabled", set_img="disabled", view_img="disabled")
-		if self.sidecar and self.sidecar.winfo_exists():
-			self.populate_sidecar_tree({})
+		self.update_button_states()
+
+	def save(self):
+		# Validate inputs first
+		is_valid, errors = self.validate_inputs()
+		if not is_valid:
+			error_msg = "Please fix the following issues:\n\n" + "\n".join(f"• {error}" for error in errors)
+			messagebox.showerror("Validation Error", error_msg)
+			return False
+			
+		# Collect and update metadata
+		metadata_updates = self.collect_metadata_from_ui()
+
+		# Merge UI updates into existing metadata
+		self.metadata.update(metadata_updates)
+		
+		# Disable buttons during save operation
+		self.disable_all_buttons()
+		
+		# Create command with all necessary data and completion callback
+		command = SaveCommand(
+			self,
+			filepath=self.filepath.get(),
+			metadata=self.metadata,
+			completion_callback=self._on_save_complete
+		)
+		command.execute()
+	
+	def _on_save_complete(self, success, filepath_or_error):
+		self.clear_status()
+
+		# Re-enable buttons based on current state
+		self.update_button_states()
+		
+		if success:
+			logger.info(f"File saved: {filepath_or_error}")
+			messagebox.showinfo("Complete", f"File saved to:\n{filepath_or_error}")
+		else:
+			logger.error(f"Error saving file: {filepath_or_error}")
+			messagebox.showerror("Error", f"Error saving file:\n{filepath_or_error}")
+
+	def set_thumbnail(self):
+		# Close image viewer if open (since we're setting a new thumbnail)
+		if self.image_viewer and self.image_viewer.is_open():
+			self.image_viewer.close()
+			self.image_viewer = None
+
+		command = SetThumbnailCommand(self)
+		success = command.execute()
+
+		if success:
+			self.thumbnail.set(command.result)
+		
+		# Update all button states including the view image button
+		self.update_button_states()
+
+	def toggle_view_thumbnail(self):
+		if self.image_viewer.is_open():
+			self.image_viewer.close()
+		else:
+			thumb_data = self.thumbnail.get()
+			if thumb_data:
+				self.image_viewer.open(thumb_data)
+
+		# TODO this should be in update_button_states
+		self.view_img_btn.config(text="View Image (Ctrl+V)")
+		# TODO this should be in update_button_states
+		self.view_img_btn.config(text="Close Image (Ctrl+V)")
+
+	def show_about(self):
+		self.about_window.open()
+
+	def toggle_showraw(self):
+		if self.raw_view.is_open():
+			self.raw_view.close()
+		else:
+			self.raw_view.open(self.metadata)
+
+		# TODO Fix me
+		self.showraw_btn.config(text="Show Raw (F12)")			
+		self.showraw_btn.config(text="Hide Raw (F12)")		
 
 	def populate_fields(self, metadata):
 		for field in MODELSPEC_FIELDS:
@@ -311,120 +296,12 @@ class SafetensorsEditor(tk.Tk):
 				self.description_text.insert(tk.END, metadata.get(key, ""))
 			elif field == "thumbnail":
 				thumb_data = metadata.get(key, "")
-				self.thumbnail_var.set(thumb_data)
+				self.thumbnail.set(thumb_data)
 				self.update_view_img_state()
 			else:
 				self.field_vars[field].set(metadata.get(key, ""))
 
-	def set_thumbnail_image(self):
-		filepath = filedialog.askopenfilename(
-			filetypes=[("Image Files", "*.jpg;*.jpeg;*.png;*.webp"), ("JPEG Image", "*.jpg;*.jpeg"), ("PNG Image", "*.png"), ("WebP Image", "*.webp")],
-			title="Select a thumbnail image"
-		)
-		if filepath:
-			try:
-				# Close any open image viewer since we're setting a new image
-				if self.image_viewer and self.image_viewer.winfo_exists():
-					self._close_image_viewer()
-					
-				self.update_status("Processing image...")
-				
-				# Process image with callback for resize decision
-				def ask_resize(file_size_mb):
-					return messagebox.askyesno(
-						"Large Image File", 
-						f"Image file is {file_size_mb:.1f}MB. "
-						"Would you like to automatically resize it to reduce file size? "
-						f"(Will resize to fit within {THUMBNAIL_TARGET_SIZE}x{THUMBNAIL_TARGET_SIZE} while maintaining aspect ratio)"
-					)
-				
-				result = process_image(
-					filepath, 
-					target_size=THUMBNAIL_TARGET_SIZE,
-					quality=THUMBNAIL_QUALITY,
-					size_warning_threshold=THUMBNAIL_SIZE_WARNING,
-					resize_callback=ask_resize
-				)
-				
-				if result['success']:
-					self.thumbnail_var.set(result['data_uri'])
-					self.update_view_img_state()
-					self.clear_status()
-					logger.info(f"Thumbnail set from: {filepath}")
-				else:
-					self.clear_status()
-					raise Exception(result['error'])
-					
-			except Exception as e:
-				self.clear_status()
-				logger.error(f"Error setting thumbnail: {e}")
-				messagebox.showerror("Error", f"Could not set thumbnail: {e}")
-
-	def view_thumbnail_image(self):
-		# Check if image viewer is already open - if so, close it
-		if self.image_viewer and self.image_viewer.winfo_exists():
-			self._close_image_viewer()
-			return
-			
-		data_uri = self.thumbnail_var.get()
-		if not data_uri.startswith("data:image/jpeg;base64,"):
-			messagebox.showerror("Error", "No valid thumbnail image set.")
-			return
-		try:
-			b64 = data_uri.split(",", 1)[1]
-			img_data = base64.b64decode(b64)
-			image = Image.open(io.BytesIO(img_data))
-			
-			# Create new image viewer window
-			self.image_viewer = tk.Toplevel(self)
-			self.image_viewer.title("Thumbnail Preview")
-			self.image_viewer.resizable(False, False)
-			
-			# Position the image viewer to the left of the main window
-			main_x = self.winfo_x()
-			main_y = self.winfo_y()
-			main_width = self.winfo_width()
-			main_height = self.winfo_height()
-			
-			img_width = image.width
-			img_height = image.height
-			
-			# Position to the left of main window with some spacing
-			left_x = main_x - img_width - 10  # 10px gap
-			# Center vertically relative to main window
-			center_y = main_y + (main_height - img_height) // 2
-			
-			# Ensure window doesn't go off-screen to the left
-			if left_x < 0:
-				left_x = 10  # Minimum distance from screen edge
-			
-			self.image_viewer.geometry(f"{img_width}x{img_height}+{left_x}+{center_y}")
-			
-			# Clean up reference when window is closed
-			self.image_viewer.protocol("WM_DELETE_WINDOW", self._close_image_viewer)
-			
-			img_tk = ImageTk.PhotoImage(image)
-			lbl = tk.Label(self.image_viewer, image=img_tk)
-			lbl.image = img_tk  # Keep a reference to prevent garbage collection
-			lbl.pack()
-			
-			# Update button text to "Close Image"
-			self.view_img_btn.config(text="Close Image")
-			
-		except Exception as e:
-			messagebox.showerror("Error", f"Could not display image: {e}")
-
-	def _close_image_viewer(self):
-		"""Clean up when image viewer window is closed"""
-		if self.image_viewer and self.image_viewer.winfo_exists():
-			self.image_viewer.destroy()
-		self.image_viewer = None
-		# Update button text back to "View Image"
-		if hasattr(self, 'view_img_btn'):
-			self.view_img_btn.config(text="View Image")
-
-	def collect_metadata_from_fields(self):
-		"""Extract metadata from UI fields with validation"""
+	def collect_metadata_from_ui(self):
 		metadata_updates = {}
 		
 		for field in MODELSPEC_FIELDS:
@@ -443,7 +320,7 @@ class SafetensorsEditor(tk.Tk):
 				text = self.description_text.get("1.0", tk.END).strip()
 				metadata_updates[key] = text
 			elif field == "thumbnail":
-				metadata_updates[key] = self.thumbnail_var.get()
+				metadata_updates[key] = self.thumbnail.get()
 			else:
 				value = self.field_vars[field].get().strip()
 				# Only add non-empty values to avoid cluttering metadata
@@ -455,147 +332,62 @@ class SafetensorsEditor(tk.Tk):
 		
 		return metadata_updates
 
-	def save_changes(self):
-		filepath = self.filepath_var.get()
-		if not filepath:
-			messagebox.showerror("Error", "Please select a file first.")
-			return
-
-		# Validate inputs first
-		is_valid, errors = self.validate_inputs()
-		if not is_valid:
-			error_msg = "Please fix the following issues:\n\n" + "\n".join(f"• {error}" for error in errors)
-			messagebox.showerror("Validation Error", error_msg)
-			return
-
-		choice = messagebox.askquestion(
-			"Save Options",
-			"Do you want to overwrite the existing file?\n\n"
-			"Click 'Yes' to overwrite.\n"
-			"Click 'No' to create a backup and then overwrite.",
-			icon="question"
-		)
-
-		# Collect and update metadata
-		metadata_updates = self.collect_metadata_from_fields()
-		self.metadata.update(metadata_updates)
-
-		# Start save operation in background thread
-		save_thread = threading.Thread(
-			target=self.save_changes_threaded,
-			args=(filepath, choice, self.metadata.copy()),
-			daemon=True
-		)
-		save_thread.start()
-
-	def save_changes_threaded(self, filepath, choice, metadata):
-		try:
-			# Compute hash if needed
-			if "modelspec.hash_sha256" not in metadata:
-				self.update_status_threadsafe("Computing file hash...")
-				metadata["modelspec.hash_sha256"] = compute_sha256(filepath)
-
-			tmp_path = filepath + ".tmp"
-			backup_path = filepath + ".bak"
-
-			# Always create backup first - safety first!
-			self.update_status_threadsafe("Creating backup...")
-			if os.path.exists(backup_path):
-				os.remove(backup_path)
-			shutil.copy2(filepath, backup_path)
-
-			# Use the optimized safetensors metadata update
-			method_used = update_safetensors_metadata(
-				filepath, 
-				metadata, 
-				tmp_path, 
-				progress_callback=self.update_status_threadsafe
-			)
-			
-			if method_used == "optimized":
-				logger.info("Metadata updated using optimized method")
-			else:
-				logger.info("Metadata updated using standard method")
-
-			# Replace original file with updated version
-			self.update_status_threadsafe("Finalizing save...")
-			os.remove(filepath)
-			os.rename(tmp_path, filepath)
-			
-			# If user doesn't want backup, clean it up
-			if choice == "yes":
-				os.remove(backup_path)
-			
-			# Success - update UI on main thread
-			self.after(0, lambda: self._save_success(filepath))
-			
-		except Exception as e:
-			# Error - update UI on main thread  
-			self.after(0, lambda: self._save_error(e))
-
-	def _save_success(self, filepath):
-		"""Called on main thread when save succeeds"""
-		self.clear_status()
-		logger.info(f"File saved: {filepath}")
-		messagebox.showinfo("Complete", f"File saved to:\n{filepath}")
-
-	def _save_error(self, error):
-		"""Called on main thread when save fails"""
-		self.clear_status()
-		logger.error(f"Error saving file: {error}")
-		messagebox.showerror("Error", f"Error saving file:\n{error}")
-
-	def set_button_states(self, showraw=None, set_img=None, view_img=None):
+	def set_button_states(self, showraw=None, set_img=None, view_img=None, browse=None, save=None):
 		if showraw is not None:
 			self.showraw_btn.config(state=showraw)
 		if set_img is not None:
 			self.set_img_btn.config(state=set_img)
 		if view_img is not None:
 			self.view_img_btn.config(state=view_img)
+		if browse is not None:
+			self.browse_btn.config(state=browse)
+		if save is not None:
+			self.save_btn.config(state=save)
+	
+	def disable_all_buttons(self):
+		"""Disable all interactive buttons during long-running operations."""
+		self.browse_btn.config(state="disabled")
+		self.save_btn.config(state="disabled")
+		self.showraw_btn.config(state="disabled")
+		self.set_img_btn.config(state="disabled")
+		self.view_img_btn.config(state="disabled")
+	
+	def update_button_states(self):
+		"""Update all button states based on current application state."""
+		# Check if we have a loaded file
+		has_file = bool(self.filepath.get())
+		
+		# Basic buttons that require a loaded file
+		self.save_btn.config(state="normal" if has_file else "disabled")
+		self.showraw_btn.config(state="normal" if has_file else "disabled")
+		self.set_img_btn.config(state="normal" if has_file else "disabled")
+		
+		# Browse is always enabled
+		self.browse_btn.config(state="normal")
+		
+		# Thumbnail view button depends on whether we have thumbnail data
+		self.update_view_img_state()
+
+	def update_status(self, message):
+		self.status.set(message)
+		self.update_idletasks()
+
+	def clear_status(self):
+		self.status.set("Ready")
 
 	def update_view_img_state(self):
-		thumb_data = self.thumbnail_var.get() if hasattr(self, 'thumbnail_var') else ""
+		thumb_data = self.thumbnail.get() if hasattr(self, 'thumbnail') else ""
 		state = "normal" if thumb_data else "disabled"
 		self.set_button_states(view_img=state)
 		
-		# Reset button text when no image is available
-		if not thumb_data and hasattr(self, 'view_img_btn'):
-			self.view_img_btn.config(text="View Image")
-
-	def show_about(self):
-		# Use a Toplevel window for clickable link
-		about_win = tk.Toplevel(self)
-		about_win.title("About MetaEditor Safetensors")
-		about_win.geometry("350x180")
-		about_win.resizable(False, False)
-		
-		# Center the about window over the main window
-		main_x = self.winfo_x()
-		main_y = self.winfo_y()
-		main_width = self.winfo_width()
-		main_height = self.winfo_height()
-		
-		about_width = 350
-		about_height = 180
-		
-		center_x = main_x + (main_width - about_width) // 2
-		center_y = main_y + (main_height - about_height) // 2
-		
-		about_win.geometry(f"{about_width}x{about_height}+{center_x}+{center_y}")
-
-		tk.Label(about_win, text="MetaEditor Safetensors", font=("TkDefaultFont", 12, "bold")).pack(pady=(12,2))
-		tk.Label(about_win, text="Version 1.0", font=("TkDefaultFont", 10)).pack()
-		tk.Label(about_win, text="A simple tool for viewing and editing safetensors metadata.", wraplength=320, justify="center").pack(pady=(6,2))
-		tk.Label(about_win, text="Author: KPandaK", font=("TkDefaultFont", 9)).pack(pady=(2,8))
-		
-		def open_github(event=None):
-			webbrowser.open_new(GITHUB_URL)
-
-		link = tk.Label(about_win, text="GitHub Repository", fg="blue", cursor="hand2", font=("TkDefaultFont", 10, "underline"))
-		link.pack()
-		link.bind("<Button-1>", open_github)
-
-		tk.Button(about_win, text="Close", command=about_win.destroy).pack(pady=10)
+		# Update button text based on current viewer state
+		if hasattr(self, 'view_img_btn'):
+			if self.image_viewer and self.image_viewer.is_open():
+				self.view_img_btn.config(text="Close Image (Ctrl+V)")
+			elif thumb_data:
+				self.view_img_btn.config(text="View Image (Ctrl+V)")
+			else:
+				self.view_img_btn.config(text="View Image (Ctrl+V)")
 
 	def validate_inputs(self):
 		"""Validate all user inputs and return (is_valid, error_messages)"""
