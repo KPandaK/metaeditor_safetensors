@@ -16,6 +16,7 @@ from commands import (
 	SetThumbnailCommand
 )
 from ui import ImageViewerWindow, AboutWindow, RawViewWindow
+from keyboard_shortcuts import KeyboardManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -131,7 +132,11 @@ class SafetensorsEditor(tk.Tk):
 		self.metadata = {}
 		self.raw_view = RawViewWindow(self)
 		self.image_viewer = ImageViewerWindow(self)
-		self.about_window = AboutWindow(self)
+		self.keyboard_manager = KeyboardManager(self)
+		self.about_window = AboutWindow(self, self.keyboard_manager)
+		
+		# Set up window close callbacks to update button states
+		self._setup_window_callbacks()
 		
 		# Set up keyboard shortcuts
 		self.setup_keyboard_shortcuts()
@@ -139,23 +144,6 @@ class SafetensorsEditor(tk.Tk):
 		# Allow window to size itself
 		self.update_idletasks()
 		self.geometry("")  # Let tkinter calculate size
-
-	def setup_keyboard_shortcuts(self):
-		"""Set up keyboard shortcuts for common operations"""
-		# File operations
-		self.bind_all('<Control-o>', lambda e: self.browse_file())
-		self.bind_all('<Control-s>', lambda e: self.save())
-		
-		# Window operations
-		self.bind_all('<Escape>', lambda e: self.quit())
-		self.bind_all('<F12>', lambda e: self.toggle_showraw())
-		
-		# Image operations (when available)
-		self.bind_all('<Control-i>', lambda e: self.set_thumbnail() if hasattr(self, 'set_img_btn') and self.set_img_btn['state'] == 'normal' else None)
-		self.bind_all('<Control-v>', lambda e: self.toggle_view_thumbnail() if hasattr(self, 'view_img_btn') and self.view_img_btn['state'] == 'normal' else None)
-		
-		# Help
-		self.bind_all('<F1>', lambda e: self.show_about())
 
 	# Commands
 	def browse_file(self):
@@ -183,7 +171,7 @@ class SafetensorsEditor(tk.Tk):
 			self.update_status("Updating interface...")
 			
 			self.metadata = model_metadata
-			self.populate_fields(model_metadata)
+			self.set_fields_from_metadata(model_metadata)
 			
 			# Update raw view if it exists
 			if self.raw_view.is_open():
@@ -194,14 +182,14 @@ class SafetensorsEditor(tk.Tk):
 
 	def save(self):
 		# Validate inputs first
-		is_valid, errors = self.validate_inputs()
+		is_valid, errors = self.validate_metadata_fields()
 		if not is_valid:
 			error_msg = "Please fix the following issues:\n\n" + "\n".join(f"• {error}" for error in errors)
 			messagebox.showerror("Validation Error", error_msg)
 			return False
 			
 		# Collect and update metadata
-		metadata_updates = self.collect_metadata_from_ui()
+		metadata_updates = self.get_metadata_from_fields()
 
 		# Merge UI updates into existing metadata
 		self.metadata.update(metadata_updates)
@@ -253,11 +241,9 @@ class SafetensorsEditor(tk.Tk):
 			thumb_data = self.thumbnail.get()
 			if thumb_data:
 				self.image_viewer.open(thumb_data)
-
-		# TODO this should be in update_button_states
-		self.view_img_btn.config(text="View Image (Ctrl+V)")
-		# TODO this should be in update_button_states
-		self.view_img_btn.config(text="Close Image (Ctrl+V)")
+		
+		# Update button states to reflect the new state
+		self.update_button_states()
 
 	def show_about(self):
 		self.about_window.open()
@@ -267,12 +253,21 @@ class SafetensorsEditor(tk.Tk):
 			self.raw_view.close()
 		else:
 			self.raw_view.open(self.metadata)
+		
+		# Update button states to reflect the new state
+		self.update_button_states()
 
-		# TODO Fix me
-		self.showraw_btn.config(text="Show Raw (F12)")			
-		self.showraw_btn.config(text="Hide Raw (F12)")		
+	def setup_keyboard_shortcuts(self):
+		kbman = self.keyboard_manager
+		kbman.add_shortcut('<Control-o>', self.browse_file, 'Open file', enabled_check=lambda: (self.browse_btn['state'] == 'normal'))
+		kbman.add_shortcut('<Control-s>', self.save, 'Save', enabled_check=lambda: (self.save_btn['state'] == 'normal'))
+		kbman.add_shortcut('<Escape>', self.quit, 'Exit application')
+		kbman.add_shortcut('<F12>', self.toggle_showraw, 'Toggle raw metadata view', enabled_check=lambda: (self.showraw_btn['state'] == 'normal'))
+		kbman.add_shortcut('<Control-i>', self.set_thumbnail, 'Set thumbnail image', enabled_check=lambda: (self.set_img_btn['state'] == 'normal'))
+		kbman.add_shortcut('<Control-v>', self.toggle_view_thumbnail, 'View thumbnail image', enabled_check=lambda: (self.view_img_btn['state'] == 'normal'))
+		kbman.add_shortcut('<F1>', self.show_about, 'Show about dialog')
 
-	def populate_fields(self, metadata):
+	def set_fields_from_metadata(self, metadata):
 		for field in MODELSPEC_FIELDS:
 			key = MODELSPEC_KEY_MAP.get(field, field)
 			if field == "date":
@@ -297,11 +292,12 @@ class SafetensorsEditor(tk.Tk):
 			elif field == "thumbnail":
 				thumb_data = metadata.get(key, "")
 				self.thumbnail.set(thumb_data)
-				self.update_view_img_state()
 			else:
 				self.field_vars[field].set(metadata.get(key, ""))
 
-	def collect_metadata_from_ui(self):
+		self.update_button_states()
+
+	def get_metadata_from_fields(self):
 		metadata_updates = {}
 		
 		for field in MODELSPEC_FIELDS:
@@ -331,66 +327,8 @@ class SafetensorsEditor(tk.Tk):
 					metadata_updates[key] = ""
 		
 		return metadata_updates
-
-	def set_button_states(self, showraw=None, set_img=None, view_img=None, browse=None, save=None):
-		if showraw is not None:
-			self.showraw_btn.config(state=showraw)
-		if set_img is not None:
-			self.set_img_btn.config(state=set_img)
-		if view_img is not None:
-			self.view_img_btn.config(state=view_img)
-		if browse is not None:
-			self.browse_btn.config(state=browse)
-		if save is not None:
-			self.save_btn.config(state=save)
 	
-	def disable_all_buttons(self):
-		"""Disable all interactive buttons during long-running operations."""
-		self.browse_btn.config(state="disabled")
-		self.save_btn.config(state="disabled")
-		self.showraw_btn.config(state="disabled")
-		self.set_img_btn.config(state="disabled")
-		self.view_img_btn.config(state="disabled")
-	
-	def update_button_states(self):
-		"""Update all button states based on current application state."""
-		# Check if we have a loaded file
-		has_file = bool(self.filepath.get())
-		
-		# Basic buttons that require a loaded file
-		self.save_btn.config(state="normal" if has_file else "disabled")
-		self.showraw_btn.config(state="normal" if has_file else "disabled")
-		self.set_img_btn.config(state="normal" if has_file else "disabled")
-		
-		# Browse is always enabled
-		self.browse_btn.config(state="normal")
-		
-		# Thumbnail view button depends on whether we have thumbnail data
-		self.update_view_img_state()
-
-	def update_status(self, message):
-		self.status.set(message)
-		self.update_idletasks()
-
-	def clear_status(self):
-		self.status.set("Ready")
-
-	def update_view_img_state(self):
-		thumb_data = self.thumbnail.get() if hasattr(self, 'thumbnail') else ""
-		state = "normal" if thumb_data else "disabled"
-		self.set_button_states(view_img=state)
-		
-		# Update button text based on current viewer state
-		if hasattr(self, 'view_img_btn'):
-			if self.image_viewer and self.image_viewer.is_open():
-				self.view_img_btn.config(text="Close Image (Ctrl+V)")
-			elif thumb_data:
-				self.view_img_btn.config(text="View Image (Ctrl+V)")
-			else:
-				self.view_img_btn.config(text="View Image (Ctrl+V)")
-
-	def validate_inputs(self):
-		"""Validate all user inputs and return (is_valid, error_messages)"""
+	def validate_metadata_fields(self):
 		errors = []
 
 		# Validate field lengths
@@ -419,3 +357,81 @@ class SafetensorsEditor(tk.Tk):
 					errors.append(f"{field.title()} is required")
 		
 		return len(errors) == 0, errors
+	
+	def disable_all_buttons(self):
+		self.browse_btn.config(state="disabled")
+		self.save_btn.config(state="disabled")
+		self.showraw_btn.config(state="disabled")
+		self.set_img_btn.config(state="disabled")
+		self.view_img_btn.config(state="disabled")
+	
+	def update_button_states(self):
+		# Get current state information
+		has_file = bool(self.filepath.get())
+		has_thumbnail = bool(self.thumbnail.get() if hasattr(self, 'thumbnail') else "")
+		raw_view_open = self.raw_view.is_open() if hasattr(self, 'raw_view') else False
+		image_viewer_open = self.image_viewer.is_open() if hasattr(self, 'image_viewer') else False
+		
+		# Update each button's state and text
+		self._update_browse_button(has_file)
+		self._update_save_button(has_file)
+		self._update_set_image_button(has_file)
+		self._update_view_image_button(has_thumbnail, image_viewer_open)
+		self._update_raw_view_button(has_file, raw_view_open)
+		self._update_about_button()
+	
+	def _update_browse_button(self, has_file):
+		if hasattr(self, 'browse_btn'):
+			self.browse_btn.config(state="normal")
+	
+	def _update_save_button(self, has_file):
+		if hasattr(self, 'save_btn'):
+			self.save_btn.config(state="normal" if has_file else "disabled")
+	
+	def _update_set_image_button(self, has_file):
+		if hasattr(self, 'set_img_btn'):
+			self.set_img_btn.config(state="normal" if has_file else "disabled")
+	
+	def _update_view_image_button(self, has_thumbnail, image_viewer_open):
+		if hasattr(self, 'view_img_btn'):
+			# Set state based on whether we have thumbnail data
+			state = "normal" if has_thumbnail else "disabled"
+			self.view_img_btn.config(state=state)
+			
+			# Set text based on viewer state
+			if image_viewer_open:
+				self.view_img_btn.config(text="Close Image (Ctrl+V)")
+			else:
+				self.view_img_btn.config(text="View Image (Ctrl+V)")
+	
+	def _update_raw_view_button(self, has_file, raw_view_open):
+		if hasattr(self, 'showraw_btn'):
+			# Enable when file is loaded
+			self.showraw_btn.config(state="normal" if has_file else "disabled")
+			
+			# Update text based on raw view state
+			if raw_view_open:
+				self.showraw_btn.config(text="Hide Raw (F12)")
+			else:
+				self.showraw_btn.config(text="Show Raw (F12)")
+	
+	def _update_about_button(self):
+		if hasattr(self, 'about_btn'):
+			self.about_btn.config(state="normal")
+
+	def update_status(self, message):
+		self.status.set(message)
+		self.update_idletasks()
+
+	def clear_status(self):
+		self.status.set("Ready")
+	
+	def _setup_window_callbacks(self):
+		"""Set up callbacks for when windows are closed via X button"""
+		# Override the _on_window_closed method for windows that affect button states
+		self.image_viewer._on_window_closed = self._on_window_closed_callback
+		self.raw_view._on_window_closed = self._on_window_closed_callback
+	
+	def _on_window_closed_callback(self):
+		"""Called when a window is closed - update button states"""
+		self.update_button_states()

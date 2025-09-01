@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-from .base_window import BaseWindow
+from .window_base import BaseWindow
 
 class RawViewWindow(BaseWindow):
     
@@ -51,7 +51,7 @@ class RawViewWindow(BaseWindow):
         # Value column stretches to fill remaining space
         self.tree.column("value", width=200, stretch=True)
     
-    def _create_window(self):
+    def _create_window(self, *args, **kwargs):
         # Position window next to the main window
         main_x = self.parent.winfo_x()
         main_y = self.parent.winfo_y()

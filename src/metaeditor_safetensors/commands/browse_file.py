@@ -2,7 +2,7 @@ import os
 import logging
 from tkinter import filedialog, messagebox
 
-from .base_command import Command
+from .command_base import Command
 
 logger = logging.getLogger(__name__)
 

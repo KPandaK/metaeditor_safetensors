@@ -3,7 +3,7 @@ import io
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from base_window import BaseWindow
+from .window_base import BaseWindow
 
 class ImageViewerWindow(BaseWindow):
     
