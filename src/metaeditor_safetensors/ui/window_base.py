@@ -1,6 +1,5 @@
 import tkinter as tk
 
-
 class BaseWindow:
     """Base class for all UI windows with common open/close functionality."""
     

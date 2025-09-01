@@ -5,7 +5,7 @@ import os
 from tkinter import filedialog, messagebox
 from PIL import Image
 
-from .base_command import Command
+from .command_base import Command
 from config import THUMBNAIL_SIZE_WARNING, THUMBNAIL_TARGET_SIZE, THUMBNAIL_QUALITY
 
 logger = logging.getLogger(__name__)
