@@ -1,16 +1,8 @@
-[tool.poetry]
-name = "metaeditor_safetensors"
-version = "1.0.0"
-description = "Metadata editor for safetensors"
-authors = ["KPandaK"]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-
-packages = [
-    { include = "metaeditor_safetensors", from = "src" }
-]
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/metaeditor_safetensors/_version.py"
+version_scheme = "guess-next-dev"
+local_scheme = "dirty-tag"
