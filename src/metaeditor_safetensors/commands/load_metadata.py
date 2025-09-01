@@ -1,7 +1,7 @@
 import logging
 from tkinter import messagebox
 
-from .base_command import Command
+from .command_base import Command
 from safetensors import read_safetensors_metadata
 
 logger = logging.getLogger(__name__)

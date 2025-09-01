@@ -5,7 +5,7 @@ import logging
 import json
 from tkinter import messagebox
 
-from .base_command import Command
+from .command_base import Command
 from utils import compute_sha256
 from config import CHUNK_SIZE
 
