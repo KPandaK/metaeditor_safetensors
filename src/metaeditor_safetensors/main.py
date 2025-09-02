@@ -1,9 +1,4 @@
-from editor import SafetensorsEditor
-
-def main():
-    """Main entry point for the application."""
-    app = SafetensorsEditor()
-    app.mainloop()
+from editor_pyqt import main
 
 if __name__ == "__main__":
     main()
