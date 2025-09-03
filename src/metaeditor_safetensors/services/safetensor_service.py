@@ -11,7 +11,6 @@ UI and control flow.
 import json
 import os
 import struct
-import base64
 from typing import Dict, Any, Callable
 
 class SafetensorService:
@@ -150,45 +149,4 @@ class SafetensorService:
                     os.remove(temp_filepath)
                 except OSError:
                     pass
-
-    def image_to_data_uri(self, filepath: str) -> str:
-        """
-        Convert an image file to a data URI string for embedding in metadata.
-        
-        Args:
-            filepath: Path to the image file
-            
-        Returns:
-            Data URI string (e.g., "data:image/png;base64,...")
-            
-        Raises:
-            IOError: If the file cannot be read
-            ValueError: If the file format is not supported
-        """
-        # Supported image formats
-        mime_map = {
-            '.jpg': 'jpeg',
-            '.jpeg': 'jpeg', 
-            '.png': 'png',
-            '.bmp': 'bmp',
-            '.gif': 'gif'
-        }
-        
-        # Get file extension and validate format
-        ext = os.path.splitext(filepath)[1].lower()
-        if ext not in mime_map:
-            raise ValueError(f"Unsupported image format: {ext}")
-        
-        # Read and encode the image
-        try:
-            with open(filepath, "rb") as f:
-                image_bytes = f.read()
-            
-            encoded_string = base64.b64encode(image_bytes).decode('utf-8')
-            img_type = mime_map[ext]
-            
-            return f"data:image/{img_type};base64,{encoded_string}"
-            
-        except IOError as e:
-            raise IOError(f"Failed to read image file: {e}")
 
