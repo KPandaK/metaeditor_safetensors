@@ -15,10 +15,10 @@ from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtCore import Signal, QDateTime, Qt, QSize
 
 # This imports the class generated from the .ui file.
-from ..ui.editor_panel_ui import Ui_EditorPanel
+from ..resources.editor_panel_ui import Ui_EditorPanel
 from ..models.metadata_keys import MetadataKeys
 # Import custom widget so it can be found by the UI loader
-from ..ui.image_widget import ImageWidget
+from ..widgets.image_widget import ImageWidget
 
 class MainView(QMainWindow):
     """
@@ -97,7 +97,7 @@ class MainView(QMainWindow):
         
         # Set window icon
         import os
-        icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "resources", "icon.png")
+        icon_path = os.path.join(os.path.dirname(__file__), "..", "resources", "icon.png")
         icon_path = os.path.abspath(icon_path)
         if os.path.exists(icon_path):
             icon = QIcon(icon_path)
@@ -105,7 +105,7 @@ class MainView(QMainWindow):
                 self.setWindowIcon(icon)
         else:
             # Optionally set a default icon or skip setting the icon
-            pass
+            print(f"Warning: icon.png not found at {icon_path}. Window icon not set.")
 
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
