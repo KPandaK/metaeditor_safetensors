@@ -41,7 +41,7 @@ def main():
     app.setApplicationVersion(__version__)
 
     # --- Live-reloading for stylesheet ---
-    style_file = os.path.join(os.path.dirname(__file__), 'ui', 'style.qss')
+    style_file = os.path.join(os.path.dirname(__file__), 'resources', 'style.qss')
 
     def apply_stylesheet():
         """Reads the stylesheet and applies it to the application."""
