@@ -12,6 +12,7 @@ from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
 from ..services.safetensor_service import SafetensorService
+from ..services.image_service import ImageService
 from ..workers.save_worker import SaveWorker
 
 class MainController(QObject):
@@ -26,6 +27,7 @@ class MainController(QObject):
         self._model = model
         self._view = view
         self._safetensor_service = SafetensorService()
+        self._image_service = ImageService()
         self._current_file = None
         self.thread = None
         self.worker = None
@@ -96,7 +98,7 @@ class MainController(QObject):
         )
         if filepath:
             try:
-                data_uri = self._safetensor_service.image_to_data_uri(filepath)
+                data_uri = self._image_service.image_to_data_uri(filepath)
                 self._model.set_value(MetadataKeys.THUMBNAIL, data_uri)
                 self._view.set_status_message("Thumbnail set.", 3000)
             except Exception as e:
@@ -237,7 +239,8 @@ class MainController(QObject):
 
         # Update the thumbnail
         thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
-        self._view.set_thumbnail_from_data_uri(thumbnail_data_uri)
+        thumbnail_pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
+        self._view.set_thumbnail_pixmap(thumbnail_pixmap)
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
