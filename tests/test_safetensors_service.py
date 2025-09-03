@@ -6,7 +6,7 @@ import numpy as np
 from unittest.mock import patch, mock_open
 from safetensors.numpy import save_file, load_file
 from safetensors import safe_open
-from metaeditor_safetensors.services.safetensors_service import SafetensorService
+from metaeditor_safetensors.services.safetensors_service import SafetensorsService
 
 class TestSafetensorsService(unittest.TestCase):
     """
@@ -17,7 +17,7 @@ class TestSafetensorsService(unittest.TestCase):
     def setUp(self):
         """Set up a temporary directory and common data for test files."""
         self.test_dir = tempfile.mkdtemp()
-        self.service = SafetensorService()
+        self.service = SafetensorsService()
         self.dummy_tensors = {
             "weight1": np.array([1, 2, 3]),
             "weight2": np.array([[4, 5], [6, 7]], dtype=np.float32)

@@ -1,8 +1,8 @@
 """
-Safetensor File Service
+Safetensors File Service
 =======================
 
-This module provides a service class, `SafetensorService`, for interacting
+This module provides a service class, `SafetensorsService`, for interacting
 with .safetensors files. It encapsulates the low-level logic for reading
 and writing the file format, keeping it separate from the application's
 UI and control flow.

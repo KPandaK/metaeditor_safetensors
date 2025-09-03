@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QH
     QSizePolicy, QSpacerItem, QTextEdit, QVBoxLayout,
     QWidget)
 
-from metaeditor_safetensors.ui.image_widget import ImageWidget
+from metaeditor_safetensors.widgets.image_widget import ImageWidget
 
 class Ui_EditorPanel(object):
     def setupUi(self, EditorPanel):
