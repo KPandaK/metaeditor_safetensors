@@ -6,7 +6,7 @@ import tkinter.font as tkfont
 from datetime import datetime
 from tkcalendar import DateEntry
 from tooltips import ToolTip
-from config import (
+from legacy.config import (
 	MODELSPEC_FIELDS, MODELSPEC_TOOLTIPS, MODELSPEC_KEY_MAP, GITHUB_URL,
 	MAX_FIELD_LENGTH, MAX_DESCRIPTION_LENGTH, REQUIRED_FIELDS
 )

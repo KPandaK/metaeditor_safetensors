@@ -172,7 +172,7 @@ QMenuBar {
 
 QMenuBar::item {
     background-color: transparent;
-    padding: 4px 5px;
+    padding: 4px 8px;
 }
 
 QMenuBar::item:selected {
@@ -194,4 +194,38 @@ QMenu::item {
 QMenu::item:selected {
     background-color: #0078d4;
     color: #ffffff;
+}
+
+/* =================================================================
+   THUMBNAIL DISPLAY
+   ================================================================= */
+
+/* Thumbnail display base styling */
+#thumbnailDisplay {
+    border: 2px dashed #cccccc;
+    background-color: #fafafa;
+    color: #666666;
+}
+
+/* Thumbnail display when image is loaded */
+#thumbnailDisplay[hasPixmap="true"] {
+    border: 1px solid #888888;
+}
+
+/* =================================================================
+   SEPARATOR LINES
+   ================================================================= */
+
+/* Horizontal separator lines */
+QFrame[frameShape="4"] {
+    color: #cccccc;
+    background-color: #cccccc;
+    border: none;
+    max-height: 1px;
+}
+
+/* Alternative selector for Line widgets */
+Line {
+    color: #cccccc;
+    background-color: #cccccc;
 }
