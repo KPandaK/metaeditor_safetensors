@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'editor_panel.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.6.1
+## Created by: Qt User Interface Compiler version 6.9.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,10 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QFrame,
-    QHBoxLayout, QLabel, QLineEdit, QProgressBar,
-    QPushButton, QSizePolicy, QSpacerItem, QTextEdit,
-    QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QHBoxLayout,
+    QLabel, QLineEdit, QProgressBar, QPushButton,
+    QSizePolicy, QSpacerItem, QTextEdit, QVBoxLayout,
+    QWidget)
 
 from metaeditor_safetensors.ui.image_widget import ImageWidget
 
@@ -65,7 +65,7 @@ class Ui_EditorPanel(object):
 
         self.authorEdit = QLineEdit(EditorPanel)
         self.authorEdit.setObjectName(u"authorEdit")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.authorEdit.sizePolicy().hasHeightForWidth())
@@ -80,15 +80,15 @@ class Ui_EditorPanel(object):
         self.dateLayout.setObjectName(u"dateLayout")
         self.dateLabel = QLabel(EditorPanel)
         self.dateLabel.setObjectName(u"dateLabel")
-        self.dateLabel.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
+        self.dateLabel.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
 
         self.dateLayout.addWidget(self.dateLabel)
 
         self.dateTimeEdit = QDateTimeEdit(EditorPanel)
         self.dateTimeEdit.setObjectName(u"dateTimeEdit")
         self.dateTimeEdit.setMinimumSize(QSize(140, 22))
-        self.dateTimeEdit.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignVCenter)
-        self.dateTimeEdit.setButtonSymbols(QAbstractSpinBox.UpDownArrows)
+        self.dateTimeEdit.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
+        self.dateTimeEdit.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.UpDownArrows)
         self.dateTimeEdit.setCalendarPopup(True)
 
         self.dateLayout.addWidget(self.dateTimeEdit)
@@ -139,7 +139,7 @@ class Ui_EditorPanel(object):
 
         self.leftColumn.addWidget(self.mergedFromEdit)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.leftColumn.addItem(self.verticalSpacer)
 
@@ -155,7 +155,7 @@ class Ui_EditorPanel(object):
 
         self.thumbnailDisplay = ImageWidget(EditorPanel)
         self.thumbnailDisplay.setObjectName(u"thumbnailDisplay")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(1)
         sizePolicy1.setHeightForWidth(self.thumbnailDisplay.sizePolicy().hasHeightForWidth())
@@ -186,7 +186,7 @@ class Ui_EditorPanel(object):
 
         self.thumbnailColumn.addLayout(self.thumbnailButtonsLayout)
 
-        self.thumbnailSpacer = QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.thumbnailSpacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.thumbnailColumn.addItem(self.thumbnailSpacer)
 
@@ -197,14 +197,6 @@ class Ui_EditorPanel(object):
         self.horizontalLayout.setStretch(1, 4)
 
         self.verticalLayout.addLayout(self.horizontalLayout)
-
-        self.line = QFrame(EditorPanel)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShadow(QFrame.Plain)
-        self.line.setLineWidth(1)
-        self.line.setFrameShape(QFrame.HLine)
-
-        self.verticalLayout.addWidget(self.line)
 
         self.progressBar = QProgressBar(EditorPanel)
         self.progressBar.setObjectName(u"progressBar")

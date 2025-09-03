@@ -13,7 +13,7 @@ import os
 import struct
 from typing import Dict, Any, Callable
 
-class SafetensorService:
+class SafetensorsService:
     """
     Provides methods for reading and writing safetensors file data.
     """

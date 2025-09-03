@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QFileDialog
 from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
-from ..services.safetensors_service import SafetensorService
+from ..services.safetensors_service import SafetensorsService
 from ..services.image_service import ImageService
 from ..workers.save_worker import SaveWorker
 
@@ -26,7 +26,7 @@ class MainController(QObject):
         super().__init__()
         self._model = model
         self._view = view
-        self._safetensor_service = SafetensorService()
+        self._safetensor_service = SafetensorsService()
         self._image_service = ImageService()
         self._current_file = None
         self.thread = None
