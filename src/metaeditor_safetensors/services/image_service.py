@@ -8,8 +8,8 @@ image-specific logic decoupled from other parts of the application.
 """
 
 import base64
-import os
 from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QBuffer, QIODevice
 
 class ImageService:
     """
@@ -18,41 +18,44 @@ class ImageService:
 
     def image_to_data_uri(self, filepath: str) -> str:
         """
-        Convert an image file to a data URI string for embedding in metadata.
+        Convert an image file to a JPEG data URI string for embedding in metadata.
+        All input formats are converted to JPEG to comply with modelspec standards.
         
         Args:
             filepath: Path to the image file
             
         Returns:
-            Data URI string (e.g., "data:image/png;base64,...")
+            Data URI string
             
         Raises:
             IOError: If the file cannot be read
-            ValueError: If the file format is not supported
+            ValueError: If the file format is not supported by Qt
         """
-        mime_map = {
-            '.jpg': 'jpeg',
-            '.jpeg': 'jpeg', 
-            '.png': 'png',
-            '.bmp': 'bmp',
-            '.gif': 'gif'
-        }
-        
-        ext = os.path.splitext(filepath)[1].lower()
-        if ext not in mime_map:
-            raise ValueError(f"Unsupported image format: {ext}")
-        
         try:
-            with open(filepath, "rb") as f:
-                image_bytes = f.read()
+            # Load the image using QPixmap (supports many formats)
+            pixmap = QPixmap(filepath)
+            if pixmap.isNull():
+                raise ValueError(f"Unsupported or corrupted image file: {filepath}")
             
-            encoded_string = base64.b64encode(image_bytes).decode('utf-8')
-            img_type = mime_map[ext]
+            # Convert to JPEG format in memory using Qt's QBuffer
+            buffer = QBuffer()
+            buffer.open(QIODevice.WriteOnly)
+            # Save as JPEG with good quality (85 is a good balance of quality/size)
+            if not pixmap.save(buffer, 'JPEG', quality=85):
+                raise ValueError(f"Failed to convert image to JPEG format")
             
-            return f"data:image/{img_type};base64,{encoded_string}"
+            jpeg_bytes = buffer.data().data()  # Get the raw bytes
+            buffer.close()
+            
+            # Encode as base64
+            encoded_string = base64.b64encode(jpeg_bytes).decode('utf-8')
+            
+            return f"data:image/jpeg;base64,{encoded_string}"
             
         except IOError as e:
             raise IOError(f"Failed to read image file: {e}")
+        except Exception as e:
+            raise ValueError(f"Failed to convert image to JPEG: {e}")
 
     def data_uri_to_pixmap(self, data_uri: str) -> QPixmap | None:
         """
