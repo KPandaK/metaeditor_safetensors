@@ -13,7 +13,6 @@ import os
 import struct
 import base64
 from typing import Dict, Any, Callable
-from PySide6.QtGui import QPixmap
 
 class SafetensorService:
     """
@@ -192,28 +191,4 @@ class SafetensorService:
             
         except IOError as e:
             raise IOError(f"Failed to read image file: {e}")
-
-    def data_uri_to_pixmap(self, data_uri: str):
-        """
-        Convert a data URI string back to a QPixmap.
-        
-        Args:
-            data_uri: Data URI string (e.g., "data:image/png;base64,...")
-            
-        Returns:
-            QPixmap object, or None if conversion fails
-        """
-        if not data_uri or "base64," not in data_uri:
-            return None
-            
-        try:
-            # Strip the data URI prefix to get the pure base64 data
-            base64_data = data_uri.split("base64,")[1]
-            # Decode the base64 string and create a QPixmap
-            pixmap_data = base64.b64decode(base64_data)
-            pixmap = QPixmap()
-            pixmap.loadFromData(pixmap_data)
-            return pixmap if not pixmap.isNull() else None
-        except Exception:
-            return None
 
