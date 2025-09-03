@@ -40,3 +40,6 @@ htmlcov/
 
 # Logs
 *.log
+
+# Testing assets
+*.safetensors

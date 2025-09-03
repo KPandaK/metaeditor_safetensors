@@ -9,7 +9,6 @@ that orchestrates the interactions between the Model and the View.
 from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QFileDialog
-import base64
 from ..models.metadata_model import MetadataModel
 from ..views.main_view import MainView
 from ..services.safetensor_service import SafetensorService
@@ -97,13 +96,7 @@ class MainController(QObject):
         )
         if filepath:
             try:
-                with open(filepath, "rb") as f:
-                    image_bytes = f.read()
-                # Encode the image bytes to a base64 string and create the data URI
-                encoded_string = base64.b64encode(image_bytes).decode('utf-8')
-                # Per ModelSpec, the format is data:image/[type];base64,[data]
-                # We'll use jpeg as a reasonable default, as suggested by the spec.
-                data_uri = f"data:image/jpeg;base64,{encoded_string}"
+                data_uri = self._safetensor_service.image_to_data_uri(filepath)
                 self._model.set_value('modelspec.thumbnail', data_uri)
                 self._view.set_status_message("Thumbnail set.", 3000)
             except Exception as e:
@@ -227,20 +220,8 @@ class MainController(QObject):
 
         # Update the thumbnail
         thumbnail_data_uri = self._model.get_value('modelspec.thumbnail')
-        if thumbnail_data_uri and "base64," in thumbnail_data_uri:
-            try:
-                # Strip the data URI prefix to get the pure base64 data
-                base64_data = thumbnail_data_uri.split("base64,")[1]
-                # Decode the base64 string and create a QPixmap
-                pixmap_data = base64.b64decode(base64_data)
-                pixmap = QPixmap()
-                pixmap.loadFromData(pixmap_data)
-                self._view.set_thumbnail_pixmap(pixmap)
-            except Exception as e:
-                print(f"Error loading thumbnail: {e}")
-                self._view.set_thumbnail_pixmap(None)
-        else:
-            self._view.set_thumbnail_pixmap(None)
+        pixmap = self._safetensor_service.data_uri_to_pixmap(thumbnail_data_uri)
+        self._view.set_thumbnail_pixmap(pixmap)
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
