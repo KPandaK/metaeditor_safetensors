@@ -47,7 +47,13 @@ def main():
     controller.run()
 
     # 4. Start the Qt event loop.
-    sys.exit(app.exec())
+    try:
+        exit_code = app.exec()
+    finally:
+        # Ensure proper cleanup before exit
+        controller.shutdown()
+    
+    sys.exit(exit_code)
 
 if __name__ == "__main__":
     main()
