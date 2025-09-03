@@ -29,7 +29,7 @@ A lightweight Python tool and GUI for inspecting and editing `.safetensors` file
 ## Usage
 Run the main application:
 ```sh
-python src/metaeditor_safetensors/main.py
+python metaeditor_safetensors/main.py
 ```
 Use the GUI for interactive editing.
 
