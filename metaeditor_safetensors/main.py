@@ -10,7 +10,7 @@ architecture and starts the Qt application event loop.
 
 import sys
 import os
-from PySide6.QtCore import QFileSystemWatcher
+from PySide6.QtCore import QFileSystemWatcher, Qt
 from PySide6.QtWidgets import QApplication
 
 # Handle both direct execution and module execution
@@ -21,11 +21,13 @@ if __name__ == "__main__" and __package__ is None:
     from metaeditor_safetensors.models.metadata_model import MetadataModel
     from metaeditor_safetensors.views.main_view import MainView
     from metaeditor_safetensors.controllers.main_controller import MainController
+    from metaeditor_safetensors._version import __version__
 else:
     # Module execution - use relative imports
     from .models.metadata_model import MetadataModel
     from .views.main_view import MainView
     from .controllers.main_controller import MainController
+    from ._version import __version__
 
 def main():
     """
@@ -33,6 +35,10 @@ def main():
     """
     # 1. Create the QApplication instance. This is a requirement for any Qt app.
     app = QApplication(sys.argv)
+    
+    # Set application properties for consistent font rendering
+    app.setApplicationDisplayName("Safetensors Metadata Editor")
+    app.setApplicationVersion(__version__)
 
     # --- Live-reloading for stylesheet ---
     style_file = os.path.join(os.path.dirname(__file__), 'ui', 'style.qss')
