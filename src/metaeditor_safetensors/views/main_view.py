@@ -199,6 +199,19 @@ class MainView(QMainWindow):
         """Displays a message in the status bar."""
         self.statusBar().showMessage(message, timeout)
 
+    def show_progress_bar(self):
+        """Shows the progress bar and resets it to 0."""
+        self.ui.progressBar.setValue(0)
+        self.ui.progressBar.setVisible(True)
+
+    def hide_progress_bar(self):
+        """Hides the progress bar."""
+        self.ui.progressBar.setVisible(False)
+
+    def set_progress_value(self, value: int):
+        """Sets the progress bar value (0-100)."""
+        self.ui.progressBar.setValue(value)
+
     def set_field_value(self, field_name: str, value: any):
         """
         Sets the value of a specific field in the UI using the widget map.

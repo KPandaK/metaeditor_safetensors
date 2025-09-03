@@ -103,7 +103,8 @@ class SafetensorService:
                 header_json["__metadata__"] = metadata
 
                 # --- 2. Write the new header to the temp file ---
-                new_header_bytes = json.dumps(header_json, indent=2).encode('utf-8')
+                # Use compact JSON formatting to match typical safetensors format
+                new_header_bytes = json.dumps(header_json, separators=(',', ':')).encode('utf-8')
                 new_header_len = len(new_header_bytes)
                 f_out.write(struct.pack('<Q', new_header_len))
                 f_out.write(new_header_bytes)
