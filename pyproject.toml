@@ -12,15 +12,13 @@ dependencies = [
     "PySide6>=6.6.1",
     "Pillow>=10.3.0",
     "tkcalendar>=1.6.1",
+    "numpy<2",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.setuptools_scm]
-write_to = "src/metaeditor_safetensors/_version.py"
+write_to = "metaeditor_safetensors/_version.py"
 version_scheme = "guess-next-dev"
 local_scheme = "dirty-tag"

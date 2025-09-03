@@ -12,9 +12,20 @@ import sys
 import os
 from PySide6.QtCore import QFileSystemWatcher
 from PySide6.QtWidgets import QApplication
-from .models.metadata_model import MetadataModel
-from .views.main_view import MainView
-from .controllers.main_controller import MainController
+
+# Handle both direct execution and module execution
+if __name__ == "__main__" and __package__ is None:
+    # Direct execution - add parent directory to path for imports
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, parent_dir)
+    from metaeditor_safetensors.models.metadata_model import MetadataModel
+    from metaeditor_safetensors.views.main_view import MainView
+    from metaeditor_safetensors.controllers.main_controller import MainController
+else:
+    # Module execution - use relative imports
+    from .models.metadata_model import MetadataModel
+    from .views.main_view import MainView
+    from .controllers.main_controller import MainController
 
 def main():
     """
