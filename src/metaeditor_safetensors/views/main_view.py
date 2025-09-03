@@ -95,9 +95,16 @@ class MainView(QMainWindow):
         self.setWindowTitle("Metadata Editor")
         
         # Set window icon
-        icon = QIcon("resources/icon.png")
-        if not icon.isNull():
-            self.setWindowIcon(icon)
+        import os
+        icon_path = os.path.join(os.path.dirname(__file__), "..", "..", "resources", "icon.png")
+        icon_path = os.path.abspath(icon_path)
+        if os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+            if not icon.isNull():
+                self.setWindowIcon(icon)
+        else:
+            # Optionally set a default icon or skip setting the icon
+            pass
 
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
