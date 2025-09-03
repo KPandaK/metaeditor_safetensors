@@ -1,9 +1,9 @@
 import tkinter as tk
 import tkinter.font as tkfont
 import webbrowser
-from config import GITHUB_URL
+# from config import GITHUB_URL
 from _version import __version__
-from ..src.metaeditor_safetensors.ui.window_base import BaseWindow
+from .window_base import BaseWindow
 
 class AboutWindow(BaseWindow):
     

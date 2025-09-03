@@ -4,6 +4,7 @@ A lightweight Python tool and GUI for inspecting and editing `.safetensors` file
 
 ## Features
 - View and edit metadata in safetensors files
+- Implements the [Stability AI ModelSpec](https://github.com/Stability-AI/ModelSpec) version 1.0.1 for standardized metadata.
 - Simple GUI usage
 
 ## Installation
