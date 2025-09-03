@@ -10,7 +10,6 @@ The `MainView` is a "dumb" component; it only displays data and emits signals
 when the user interacts with it. It has no direct knowledge of the model.
 """
 
-import base64
 from PySide6.QtWidgets import QMainWindow, QWidget
 from PySide6.QtGui import QAction, QIcon, QPixmap
 from PySide6.QtCore import Signal, QDateTime, Qt, QSize
@@ -178,25 +177,13 @@ class MainView(QMainWindow):
 
     # --- Methods to update UI from Controller ---
 
-    def set_thumbnail_from_data_uri(self, data_uri: str):
+    def set_thumbnail_pixmap(self, pixmap: QPixmap | None):
         """
-        Converts a data URI string to a QPixmap and displays it.
+        Displays the provided QPixmap as the thumbnail.
         
         Args:
-            data_uri: The base64-encoded data URI for the thumbnail image.
+            pixmap: The QPixmap to display, or None to clear the thumbnail.
         """
-        pixmap = None
-        if data_uri and "base64," in data_uri:
-            try:
-                base64_data = data_uri.split("base64,")[1]
-                pixmap_data = base64.b64decode(base64_data)
-                pixmap = QPixmap()
-                pixmap.loadFromData(pixmap_data)
-                if pixmap.isNull():
-                    pixmap = None # Ensure we have None for failed loads
-            except Exception:
-                pixmap = None # Ensure we have None on any error
-        
         self.thumbnail_widget.setPixmap(pixmap)
         
         # Set property for CSS styling
