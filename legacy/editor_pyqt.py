@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QAction, QFont, QIcon, QPixmap
 
-from config import (
+from legacy.config import (
     MODELSPEC_KEY_MAP, GITHUB_URL,
     MAX_FIELD_LENGTH, MAX_DESCRIPTION_LENGTH, REQUIRED_FIELDS
 )

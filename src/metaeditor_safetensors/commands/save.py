@@ -7,7 +7,7 @@ from tkinter import messagebox
 
 from .command_base import Command
 from utils import compute_sha256
-from config import CHUNK_SIZE
+from legacy.config import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
