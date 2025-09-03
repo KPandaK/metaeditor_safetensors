@@ -94,7 +94,7 @@ class MainController(QObject):
             self._view,
             "Select Thumbnail Image",
             "",
-            "Image Files (*.png *.jpg *.jpeg *.bmp *.gif)"
+            "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp *.svg *.ico);;All Files (*)"
         )
         if filepath:
             try:
