@@ -57,6 +57,10 @@ class MainController(QObject):
         self._view.clear_thumbnail_requested.connect(self.on_clear_thumbnail_requested)
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
 
+    def __del__(self):
+        """Destructor to ensure proper thread cleanup."""
+        self.cleanup_thread()
+
     def run(self):
         """Shows the main window and starts the application."""
         self._view.show()
@@ -129,9 +133,14 @@ class MainController(QObject):
             self._view.set_status_message("No changes to save.")
             return
 
+        # Prevent multiple save operations
+        if self.thread and self.thread.isRunning():
+            self._view.set_status_message("Save operation already in progress.")
+            return
+
         # Disable UI elements during save
         self._view.set_all_fields_enabled(False)
-        self._view.ui.progressBar.setValue(0)
+        self._view.show_progress_bar()
         self._view.set_status_message(f"Saving {self._current_file}...")
 
         # --- Setup and run the background worker ---
@@ -152,7 +161,9 @@ class MainController(QObject):
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
         self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.error.connect(self.thread.quit)
+        self.worker.error.connect(self.worker.deleteLater)
 
         # Start the thread
         self.thread.start()
@@ -160,7 +171,7 @@ class MainController(QObject):
     @Slot(int)
     def on_save_progress(self, value: int):
         """Updates the progress bar."""
-        self._view.ui.progressBar.setValue(value)
+        self._view.set_progress_value(value)
 
     @Slot(str)
     def on_save_finished(self, filepath: str):
@@ -168,6 +179,7 @@ class MainController(QObject):
         self._view.set_status_message(f"Successfully saved to {filepath}", 5000)
         self._model.mark_saved()
         self._view.set_all_fields_enabled(True)
+        self._view.hide_progress_bar()
         self.cleanup_thread()
 
     @Slot(str)
@@ -175,10 +187,14 @@ class MainController(QObject):
         """Handles save errors."""
         self._view.set_status_message(f"Save failed: {error_message}")
         self._view.set_all_fields_enabled(True)
+        self._view.hide_progress_bar()
         self.cleanup_thread()
 
     def cleanup_thread(self):
         """Cleans up the thread and worker objects."""
+        if self.thread and self.thread.isRunning():
+            self.thread.quit()
+            self.thread.wait()  # Wait for thread to finish
         self.thread = None
         self.worker = None
 
