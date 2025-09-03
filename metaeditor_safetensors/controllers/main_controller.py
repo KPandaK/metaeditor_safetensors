@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QFileDialog
 from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
-from ..services.safetensor_service import SafetensorService
+from ..services.safetensors_service import SafetensorService
 from ..services.image_service import ImageService
 from ..workers.save_worker import SaveWorker
 

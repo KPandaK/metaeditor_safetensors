@@ -9,7 +9,7 @@ without freezing the user interface.
 
 from PySide6.QtCore import QObject, Signal
 from typing import Dict, Any
-from ..services.safetensor_service import SafetensorService
+from ..services.safetensors_service import SafetensorService
 
 class SaveWorker(QObject):
     """
