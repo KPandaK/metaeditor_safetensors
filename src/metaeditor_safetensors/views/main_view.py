@@ -16,6 +16,7 @@ from PySide6.QtCore import Signal, QDateTime, Qt, QSize
 
 # This imports the class generated from the .ui file.
 from ..ui.editor_panel_ui import Ui_EditorPanel
+from ..models.metadata_keys import MetadataKeys
 # Import custom widget so it can be found by the UI loader
 from ..ui.image_widget import ImageWidget
 
@@ -72,14 +73,14 @@ class MainView(QMainWindow):
 
         # --- Widget Mapping for Data Binding ---
         self._widget_map = {
-            'title': (self.ui.titleEdit, 'setText'),
-            'description': (self.ui.descriptionEdit, 'setPlainText'),
-            'author': (self.ui.authorEdit, 'setText'),
-            'datetime': (self.ui.dateTimeEdit, 'setDateTime'),
-            'license': (self.ui.licenseEdit, 'setText'),
-            'usage_hint': (self.ui.usageHintEdit, 'setText'),
-            'tags': (self.ui.tagsEdit, 'setText'),
-            'merged_from': (self.ui.mergedFromEdit, 'setText'),
+            MetadataKeys.TITLE: (self.ui.titleEdit, 'setText'),
+            MetadataKeys.DESCRIPTION: (self.ui.descriptionEdit, 'setPlainText'),
+            MetadataKeys.AUTHOR: (self.ui.authorEdit, 'setText'),
+            MetadataKeys.DATE: (self.ui.dateTimeEdit, 'setDateTime'),
+            MetadataKeys.LICENSE: (self.ui.licenseEdit, 'setText'),
+            MetadataKeys.USAGE_HINT: (self.ui.usageHintEdit, 'setText'),
+            MetadataKeys.TAGS: (self.ui.tagsEdit, 'setText'),
+            MetadataKeys.MERGED_FROM: (self.ui.mergedFromEdit, 'setText'),
         }
         # ---
 
@@ -211,6 +212,14 @@ class MainView(QMainWindow):
     def set_progress_value(self, value: int):
         """Sets the progress bar value (0-100)."""
         self.ui.progressBar.setValue(value)
+
+    def update_all_fields(self, data: dict):
+        """
+        Updates all UI fields based on the provided data dictionary.
+        """
+        for field_name in self._widget_map.keys():
+            value = data.get(field_name, "")
+            self.set_field_value(field_name, value)
 
     def set_field_value(self, field_name: str, value: any):
         """
