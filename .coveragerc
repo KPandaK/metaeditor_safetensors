@@ -15,6 +15,10 @@ omit =
     */lib/*
     *enum_sig.py
     *signature_bootstrap*
+    main.py
+    __main__.py
+    _version.py
+    __init__.py
 
 [report]
 skip_empty = True
