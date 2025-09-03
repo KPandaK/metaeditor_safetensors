@@ -7,7 +7,6 @@ that orchestrates the interactions between the Model and the View.
 """
 
 from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
-from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QFileDialog
 from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
@@ -238,8 +237,7 @@ class MainController(QObject):
 
         # Update the thumbnail
         thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
-        pixmap = self._safetensor_service.data_uri_to_pixmap(thumbnail_data_uri)
-        self._view.set_thumbnail_pixmap(pixmap)
+        self._view.set_thumbnail_from_data_uri(thumbnail_data_uri)
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
