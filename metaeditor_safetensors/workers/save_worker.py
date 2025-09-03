@@ -9,7 +9,7 @@ without freezing the user interface.
 
 from PySide6.QtCore import QObject, Signal
 from typing import Dict, Any
-from ..services.safetensors_service import SafetensorService
+from ..services.safetensors_service import SafetensorsService
 
 class SaveWorker(QObject):
     """
@@ -28,7 +28,7 @@ class SaveWorker(QObject):
     # Signal emitted when an error occurs, carrying the error message
     error = Signal(str)
 
-    def __init__(self, service: SafetensorService, filepath: str, metadata: Dict[str, Any]):
+    def __init__(self, service: SafetensorsService, filepath: str, metadata: Dict[str, Any]):
         """
         Args:
             service: An instance of SafetensorService to perform the save.

@@ -229,3 +229,17 @@ Line {
     color: #cccccc;
     background-color: #cccccc;
 }
+
+/* =================================================================
+   STATUS BAR
+   ================================================================= */
+
+QStatusBar {
+    background-color: #f0f0f0;
+    color: #000000;
+    border-top: 1px solid #cccccc;
+}
+
+QStatusBar::item {
+    border: none;
+}
