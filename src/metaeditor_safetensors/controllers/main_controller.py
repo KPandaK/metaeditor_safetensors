@@ -57,10 +57,6 @@ class MainController(QObject):
         self._view.clear_thumbnail_requested.connect(self.on_clear_thumbnail_requested)
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
 
-    def __del__(self):
-        """Destructor to ensure proper thread cleanup."""
-        self.cleanup_thread()
-
     def run(self):
         """Shows the main window and starts the application."""
         self._view.show()
@@ -194,14 +190,25 @@ class MainController(QObject):
         """Cleans up the thread and worker objects."""
         if self.thread and self.thread.isRunning():
             self.thread.quit()
-            self.thread.wait()  # Wait for thread to finish
+            # Wait for thread to finish with a 5-second timeout
+            if not self.thread.wait(5000):  # 5000ms = 5 seconds
+                # Thread didn't finish gracefully, force terminate
+                self.thread.terminate()
+                # Give it a short time to terminate, then proceed
+                self.thread.wait(1000)  # 1 second timeout for terminate
         self.thread = None
         self.worker = None
+
+    def shutdown(self):
+        """Properly shutdown the controller and clean up resources."""
+        self.cleanup_thread()
+        # Additional cleanup can be added here if needed
 
     @Slot()
     def on_exit_requested(self):
         """Handles the exit request from the view."""
         # TODO: Check for unsaved changes before exiting
+        self.shutdown()
         self._view.close()
 
     @Slot(QDateTime)
