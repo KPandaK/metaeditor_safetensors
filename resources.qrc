@@ -1,0 +1,8 @@
+<RCC>
+  <qresource>
+    <file>assets/style.qss</file>
+    <file>assets/support_me.png</file>
+    <file>assets/logo.svg</file>
+    <file>assets/icon.ico</file>
+  </qresource>
+</RCC>
