@@ -1,0 +1,31 @@
+[run]
+source = metaeditor_safetensors
+omit = 
+    */shibokensupport/*
+    */PySide6/*
+    */site-packages/*
+    */venv/*
+    */tests/*
+    */test_*
+    */__pycache__/*
+    */build/*
+    */dist/*
+    *pyscript*
+    */signature/*
+    */lib/*
+    *enum_sig.py
+    *signature_bootstrap*
+    main.py
+    __main__.py
+    _version.py
+    __init__.py
+    app.py
+    resources_rc.py
+
+[report]
+skip_empty = True
+exclude_lines =
+    pragma: no cover
+
+[html]
+directory = htmlcov

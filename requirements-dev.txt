@@ -5,6 +5,7 @@
 # Testing
 safetensors>=0.6.2
 numpy>=1.20.0
+coverage>=7.0.0
 
 # Version management from git tags
 setuptools_scm>=8.0.0
