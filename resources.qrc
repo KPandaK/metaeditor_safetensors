@@ -1,5 +1,7 @@
 <RCC>
   <qresource>
+    <file>assets/GitHub_Lockup_Dark.png</file>
+    <file>assets/GitHub_Lockup_Light.png</file>
     <file>assets/style.qss</file>
     <file>assets/support_me.png</file>
     <file>assets/logo.svg</file>
