@@ -11,8 +11,8 @@ when the user interacts with it. It has no direct knowledge of the model.
 """
 
 from PySide6.QtWidgets import QMainWindow, QWidget
-from PySide6.QtGui import QAction, QIcon, QPixmap
-from PySide6.QtCore import Signal, QDateTime, Qt, QSize
+from PySide6.QtGui import QAction, QIcon, QPixmap, QDragEnterEvent, QDropEvent, QDragMoveEvent
+from PySide6.QtCore import Signal, QDateTime, Qt, QSize, QUrl
 
 # This imports the class generated from the .ui file.
 from .main_view_ui import Ui_EditorPanel
@@ -33,6 +33,7 @@ class MainView(QMainWindow):
     open_file_requested = Signal()
     save_requested = Signal()
     exit_requested = Signal()
+    file_dropped = Signal(str)
     
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
@@ -57,6 +58,9 @@ class MainView(QMainWindow):
         
         # Set up window icon and title
         self._setup_window_properties()
+
+        # Enable drag and drop
+        self.setAcceptDrops(True)
 
         # Create the main window's menu bar
         self._create_menu_bar()
@@ -268,3 +272,44 @@ class MainView(QMainWindow):
         self.ui.setThumbnailBtn.setEnabled(enabled)
         self.ui.viewThumbnailBtn.setEnabled(enabled)
         self.ui.clearThumbnailBtn.setEnabled(enabled)
+
+    # --- Drag and Drop Support ---
+    
+    def _is_valid_safetensors_file(self, urls):
+        """
+        Checks if any of the provided QUrls point to a local .safetensors file.
+        Returns the first valid file path, or None if not found.
+        """
+        for url in urls:
+            if url.isLocalFile():
+                file_path = url.toLocalFile()
+                if file_path.lower().endswith('.safetensors'):
+                    return file_path
+        return None
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """Handle drag enter events - accept if dragging .safetensors files."""
+        if event.mimeData().hasUrls():
+            if self._is_valid_safetensors_file(event.mimeData().urls()):
+                event.acceptProposedAction()
+                return
+        event.ignore()
+    
+    def dragMoveEvent(self, event: QDragMoveEvent):
+        """Handle drag move events - accept if we accepted the drag enter."""
+        if event.mimeData().hasUrls():
+            if self._is_valid_safetensors_file(event.mimeData().urls()):
+                event.acceptProposedAction()
+                return
+        event.ignore()
+    
+    def dropEvent(self, event: QDropEvent):
+        """Handle drop events - process the first .safetensors file that was dropped."""
+        if event.mimeData().hasUrls():
+            file_path = self._is_valid_safetensors_file(event.mimeData().urls())
+            if file_path:
+                # Emit signal with the first valid .safetensors file
+                self.file_dropped.emit(file_path)
+                event.acceptProposedAction()
+                return
+        event.ignore()
