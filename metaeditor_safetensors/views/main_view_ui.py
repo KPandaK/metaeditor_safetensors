@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'editor_panel.ui'
+## Form generated from reading UI file 'main_view.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.9.2
 ##
@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QH
     QSizePolicy, QSpacerItem, QTextEdit, QVBoxLayout,
     QWidget)
 
-from metaeditor_safetensors.components.image_widget import ImageWidget
+from metaeditor_safetensors.widgets.image_widget import ImageWidget
+from . import resources_rc
 
 class Ui_EditorPanel(object):
     def setupUi(self, EditorPanel):

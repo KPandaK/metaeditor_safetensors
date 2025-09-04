@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>639</width>
-    <height>352</height>
+    <height>351</height>
    </rect>
   </property>
   <property name="modal">
@@ -32,7 +32,7 @@
    <item>
     <layout class="QHBoxLayout" name="topLayout" stretch="45,55">
      <item>
-      <widget class="SvgWidget" name="iconLabel" native="true">
+      <widget class="SvgWidget" name="logoLabel" native="true">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
@@ -68,7 +68,7 @@
        <item>
         <widget class="QLabel" name="aboutVersion">
          <property name="text">
-          <string>Version 1.0.0</string>
+          <string>Version: v1.0.0</string>
          </property>
         </widget>
        </item>
@@ -102,6 +102,48 @@
          </property>
         </spacer>
        </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="kofiLink">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>100</width>
+             <height>56</height>
+            </size>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="pixmap">
+            <pixmap resource="../resources.qrc">:/assets/support_me.png</pixmap>
+           </property>
+           <property name="scaledContents">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
       </layout>
      </item>
     </layout>
@@ -119,16 +161,6 @@
       <widget class="QLabel" name="aboutLink">
        <property name="text">
         <string>&lt;a href='https://github.com/KPandaK/metaeditor_safetensors'&gt;GitHub Repository&lt;/a&gt;</string>
-       </property>
-       <property name="openExternalLinks">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="kofiLink">
-       <property name="text">
-        <string>&lt;a href='https://ko-fi.com/kpandak'&gt;Support on Ko-Fi&lt;/a&gt;</string>
        </property>
        <property name="openExternalLinks">
         <bool>true</bool>
@@ -163,9 +195,11 @@
   <customwidget>
    <class>SvgWidget</class>
    <extends>QWidget</extends>
-   <header>metaeditor_safetensors.components.svg_widget</header>
+   <header>metaeditor_safetensors.widgets.svg_widget</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

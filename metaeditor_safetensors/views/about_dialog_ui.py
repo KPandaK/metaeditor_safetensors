@@ -19,13 +19,14 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout,
     QLabel, QPushButton, QSizePolicy, QSpacerItem,
     QVBoxLayout, QWidget)
 
-from metaeditor_safetensors.components.svg_widget import SvgWidget
+from metaeditor_safetensors.widgets.svg_widget import SvgWidget
+from . import resources_rc
 
 class Ui_AboutDialog(object):
     def setupUi(self, AboutDialog):
         if not AboutDialog.objectName():
             AboutDialog.setObjectName(u"AboutDialog")
-        AboutDialog.resize(639, 352)
+        AboutDialog.resize(639, 351)
         AboutDialog.setModal(True)
         self.verticalLayout = QVBoxLayout(AboutDialog)
         self.verticalLayout.setSpacing(12)
@@ -33,17 +34,17 @@ class Ui_AboutDialog(object):
         self.verticalLayout.setContentsMargins(12, 12, 12, 12)
         self.topLayout = QHBoxLayout()
         self.topLayout.setObjectName(u"topLayout")
-        self.iconLabel = SvgWidget(AboutDialog)
-        self.iconLabel.setObjectName(u"iconLabel")
+        self.logoLabel = SvgWidget(AboutDialog)
+        self.logoLabel.setObjectName(u"logoLabel")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.iconLabel.sizePolicy().hasHeightForWidth())
-        self.iconLabel.setSizePolicy(sizePolicy)
-        self.iconLabel.setMinimumSize(QSize(64, 64))
-        self.iconLabel.setMaximumSize(QSize(1024, 1024))
+        sizePolicy.setHeightForWidth(self.logoLabel.sizePolicy().hasHeightForWidth())
+        self.logoLabel.setSizePolicy(sizePolicy)
+        self.logoLabel.setMinimumSize(QSize(64, 64))
+        self.logoLabel.setMaximumSize(QSize(1024, 1024))
 
-        self.topLayout.addWidget(self.iconLabel)
+        self.topLayout.addWidget(self.logoLabel)
 
         self.textLayout = QVBoxLayout()
         self.textLayout.setObjectName(u"textLayout")
@@ -73,6 +74,28 @@ class Ui_AboutDialog(object):
 
         self.textLayout.addItem(self.verticalSpacer)
 
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_2)
+
+        self.kofiLink = QLabel(AboutDialog)
+        self.kofiLink.setObjectName(u"kofiLink")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.kofiLink.sizePolicy().hasHeightForWidth())
+        self.kofiLink.setSizePolicy(sizePolicy1)
+        self.kofiLink.setMaximumSize(QSize(100, 56))
+        self.kofiLink.setPixmap(QPixmap(u":/assets/support_me.png"))
+        self.kofiLink.setScaledContents(True)
+
+        self.horizontalLayout.addWidget(self.kofiLink)
+
+
+        self.textLayout.addLayout(self.horizontalLayout)
+
 
         self.topLayout.addLayout(self.textLayout)
 
@@ -96,12 +119,6 @@ class Ui_AboutDialog(object):
 
         self.bottomLayout.addWidget(self.aboutLink)
 
-        self.kofiLink = QLabel(AboutDialog)
-        self.kofiLink.setObjectName(u"kofiLink")
-        self.kofiLink.setOpenExternalLinks(True)
-
-        self.bottomLayout.addWidget(self.kofiLink)
-
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.bottomLayout.addItem(self.horizontalSpacer)
@@ -122,11 +139,11 @@ class Ui_AboutDialog(object):
 
     def retranslateUi(self, AboutDialog):
         self.aboutTitle.setText(QCoreApplication.translate("AboutDialog", u"Safetensors Metadata Editor", None))
-        self.aboutVersion.setText(QCoreApplication.translate("AboutDialog", u"Version 1.0.0", None))
+        self.aboutVersion.setText(QCoreApplication.translate("AboutDialog", u"Version: v1.0.0", None))
         self.aboutAuthor.setText(QCoreApplication.translate("AboutDialog", u"Created by: KPandaK", None))
         self.aboutDescription.setText(QCoreApplication.translate("AboutDialog", u"A simple, intuitive tool for viewing and editing metadata in Safetensors model files.", None))
+        self.kofiLink.setText("")
         self.aboutLink.setText(QCoreApplication.translate("AboutDialog", u"<a href='https://github.com/KPandaK/metaeditor_safetensors'>GitHub Repository</a>", None))
-        self.kofiLink.setText(QCoreApplication.translate("AboutDialog", u"<a href='https://ko-fi.com/kpandak'>Support on Ko-Fi</a>", None))
         self.closeButton.setText(QCoreApplication.translate("AboutDialog", u"Close", None))
         pass
     # retranslateUi

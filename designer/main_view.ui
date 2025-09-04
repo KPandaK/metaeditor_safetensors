@@ -303,9 +303,11 @@
   <customwidget>
    <class>ImageWidget</class>
    <extends>QGraphicsView</extends>
-   <header>metaeditor_safetensors.components.image_widget</header>
+   <header>metaeditor_safetensors.widgets.image_widget</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
