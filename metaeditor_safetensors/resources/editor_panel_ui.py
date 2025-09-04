@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QH
     QSizePolicy, QSpacerItem, QTextEdit, QVBoxLayout,
     QWidget)
 
-from metaeditor_safetensors.widgets.image_widget import ImageWidget
+from metaeditor_safetensors.components.image_widget import ImageWidget
 
 class Ui_EditorPanel(object):
     def setupUi(self, EditorPanel):
@@ -29,6 +29,7 @@ class Ui_EditorPanel(object):
         EditorPanel.resize(900, 450)
         self.verticalLayout = QVBoxLayout(EditorPanel)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(15, 15, 15, 15)
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.leftColumn = QVBoxLayout()

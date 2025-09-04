@@ -6,6 +6,7 @@ This module defines the `MainController`, the central component of the applicati
 that orchestrates the interactions between the Model and the View.
 """
 
+import os
 from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
 from PySide6.QtWidgets import QFileDialog
 from ..models.metadata_model import MetadataModel
@@ -13,7 +14,7 @@ from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
 from ..services.safetensors_service import SafetensorsService
 from ..services.image_service import ImageService
-from ..workers.save_worker import SaveWorker
+from ..services.save_worker import SaveWorker
 
 class MainController(QObject):
     """
@@ -225,9 +226,10 @@ class MainController(QObject):
         This method is called whenever the model changes.
         """
         is_dirty = self._model.is_dirty()
-        title = "Metadata Editor"
+        title = ""
         if self._current_file:
-            title += f" - {self._current_file}"
+            filename = os.path.basename(self._current_file)
+            title += f"{filename}"
         if is_dirty:
             title += " *" # Add an asterisk to indicate unsaved changes
 

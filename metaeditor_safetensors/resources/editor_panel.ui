@@ -14,6 +14,18 @@
    <string>Metadata Editor</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>15</number>
+   </property>
+   <property name="topMargin">
+    <number>15</number>
+   </property>
+   <property name="rightMargin">
+    <number>15</number>
+   </property>
+   <property name="bottomMargin">
+    <number>15</number>
+   </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="6,4">
      <item>
@@ -291,7 +303,7 @@
   <customwidget>
    <class>ImageWidget</class>
    <extends>QGraphicsView</extends>
-   <header>metaeditor_safetensors.widgets.image_widget</header>
+   <header>metaeditor_safetensors.components.image_widget</header>
   </customwidget>
  </customwidgets>
  <resources/>
