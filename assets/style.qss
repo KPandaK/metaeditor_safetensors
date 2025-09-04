@@ -91,7 +91,7 @@ QMenu::item:selected {
    ABOUT WINDOW
    ================================================================= */
 
-#aboutTitle {
+#aboutTitle, #creditsTitle, #licenseTitle {
     font-size: 18pt;
     font-weight: 500;
 }
@@ -112,6 +112,69 @@ QMenu::item:selected {
 #aboutDescription {
     font-size: 10pt;
     color: #333333;
+}
+
+/* Copy button styling */
+#copyVersion {
+    background-color: #f8f8f8;
+}
+
+#copyVersion:hover {
+    background-color: #e6f3ff;
+    border: 1px solid #0078d4;
+}
+
+#copyVersion:pressed {
+    background-color: #cce7ff;
+}
+
+/* Clickable link hover effects */
+#kofiLink:hover,
+#githubLink:hover {
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+}
+
+#kofiLink {
+    padding: 2px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+#githubLink {
+    padding: 2px;
+    border: 1px solid transparent;  
+    border-radius: 4px;
+}
+
+#creditsText {
+    font-size: 10pt;
+    color: #333333;
+    margin-top: 10px;
+}
+
+/* Tab button styling */
+QTabBar::tab {
+    background-color: #e0e0e0;
+    border: 1px solid #cccccc;
+    padding: 10px 15px;
+    margin-right: 2px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+    color: #666666;
+}
+
+QTabBar::tab:selected {
+    border-top: none;
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: #e6f3ff;
+    border: 1px solid #0078d4;
+    color: #000000;
 }
 
 /* =================================================================

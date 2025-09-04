@@ -19,6 +19,8 @@ omit =
     __main__.py
     _version.py
     __init__.py
+    app.py
+    resources_rc.py
 
 [report]
 skip_empty = True
