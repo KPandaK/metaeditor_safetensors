@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AboutDialog</class>
+ <widget class="QDialog" name="AboutDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>639</width>
+    <height>352</height>
+   </rect>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>12</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>12</number>
+   </property>
+   <item>
+    <layout class="QHBoxLayout" name="topLayout" stretch="45,55">
+     <item>
+      <widget class="SvgWidget" name="iconLabel" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>64</width>
+         <height>64</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>1024</width>
+         <height>1024</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="textLayout">
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="aboutTitle">
+         <property name="text">
+          <string>Safetensors Metadata Editor</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="aboutVersion">
+         <property name="text">
+          <string>Version 1.0.0</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="aboutAuthor">
+         <property name="text">
+          <string>Created by: KPandaK</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="aboutDescription">
+         <property name="text">
+          <string>A simple, intuitive tool for viewing and editing metadata in Safetensors model files.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <widget class="Line" name="separatorLine">
+     <property name="orientation">
+      <enum>Qt::Orientation::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="bottomLayout">
+     <item>
+      <widget class="QLabel" name="aboutLink">
+       <property name="text">
+        <string>&lt;a href='https://github.com/KPandaK/metaeditor_safetensors'&gt;GitHub Repository&lt;/a&gt;</string>
+       </property>
+       <property name="openExternalLinks">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="kofiLink">
+       <property name="text">
+        <string>&lt;a href='https://ko-fi.com/kpandak'&gt;Support on Ko-Fi&lt;/a&gt;</string>
+       </property>
+       <property name="openExternalLinks">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="closeButton">
+       <property name="text">
+        <string>Close</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SvgWidget</class>
+   <extends>QWidget</extends>
+   <header>metaeditor_safetensors.components.svg_widget</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

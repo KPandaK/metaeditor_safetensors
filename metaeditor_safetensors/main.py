@@ -33,11 +33,19 @@ def main():
     """
     The main function that sets up and runs the application.
     """
+    # Force light mode on Windows by setting environment variable before QApplication
+    if sys.platform == "win32":
+        os.environ["QT_QPA_PLATFORM"] = "windows:darkmode=0"
+    
     # 1. Create the QApplication instance. This is a requirement for any Qt app.
     app = QApplication(sys.argv)
     
+    # TODO: Add support for themes in the future
+    # Force Qt to use its own style instead of system theme
+    app.setStyle('Fusion')
+    
     # Set application properties for consistent font rendering
-    app.setApplicationDisplayName("Safetensors Metadata Editor")
+    app.setApplicationDisplayName("Metadata Editor")
     app.setApplicationVersion(__version__)
 
     # --- Live-reloading for stylesheet ---
