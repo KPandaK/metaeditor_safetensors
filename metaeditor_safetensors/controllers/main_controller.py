@@ -42,6 +42,7 @@ class MainController(QObject):
     def _connect_signals(self):
         """Connects signals from the view to the controller's slots."""
         self._view.open_file_requested.connect(self.on_open_file_requested)
+        self._view.file_dropped.connect(self.on_file_dropped)
         self._view.save_requested.connect(self.on_save_requested)
         self._view.exit_requested.connect(self.on_exit_requested)
 
@@ -76,6 +77,21 @@ class MainController(QObject):
             "",
             "Safetensors Files (*.safetensors);;All Files (*)"
         )
+        if filepath:
+            self._current_file = filepath
+            try:
+                self._view.set_status_message(f"Reading metadata from {filepath}...")
+                metadata = self._safetensor_service.read_metadata(filepath)
+                self._model.load_data(metadata)
+                self._view.set_status_message(f"Loaded file: {filepath}", 5000)
+            except Exception as e:
+                self._view.set_status_message(f"Error loading file: {e}")
+                self._current_file = None
+                self._model.load_data({}) # Clear model on error
+
+    @Slot(str)
+    def on_file_dropped(self, filepath: str):
+        """Handles file drop events from the view."""
         if filepath:
             self._current_file = filepath
             try:
