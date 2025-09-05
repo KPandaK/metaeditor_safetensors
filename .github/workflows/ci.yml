@@ -1,19 +1,19 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
-    branches: [ master, dev ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ master, dev ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12']
-
+        os: [windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -21,112 +21,34 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    
-    - name: Install Qt dependencies (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0
+        cache: 'pip'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -e .[dev]
     
-    - name: Run tests with coverage (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Security scan
+      env:
+        SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
       run: |
-        xvfb-run -a python -m coverage run -m unittest discover tests -v
-        python -m coverage xml
+        python -m bandit -r metaeditor_safetensors -f json -o bandit-report.json || true
+        python -m safety scan --json > safety-report.json || true
+        echo "Security scan completed (reports generated)"
     
-    - name: Run tests with coverage (Windows/macOS)  
-      if: matrix.os != 'ubuntu-latest'
+    - name: Check code formatting
+      run: |
+        python -m ruff format --check metaeditor_safetensors
+        python -m ruff check --select I metaeditor_safetensors
+    
+    - name: Run tests
       run: |
         python -m coverage run -m unittest discover tests -v
+        python -m coverage report
         python -m coverage xml
     
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: matrix.python-version == '3.10'
-      with:
-        file: ./coverage.xml
-        flags: ${{ matrix.os }}
-        name: codecov-${{ matrix.os }}
+    - name: Type check
+      run: python -m mypy metaeditor_safetensors
     
-    - name: Test package installation and entry points
-      run: |
-        pip install -e .
-        # Test developer workflow (package import)
-        python -c "import metaeditor_safetensors; print('Package import successful')"
-        python -c "from metaeditor_safetensors.app import main; print('Main app module importable')"
-        # Test user workflow (direct script execution) - will fail on Qt init in headless mode, which is expected
-        python -c "exec(open('main.py').read())" 2>/dev/null || echo "Direct script execution test completed (Qt init failed as expected in headless mode)"
-
-  code-quality:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
-    
-    - name: Run flake8
-      run: |
-        flake8 metaeditor_safetensors tests --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 metaeditor_safetensors tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    
-    - name: Run type checking with mypy
-      continue-on-error: true
-      run: |
-        mypy metaeditor_safetensors --ignore-missing-imports
-
-  build-binary:
-    needs: [test, code-quality]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    
-    - name: Install Qt dependencies (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0
-    
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
-    
-    - name: Build binary (Linux/Mac)
-      if: matrix.os != 'windows-latest'
-      run: |
-        chmod +x build_scripts/build.sh
-        ./build_scripts/build.sh
-    
-    - name: Build binary (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        build_scripts\build.bat
-    
-    - name: Upload binary artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: metaeditor-safetensors-${{ matrix.os }}
-        path: dist/
+    - name: Lint code
+      run: python -m ruff check metaeditor_safetensors

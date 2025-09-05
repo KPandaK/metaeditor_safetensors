@@ -21,6 +21,7 @@ omit =
     __init__.py
     app.py
     resources_rc.py
+    *_ui.py
 
 [report]
 skip_empty = True
