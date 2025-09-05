@@ -21,6 +21,7 @@ dev = [
     "pip-audit>=2.0.0",
     "numpy<2",
     "safetensors>=0.6.2",
+    "setuptools>=80.9.0",
 ]
 
 [tool.setuptools.packages.find]
