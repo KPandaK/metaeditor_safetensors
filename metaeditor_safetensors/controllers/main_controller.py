@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QFileDialog
 from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
+from ..views.thumbnail_dialog import ThumbnailDialog
 from ..services.safetensors_service import SafetensorsService
 from ..services.image_service import ImageService
 from ..services.save_worker import SaveWorker
@@ -130,9 +131,16 @@ class MainController(QObject):
     @Slot()
     def on_view_thumbnail_requested(self):
         """Handles the request to view the thumbnail."""
-        # TODO: Implement a proper image viewer window
-        self._view.set_status_message("View thumbnail not implemented yet.")
-        print("View thumbnail requested.")
+        thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
+        if thumbnail_data_uri:
+            pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
+            if pixmap and not pixmap.isNull():
+                dialog = ThumbnailDialog(pixmap, self._view)
+                dialog.exec()
+            else:
+                self._view.set_status_message("Invalid or empty thumbnail image.")
+        else:
+            self._view.set_status_message("No thumbnail to view.")
 
     @Slot()
     def on_save_requested(self):
