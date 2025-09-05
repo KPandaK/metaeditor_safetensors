@@ -1,7 +1,8 @@
-from PySide6.QtWidgets import QDialog, QApplication
-from .thumbnail_dialog_ui import Ui_ThumbnailDialog
-from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QApplication, QDialog
+
+from .thumbnail_dialog_ui import Ui_ThumbnailDialog
 
 
 class ThumbnailDialog(QDialog, Ui_ThumbnailDialog):
