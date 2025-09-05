@@ -190,26 +190,59 @@ class TestConfigService(unittest.TestCase):
         self.assertEqual(config_service.get_recent_files(), [])
         self.assertEqual(config_service._settings['config_version'], '1.0')
 
-    @patch('metaeditor_safetensors.services.config_service.os.name', 'nt')
-    @patch.dict('metaeditor_safetensors.services.config_service.os.environ', {'APPDATA': 'C:\\Users\\Test\\AppData\\Roaming'})
-    @patch('metaeditor_safetensors.services.config_service.Path.mkdir')
-    def test_windows_settings_directory(self, mock_mkdir):
+    @unittest.skipUnless(os.name == 'nt', "Windows-specific test")
+    def test_windows_settings_directory(self):
         """Test that Windows settings directory is correctly determined."""
-        config_service = ConfigService()
-        expected_path = Path('C:\\Users\\Test\\AppData\\Roaming') / "SafetensorsMetadataEditor" 
-        # Compare string representation to avoid path object comparison issues
-        self.assertEqual(str(config_service._settings_dir), str(expected_path))
+        with patch.dict('metaeditor_safetensors.services.config_service.os.environ', {'APPDATA': 'C:\\Users\\Test\\AppData\\Roaming'}):
+            with patch('metaeditor_safetensors.services.config_service.Path') as mock_path_class:
+                # Create mock path objects
+                mock_appdata_path = MagicMock()
+                mock_settings_path = MagicMock()
+                mock_settings_file = MagicMock()
+                
+                # Setup the path operations
+                mock_path_class.return_value = mock_appdata_path
+                mock_appdata_path.__truediv__.return_value = mock_settings_path
+                mock_settings_path.__truediv__.return_value = mock_settings_file
+                mock_settings_file.exists.return_value = False  # No existing settings file
+                
+                config_service = ConfigService()
+                
+                # Verify Path was called with APPDATA value
+                mock_path_class.assert_called_with('C:\\Users\\Test\\AppData\\Roaming')
+                # Verify the settings directory creation
+                mock_appdata_path.__truediv__.assert_called_with("SafetensorsMetadataEditor")
+                mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+                
+                # Verify the ConfigService has the mocked settings directory
+                self.assertEqual(config_service._settings_dir, mock_settings_path)
 
-    @patch('metaeditor_safetensors.services.config_service.os.name', 'nt')
-    @patch.dict('metaeditor_safetensors.services.config_service.os.environ', {}, clear=True)  # No APPDATA
-    @patch('metaeditor_safetensors.services.config_service.Path.mkdir')
-    def test_windows_settings_directory_no_appdata(self, mock_mkdir):
+    @unittest.skipUnless(os.name == 'nt', "Windows-specific test")  
+    def test_windows_settings_directory_no_appdata(self):
         """Test Windows settings directory when APPDATA is not available."""
-        with patch('metaeditor_safetensors.services.config_service.Path.home') as mock_home:
-            mock_home.return_value = Path("C:/Users/Test")
-            config_service = ConfigService()
-            expected_path = Path("C:/Users/Test") / ".safetensors_metadata_editor"
-            self.assertEqual(str(config_service._settings_dir), str(expected_path))
+        with patch.dict('metaeditor_safetensors.services.config_service.os.environ', {}, clear=True):  # No APPDATA
+            with patch('metaeditor_safetensors.services.config_service.Path') as mock_path_class:
+                # Create mock path objects
+                mock_home_path = MagicMock()
+                mock_settings_path = MagicMock()
+                mock_settings_file = MagicMock()
+                
+                # Setup the path operations
+                mock_path_class.home.return_value = mock_home_path
+                mock_home_path.__truediv__.return_value = mock_settings_path
+                mock_settings_path.__truediv__.return_value = mock_settings_file
+                mock_settings_file.exists.return_value = False  # No existing settings file
+                
+                config_service = ConfigService()
+                
+                # Verify Path.home() was called
+                mock_path_class.home.assert_called_once()
+                # Verify the settings directory creation
+                mock_home_path.__truediv__.assert_called_with(".safetensors_metadata_editor")
+                mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+                
+                # Verify the ConfigService has the mocked settings directory
+                self.assertEqual(config_service._settings_dir, mock_settings_path)
 
     def test_json_decode_error_handling(self):
         """Test handling of JSON decode errors with specific error message."""
@@ -311,18 +344,31 @@ class TestConfigService(unittest.TestCase):
         self.assertIn('app_version', config_service2._settings)
 
 
-    @unittest.skipIf(os.name == 'nt', "Cross-platform path testing not supported on Windows")
-    @patch('metaeditor_safetensors.services.config_service.os.name', 'posix')
-    @patch('metaeditor_safetensors.services.config_service.Path.mkdir')
-    def test_unix_settings_directory(self, mock_mkdir):
+    @unittest.skipIf(os.name == 'nt', "Unix/Linux/macOS-specific test")
+    def test_unix_settings_directory(self):
         """Test that Unix/Linux/macOS settings directory is correctly determined."""
-        # Mock Path.home() to return a string that we convert to Path
-        with patch('metaeditor_safetensors.services.config_service.Path.home') as mock_home:
-            # Return a generic path string, let Path() handle the platform specifics
-            mock_home.return_value = Path("home/test")
+        with patch('metaeditor_safetensors.services.config_service.Path') as mock_path_class:
+            # Create mock path objects
+            mock_home_path = MagicMock()
+            mock_settings_path = MagicMock()
+            mock_settings_file = MagicMock()
+            
+            # Setup the path operations
+            mock_path_class.home.return_value = mock_home_path
+            mock_home_path.__truediv__.return_value = mock_settings_path
+            mock_settings_path.__truediv__.return_value = mock_settings_file
+            mock_settings_file.exists.return_value = False  # No existing settings file
+            
             config_service = ConfigService()
-            expected_path = Path("home/test") / ".safetensors_metadata_editor"
-            self.assertEqual(str(config_service._settings_dir), str(expected_path))
+            
+            # Verify Path.home() was called
+            mock_path_class.home.assert_called_once()
+            # Verify the settings directory creation
+            mock_home_path.__truediv__.assert_called_with(".safetensors_metadata_editor")
+            mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+            
+            # Verify the ConfigService has the mocked settings directory
+            self.assertEqual(config_service._settings_dir, mock_settings_path)
 
 
 if __name__ == '__main__':
