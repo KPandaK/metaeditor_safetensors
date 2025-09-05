@@ -7,10 +7,10 @@ This module contains the main application logic for the Safetensors Metadata Edi
 
 import os
 import sys
+from importlib.metadata import PackageNotFoundError, version
 
 from PySide6.QtWidgets import QApplication
 
-from ._version import __version__
 from .controllers.main_controller import MainController
 from .models.metadata_model import MetadataModel
 from .services.config_service import ConfigService
@@ -18,6 +18,14 @@ from .services.image_service import ImageService
 from .services.safetensors_service import SafetensorsService
 from .services.stylesheet_service import StylesheetService
 from .views.main_view import MainView
+
+
+def get_app_version():
+    """Get the application version from package metadata."""
+    try:
+        return version("metaeditor-safetensors")
+    except PackageNotFoundError:
+        return "dev"
 
 
 def main():
@@ -37,7 +45,7 @@ def main():
     app.setStyle("Fusion")
 
     app.setApplicationDisplayName("Safetensors Metadata Editor")
-    app.setApplicationVersion(__version__)
+    app.setApplicationVersion(get_app_version())
 
     resource_path = ":/assets/style.qss"
     filesystem_path = os.path.join(

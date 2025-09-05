@@ -9,12 +9,19 @@ including the recent files list.
 import json
 import logging
 import os
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import List
 
-from .._version import __version__
-
 logger = logging.getLogger(__name__)
+
+
+def get_app_version():
+    """Get the application version from package metadata."""
+    try:
+        return version("metaeditor-safetensors")
+    except PackageNotFoundError:
+        return "dev"
 
 
 class ConfigService:
@@ -78,7 +85,7 @@ class ConfigService:
         """Get default settings structure."""
         return {
             "config_version": self.CONFIG_VERSION,
-            "app_version": __version__,
+            "app_version": get_app_version(),
             "recent_files": [],
         }
 
@@ -87,7 +94,7 @@ class ConfigService:
         try:
             # Ensure version info is always saved
             self._settings["config_version"] = self.CONFIG_VERSION
-            self._settings["app_version"] = __version__
+            self._settings["app_version"] = get_app_version()
 
             with open(self._settings_file, "w", encoding="utf-8") as f:
                 json.dump(self._settings, f, indent=2, ensure_ascii=False)
