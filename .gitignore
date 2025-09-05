@@ -45,7 +45,6 @@ coverage.xml
 
 # Security scan reports
 bandit-report.json
-safety-report.json
 
 # Logs
 *.log

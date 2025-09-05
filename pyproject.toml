@@ -18,7 +18,7 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
     "bandit>=1.7.0",
-    "safety>=2.0.0",
+    "pip-audit>=2.0.0",
     "numpy<2",
     "safetensors>=0.6.2",
 ]
@@ -55,8 +55,8 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# Just the basics - errors, warnings, and import sorting
-select = ["E", "W", "F", "I"]
+# Just the basics - errors, warnings, import sorting, and print statement detection
+select = ["E", "W", "F", "I", "T201"]
 
 # Allow common patterns in UI apps
 ignore = [
@@ -64,6 +64,9 @@ ignore = [
     "F401",   # Unused imports in __init__.py files
     "E402",   # Module level import not at top (Qt apps need this sometimes)
 ]
+
+# Don't auto-fix print statements - just flag them for review
+unfixable = ["T201"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "venv", "legacy"]

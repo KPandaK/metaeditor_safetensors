@@ -1,3 +1,5 @@
+import logging
+
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
 from PySide6.QtWidgets import QDialog
@@ -5,6 +7,8 @@ from PySide6.QtWidgets import QDialog
 from .._version import __version__
 from ..widgets.svg_widget import SvgWidget
 from .about_dialog_ui import Ui_AboutDialog
+
+logger = logging.getLogger(__name__)
 
 
 class AboutDialog(QDialog):
@@ -35,7 +39,7 @@ class AboutDialog(QDialog):
             self.ui.logoLabel_3.setSvgData(svg_data)  # License tab
             style_file.close()
         else:
-            print("Warning: Could not load logo from resources")
+            logger.warning("Could not load logo from resources")
 
         # Make GitHub and Ko-fi links clickable
         self._setup_clickable_links()
