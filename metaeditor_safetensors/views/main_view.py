@@ -241,7 +241,8 @@ class MainView(QMainWindow):
         Returns:
             The QWidget instance, or None if not found.
         """
-        return self.editor_panel.findChild(QWidget, name)
+        widget = self.editor_panel.findChild(QWidget, name)
+        return widget if widget is not None else QWidget()
 
     def set_window_title(self, title: str):
         """Sets the main window's title."""
