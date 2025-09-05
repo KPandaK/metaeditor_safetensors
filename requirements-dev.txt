@@ -16,6 +16,3 @@ twine>=4.0.0
 
 # Binary packaging
 pyinstaller>=5.0.0
-
-# Development tools (optional)
-# pytest>=7.0.0  # If you ever want to switch from unittest
