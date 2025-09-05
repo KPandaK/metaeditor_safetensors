@@ -1,12 +1,15 @@
-import unittest
 import os
-import tempfile
 import shutil
+import tempfile
+import unittest
+from unittest.mock import mock_open, patch
+
 import numpy as np
-from unittest.mock import patch, mock_open
-from safetensors.numpy import save_file, load_file
 from safetensors import safe_open
+from safetensors.numpy import load_file, save_file
+
 from metaeditor_safetensors.services.safetensors_service import SafetensorsService
+
 
 class TestSafetensorsService(unittest.TestCase):
     """
@@ -68,7 +71,7 @@ class TestSafetensorsService(unittest.TestCase):
         # 4. Load both files back using the official library
         tensors_theirs = load_file(their_path)
         tensors_ours = load_file(our_path)
-        
+
         # Read metadata separately using safe_open
         with safe_open(their_path, framework="numpy") as f:
             metadata_theirs = f.metadata()
@@ -101,7 +104,7 @@ class TestSafetensorsService(unittest.TestCase):
         tiny_file = os.path.join(self.test_dir, "tiny.safetensors")
         with open(tiny_file, 'wb') as f:
             f.write(b"tiny")  # Only 4 bytes
-        
+
         with self.assertRaises(ValueError) as context:
             self.service.read_metadata(tiny_file)
         self.assertIn("too small", str(context.exception))
@@ -112,7 +115,7 @@ class TestSafetensorsService(unittest.TestCase):
         with open(invalid_header_file, 'wb') as f:
             # Write only 6 bytes instead of 8 for the header length
             f.write(b"123456")
-        
+
         with self.assertRaises(ValueError) as context:
             self.service.read_metadata(invalid_header_file)
         self.assertIn("too small", str(context.exception))
@@ -123,7 +126,7 @@ class TestSafetensorsService(unittest.TestCase):
         with open(invalid_header_file, 'wb') as f:
             # Write only 6 bytes instead of 8 for the header length
             f.write(b"123456")
-        
+
         with self.assertRaises(IOError) as context:
             self.service.write_metadata(invalid_header_file, {"new": "data"})
         self.assertIn("Failed to save file", str(context.exception))
@@ -137,7 +140,7 @@ class TestSafetensorsService(unittest.TestCase):
             f.write((100).to_bytes(8, 'little'))
             # But only write 10 bytes instead of 100
             f.write(b"short_data")
-        
+
         with self.assertRaises(ValueError) as context:
             self.service.read_metadata(truncated_file)
         self.assertIn("truncated", str(context.exception))
@@ -146,13 +149,13 @@ class TestSafetensorsService(unittest.TestCase):
         """Test JSON decode error handling."""
         invalid_json_file = os.path.join(self.test_dir, "invalid_json.safetensors")
         invalid_json = b"invalid json content"
-        
+
         with open(invalid_json_file, 'wb') as f:
             # Write header length
             f.write(len(invalid_json).to_bytes(8, 'little'))
             # Write invalid JSON
             f.write(invalid_json)
-        
+
         with self.assertRaises(ValueError) as context:
             self.service.read_metadata(invalid_json_file)
         self.assertIn("Failed to parse JSON", str(context.exception))
@@ -161,14 +164,14 @@ class TestSafetensorsService(unittest.TestCase):
         """Test progress callback functionality."""
         # Create initial file
         save_file(self.dummy_tensors, self.test_filepath, metadata=self.dummy_metadata)
-        
+
         progress_calls = []
         def progress_callback(progress):
             progress_calls.append(progress)
-        
+
         # Test with callback
         result = self.service.write_metadata(self.test_filepath, {"new": "data"}, progress_callback)
-        
+
         # Verify progress was called and ended at 100%
         self.assertTrue(len(progress_calls) > 0)
         self.assertEqual(progress_calls[-1], 100)
@@ -179,13 +182,13 @@ class TestSafetensorsService(unittest.TestCase):
         # Create initial file
         save_file(self.dummy_tensors, self.test_filepath, metadata=self.dummy_metadata)
         temp_file = self.test_filepath + ".tmp"
-        
+
         # Mock to cause an error during file operations
         with patch('builtins.open', side_effect=IOError("Simulated write error")):
             with self.assertRaises(IOError) as context:
                 self.service.write_metadata(self.test_filepath, {"new": "data"})
             self.assertIn("Failed to save file", str(context.exception))
-        
+
         # Verify temp file was cleaned up
         self.assertFalse(os.path.exists(temp_file))
 
@@ -193,9 +196,9 @@ class TestSafetensorsService(unittest.TestCase):
         """Test general exception handling in read_metadata."""
         # Create valid file first
         save_file(self.dummy_tensors, self.test_filepath, metadata=self.dummy_metadata)
-        
+
         # Mock struct.unpack to raise an unexpected error
-        with patch('metaeditor_safetensors.services.safetensors_service.struct.unpack', 
+        with patch('metaeditor_safetensors.services.safetensors_service.struct.unpack',
                    side_effect=RuntimeError("Unexpected error")):
             with self.assertRaises(ValueError) as context:
                 self.service.read_metadata(self.test_filepath)

@@ -11,8 +11,11 @@ when the user interacts with it. It has no direct knowledge of the model.
 """
 
 import functools
+import logging
 import os
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from PySide6.QtCore import QDateTime, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import (
@@ -120,7 +123,7 @@ class MainView(QMainWindow):
         if not icon.isNull():
             self.setWindowIcon(icon)
         else:
-            print("Warning: Could not load icon from resources")
+            logger.warning("Could not load icon from resources")
 
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
