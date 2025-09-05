@@ -8,12 +8,14 @@ that orchestrates the interactions between the Model and the View.
 
 import os
 from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFileDialog, QApplication
 from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
+from ..views.thumbnail_dialog import ThumbnailDialog
 from ..services.safetensors_service import SafetensorsService
 from ..services.image_service import ImageService
+from ..services.config_service import ConfigService
 from ..services.save_worker import SaveWorker
 
 class MainController(QObject):
@@ -23,12 +25,14 @@ class MainController(QObject):
     It connects the user interface (View) with the data model (Model) and
     handles the application's logic.
     """
-    def __init__(self, model: MetadataModel, view: MainView):
+    def __init__(self, model: MetadataModel, view: MainView, config_service: ConfigService, 
+                 safetensors_service: SafetensorsService, image_service: ImageService):
         super().__init__()
         self._model = model
         self._view = view
-        self._safetensor_service = SafetensorsService()
-        self._image_service = ImageService()
+        self._config_service = config_service
+        self._safetensor_service = safetensors_service
+        self._image_service = image_service
         self._current_file = None
         self.thread = None
         self.worker = None
@@ -45,6 +49,10 @@ class MainController(QObject):
         self._view.file_dropped.connect(self.on_file_dropped)
         self._view.save_requested.connect(self.on_save_requested)
         self._view.exit_requested.connect(self.on_exit_requested)
+
+        # Connect recent files signals
+        self._view.recent_file_triggered.connect(self.on_recent_file_triggered)
+        self._view.clear_recent_requested.connect(self.on_clear_recent_requested)
 
         # Connect metadata field changes
         self._view.title_changed.connect(lambda t: self._model.set_value(MetadataKeys.TITLE, t))
@@ -67,6 +75,9 @@ class MainController(QObject):
         self.update_view() # Initial view update
         self._view.set_all_fields_enabled(False)
         self._view.set_status_message("Ready. Please open a safetensors file to begin.")
+        
+        # Update recent files menu on startup
+        self._update_recent_files_menu()
 
     @Slot()
     def on_open_file_requested(self):
@@ -78,31 +89,56 @@ class MainController(QObject):
             "Safetensors Files (*.safetensors);;All Files (*)"
         )
         if filepath:
-            self._current_file = filepath
-            try:
-                self._view.set_status_message(f"Reading metadata from {filepath}...")
-                metadata = self._safetensor_service.read_metadata(filepath)
-                self._model.load_data(metadata)
-                self._view.set_status_message(f"Loaded file: {filepath}", 5000)
-            except Exception as e:
-                self._view.set_status_message(f"Error loading file: {e}")
-                self._current_file = None
-                self._model.load_data({}) # Clear model on error
+            self._load_file(filepath)
 
     @Slot(str)
     def on_file_dropped(self, filepath: str):
         """Handles file drop events from the view."""
         if filepath:
-            self._current_file = filepath
-            try:
-                self._view.set_status_message(f"Reading metadata from {filepath}...")
-                metadata = self._safetensor_service.read_metadata(filepath)
-                self._model.load_data(metadata)
-                self._view.set_status_message(f"Loaded file: {filepath}", 5000)
-            except Exception as e:
-                self._view.set_status_message(f"Error loading file: {e}")
-                self._current_file = None
-                self._model.load_data({}) # Clear model on error
+            self._load_file(filepath)
+
+    def _load_file(self, filepath: str):
+        """Load a safetensors file and update recent files list."""
+        self._current_file = filepath
+        try:
+            self._view.set_status_message(f"Reading metadata from {filepath}...")
+            metadata = self._safetensor_service.read_metadata(filepath)
+            self._model.load_data(metadata)
+            self._view.set_status_message(f"Loaded file: {filepath}", 5000)
+            
+            # Add to recent files
+            self._config_service.add_recent_file(filepath)
+            self._update_recent_files_menu()
+            
+        except Exception as e:
+            self._view.set_status_message(f"Error loading file: {e}")
+            self._current_file = None
+            self._model.load_data({}) # Clear model on error
+
+    @Slot(str)
+    def on_recent_file_triggered(self, filepath: str):
+        """Handles recent file selection from the menu."""
+        # Check if file still exists
+        if not os.path.exists(filepath):
+            self._view.set_status_message(f"File no longer exists: {filepath}")
+            # Remove from recent files list
+            self._config_service.remove_recent_file(filepath)
+            self._update_recent_files_menu()
+            return
+        
+        self._load_file(filepath)
+
+    @Slot()
+    def on_clear_recent_requested(self):
+        """Handles the clear recent files request."""
+        self._config_service.clear_recent_files()
+        self._update_recent_files_menu()
+        self._view.set_status_message("Recent files cleared.", 3000)
+
+    def _update_recent_files_menu(self):
+        """Update the recent files menu in the view."""
+        recent_files = self._config_service.get_recent_files()
+        self._view.update_recent_files_menu(recent_files)
 
     @Slot()
     def on_set_thumbnail_requested(self):
@@ -130,9 +166,35 @@ class MainController(QObject):
     @Slot()
     def on_view_thumbnail_requested(self):
         """Handles the request to view the thumbnail."""
-        # TODO: Implement a proper image viewer window
-        self._view.set_status_message("View thumbnail not implemented yet.")
-        print("View thumbnail requested.")
+        thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
+        if thumbnail_data_uri:
+            pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
+            if pixmap and not pixmap.isNull():
+                dialog = ThumbnailDialog(pixmap, self._view)
+
+                # Center the dialog over the main window
+                main_window_geometry = self._view.geometry()
+                dialog_geometry = dialog.geometry()
+                x = int(main_window_geometry.x() + (main_window_geometry.width() - dialog_geometry.width()) / 2)
+                y = int(main_window_geometry.y() + (main_window_geometry.height() - dialog_geometry.height()) / 2)
+                
+                # Ensure the dialog is not off-screen
+                screen_geometry = QApplication.primaryScreen().availableGeometry()
+                if x < screen_geometry.x():
+                    x = screen_geometry.x()
+                if y < screen_geometry.y():
+                    y = screen_geometry.y()
+                if x + dialog_geometry.width() > screen_geometry.right():
+                    x = screen_geometry.right() - dialog_geometry.width()
+                if y + dialog_geometry.height() > screen_geometry.bottom():
+                    y = screen_geometry.bottom() - dialog_geometry.height()
+
+                dialog.move(int(x), int(y))
+                dialog.exec()
+            else:
+                self._view.set_status_message("Invalid or empty thumbnail image.")
+        else:
+            self._view.set_status_message("No thumbnail to view.")
 
     @Slot()
     def on_save_requested(self):
