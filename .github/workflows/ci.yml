@@ -34,26 +34,26 @@ jobs:
         src: "./metaeditor_safetensors"
         args: "check --output-format=github"
     
-    - name: Code Format Checking
+    - name: Verify Code Formatting
       uses: astral-sh/ruff-action@v3
       with:
         src: "./metaeditor_safetensors"
         args: "format --check --diff"
     
-    - name: Type Checking
+    - name: Check Types
       run: python -m mypy metaeditor_safetensors
     
-    - name: Static Analysis
+    - name: Analyze Code (Security)
       run: |
         python -m bandit -r metaeditor_safetensors -f json -o bandit-report.json || true
         echo "Bandit security scan completed"
     
-    - name: Security Scan
+    - name: Scan Package Dependencies
       uses: pypa/gh-action-pip-audit@v1.1.0
       with:
         summary: true
     
-    - name: Unit Tests
+    - name: Run tests
       run: |
         python -m coverage run -m unittest discover tests -v
         python -m coverage report
