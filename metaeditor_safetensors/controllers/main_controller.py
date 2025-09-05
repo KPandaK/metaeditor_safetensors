@@ -8,7 +8,7 @@ that orchestrates the interactions between the Model and the View.
 
 import os
 from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFileDialog, QApplication
 from ..models.metadata_model import MetadataModel
 from ..models.metadata_keys import MetadataKeys
 from ..views.main_view import MainView
@@ -136,6 +136,25 @@ class MainController(QObject):
             pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
             if pixmap and not pixmap.isNull():
                 dialog = ThumbnailDialog(pixmap, self._view)
+
+                # Center the dialog over the main window
+                main_window_geometry = self._view.geometry()
+                dialog_geometry = dialog.geometry()
+                x = int(main_window_geometry.x() + (main_window_geometry.width() - dialog_geometry.width()) / 2)
+                y = int(main_window_geometry.y() + (main_window_geometry.height() - dialog_geometry.height()) / 2)
+                
+                # Ensure the dialog is not off-screen
+                screen_geometry = QApplication.primaryScreen().availableGeometry()
+                if x < screen_geometry.x():
+                    x = screen_geometry.x()
+                if y < screen_geometry.y():
+                    y = screen_geometry.y()
+                if x + dialog_geometry.width() > screen_geometry.right():
+                    x = screen_geometry.right() - dialog_geometry.width()
+                if y + dialog_geometry.height() > screen_geometry.bottom():
+                    y = screen_geometry.bottom() - dialog_geometry.height()
+
+                dialog.move(int(x), int(y))
                 dialog.exec()
             else:
                 self._view.set_status_message("Invalid or empty thumbnail image.")
