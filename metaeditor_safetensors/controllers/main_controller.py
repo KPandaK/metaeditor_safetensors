@@ -8,16 +8,19 @@ that orchestrates the interactions between the Model and the View.
 
 import os
 from typing import Optional
-from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
-from PySide6.QtWidgets import QFileDialog, QApplication
-from ..models.metadata_model import MetadataModel
+
+from PySide6.QtCore import QDateTime, QObject, Qt, QThread, Slot
+from PySide6.QtWidgets import QApplication, QFileDialog
+
 from ..models.metadata_keys import MetadataKeys
+from ..models.metadata_model import MetadataModel
+from ..services.config_service import ConfigService
+from ..services.image_service import ImageService
+from ..services.safetensors_service import SafetensorsService
+from ..services.save_worker import SaveWorker
 from ..views.main_view import MainView
 from ..views.thumbnail_dialog import ThumbnailDialog
-from ..services.safetensors_service import SafetensorsService
-from ..services.image_service import ImageService
-from ..services.config_service import ConfigService
-from ..services.save_worker import SaveWorker
+
 
 class MainController(QObject):
     """
@@ -26,14 +29,20 @@ class MainController(QObject):
     It connects the user interface (View) with the data model (Model) and
     handles the application's logic.
     """
-    
+
     # Type annotations for instance attributes
     _thread: Optional[QThread]
     worker: Optional[SaveWorker]
     _current_file: Optional[str]
-    
-    def __init__(self, model: MetadataModel, view: MainView, config_service: ConfigService, 
-                 safetensors_service: SafetensorsService, image_service: ImageService):
+
+    def __init__(
+        self,
+        model: MetadataModel,
+        view: MainView,
+        config_service: ConfigService,
+        safetensors_service: SafetensorsService,
+        image_service: ImageService,
+    ):
         super().__init__()
         self._model = model
         self._view = view
@@ -62,14 +71,30 @@ class MainController(QObject):
         self._view.clear_recent_requested.connect(self.on_clear_recent_requested)
 
         # Connect metadata field changes
-        self._view.title_changed.connect(lambda t: self._model.set_value(MetadataKeys.TITLE, t))
-        self._view.description_changed.connect(lambda d: self._model.set_value(MetadataKeys.DESCRIPTION, d))
-        self._view.author_changed.connect(lambda a: self._model.set_value(MetadataKeys.AUTHOR, a))
+        self._view.title_changed.connect(
+            lambda t: self._model.set_value(MetadataKeys.TITLE, t)
+        )
+        self._view.description_changed.connect(
+            lambda d: self._model.set_value(MetadataKeys.DESCRIPTION, d)
+        )
+        self._view.author_changed.connect(
+            lambda a: self._model.set_value(MetadataKeys.AUTHOR, a)
+        )
         self._view.datetime_changed.connect(self.on_datetime_changed)
-        self._view.license_changed.connect(lambda l: self._model.set_value(MetadataKeys.LICENSE, l))
-        self._view.usage_hint_changed.connect(lambda h: self._model.set_value(MetadataKeys.USAGE_HINT, h))
-        self._view.tags_changed.connect(lambda t: self._model.set_value(MetadataKeys.TAGS, t))
-        self._view.merged_from_changed.connect(lambda m: self._model.set_value(MetadataKeys.MERGED_FROM, m))
+        self._view.license_changed.connect(
+            lambda license_value: self._model.set_value(
+                MetadataKeys.LICENSE, license_value
+            )
+        )
+        self._view.usage_hint_changed.connect(
+            lambda h: self._model.set_value(MetadataKeys.USAGE_HINT, h)
+        )
+        self._view.tags_changed.connect(
+            lambda t: self._model.set_value(MetadataKeys.TAGS, t)
+        )
+        self._view.merged_from_changed.connect(
+            lambda m: self._model.set_value(MetadataKeys.MERGED_FROM, m)
+        )
 
         # Connect thumbnail actions
         self._view.set_thumbnail_requested.connect(self.on_set_thumbnail_requested)
@@ -79,10 +104,10 @@ class MainController(QObject):
     def run(self):
         """Shows the main window and starts the application."""
         self._view.show()
-        self.update_view() # Initial view update
+        self.update_view()  # Initial view update
         self._view.set_all_fields_enabled(False)
         self._view.set_status_message("Ready. Please open a safetensors file to begin.")
-        
+
         # Update recent files menu on startup
         self._update_recent_files_menu()
 
@@ -93,7 +118,7 @@ class MainController(QObject):
             self._view,
             "Open Safetensors File",
             "",
-            "Safetensors Files (*.safetensors);;All Files (*)"
+            "Safetensors Files (*.safetensors);;All Files (*)",
         )
         if filepath:
             self._load_file(filepath)
@@ -112,15 +137,15 @@ class MainController(QObject):
             metadata = self._safetensor_service.read_metadata(filepath)
             self._model.load_data(metadata)
             self._view.set_status_message(f"Loaded file: {filepath}", 5000)
-            
+
             # Add to recent files
             self._config_service.add_recent_file(filepath)
             self._update_recent_files_menu()
-            
+
         except Exception as e:
             self._view.set_status_message(f"Error loading file: {e}")
             self._current_file = None
-            self._model.load_data({}) # Clear model on error
+            self._model.load_data({})  # Clear model on error
 
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
@@ -132,7 +157,7 @@ class MainController(QObject):
             self._config_service.remove_recent_file(filepath)
             self._update_recent_files_menu()
             return
-        
+
         self._load_file(filepath)
 
     @Slot()
@@ -154,7 +179,7 @@ class MainController(QObject):
             self._view,
             "Select Thumbnail Image",
             "",
-            "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp *.svg *.ico);;All Files (*)"
+            "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp *.svg *.ico);;All Files (*)",
         )
         if filepath:
             try:
@@ -167,7 +192,7 @@ class MainController(QObject):
     @Slot()
     def on_clear_thumbnail_requested(self):
         """Handles the request to clear the thumbnail."""
-        self._model.set_value(MetadataKeys.THUMBNAIL, '')
+        self._model.set_value(MetadataKeys.THUMBNAIL, "")
         self._view.set_status_message("Thumbnail cleared.", 3000)
 
     @Slot()
@@ -182,9 +207,15 @@ class MainController(QObject):
                 # Center the dialog over the main window
                 main_window_geometry = self._view.geometry()
                 dialog_geometry = dialog.geometry()
-                x = int(main_window_geometry.x() + (main_window_geometry.width() - dialog_geometry.width()) / 2)
-                y = int(main_window_geometry.y() + (main_window_geometry.height() - dialog_geometry.height()) / 2)
-                
+                x = int(
+                    main_window_geometry.x()
+                    + (main_window_geometry.width() - dialog_geometry.width()) / 2
+                )
+                y = int(
+                    main_window_geometry.y()
+                    + (main_window_geometry.height() - dialog_geometry.height()) / 2
+                )
+
                 # Ensure the dialog is not off-screen
                 screen_geometry = QApplication.primaryScreen().availableGeometry()
                 if x < screen_geometry.x():
@@ -232,7 +263,7 @@ class MainController(QObject):
         self.worker = SaveWorker(
             service=self._safetensor_service,
             filepath=self._current_file,
-            metadata=self._model.get_all_data()
+            metadata=self._model.get_all_data(),
         )
         self.worker.moveToThread(self._thread)
 
@@ -303,7 +334,9 @@ class MainController(QObject):
     def on_datetime_changed(self, dt: QDateTime):
         """Handles the datetime change signal."""
         # Convert QDateTime to a string format for the model, e.g., ISO 8601
-        self._model.set_value(MetadataKeys.DATE, dt.toString(Qt.DateFormat.ISODateWithMs))
+        self._model.set_value(
+            MetadataKeys.DATE, dt.toString(Qt.DateFormat.ISODateWithMs)
+        )
 
     def update_view(self):
         """
@@ -316,7 +349,7 @@ class MainController(QObject):
             filename = os.path.basename(self._current_file)
             title += f"{filename}"
         if is_dirty:
-            title += " *" # Add an asterisk to indicate unsaved changes
+            title += " *"  # Add an asterisk to indicate unsaved changes
 
         self._view.set_window_title(title)
 
@@ -331,4 +364,3 @@ class MainController(QObject):
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
-

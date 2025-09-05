@@ -11,7 +11,8 @@ UI and control flow.
 import json
 import os
 import struct
-from typing import Dict, Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
+
 
 class SafetensorsService:
     """
@@ -40,32 +41,41 @@ class SafetensorsService:
             FileNotFoundError: If the file does not exist.
         """
         try:
-            with open(filepath, 'rb') as f:
+            with open(filepath, "rb") as f:
                 # 1. Read the 8-byte header length
                 header_len_bytes = f.read(8)
                 if len(header_len_bytes) != 8:
-                    raise ValueError("File is too small to be a valid safetensors file.")
-                
-                header_len = struct.unpack('<Q', header_len_bytes)[0]
+                    raise ValueError(
+                        "File is too small to be a valid safetensors file."
+                    )
+
+                header_len = struct.unpack("<Q", header_len_bytes)[0]
 
                 # 2. Read the JSON header
                 header_bytes = f.read(header_len)
                 if len(header_bytes) != header_len:
                     raise ValueError("File is truncated or header length is incorrect.")
-                
-                header_json = json.loads(header_bytes.decode('utf-8'))
+
+                header_json = json.loads(header_bytes.decode("utf-8"))
 
                 # 3. Extract and return the metadata dictionary
                 return header_json.get("__metadata__", {})
-        
+
         except FileNotFoundError:
             raise
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse JSON header: {e}")
         except Exception as e:
-            raise ValueError(f"An unexpected error occurred while reading the file: {e}")
+            raise ValueError(
+                f"An unexpected error occurred while reading the file: {e}"
+            )
 
-    def write_metadata(self, filepath: str, metadata: Dict[str, Any], progress_callback: Optional[Callable[[int], None]] = None):
+    def write_metadata(
+        self,
+        filepath: str,
+        metadata: Dict[str, Any],
+        progress_callback: Optional[Callable[[int], None]] = None,
+    ):
         """
         Writes updated metadata to a .safetensors file by creating a new
         file and then replacing the original. This is a safe way to prevent
@@ -85,26 +95,28 @@ class SafetensorsService:
             IOError: If file I/O fails.
         """
         temp_filepath = filepath + ".tmp"
-        
+
         try:
-            with open(filepath, 'rb') as f_in, open(temp_filepath, 'wb') as f_out:
+            with open(filepath, "rb") as f_in, open(temp_filepath, "wb") as f_out:
                 # --- 1. Read and update the header ---
                 header_len_bytes = f_in.read(8)
                 if len(header_len_bytes) != 8:
                     raise ValueError("Invalid safetensors file.")
-                
-                header_len = struct.unpack('<Q', header_len_bytes)[0]
+
+                header_len = struct.unpack("<Q", header_len_bytes)[0]
                 header_bytes = f_in.read(header_len)
-                header_json = json.loads(header_bytes.decode('utf-8'))
+                header_json = json.loads(header_bytes.decode("utf-8"))
 
                 # Update the metadata
                 header_json["__metadata__"] = metadata
 
                 # --- 2. Write the new header to the temp file ---
                 # Use compact JSON formatting to match typical safetensors format
-                new_header_bytes = json.dumps(header_json, separators=(',', ':')).encode('utf-8')
+                new_header_bytes = json.dumps(
+                    header_json, separators=(",", ":")
+                ).encode("utf-8")
                 new_header_len = len(new_header_bytes)
-                f_out.write(struct.pack('<Q', new_header_len))
+                f_out.write(struct.pack("<Q", new_header_len))
                 f_out.write(new_header_bytes)
 
                 # --- 3. Stream tensor data from old file to new file ---
@@ -113,8 +125,8 @@ class SafetensorsService:
 
                 total_size = os.path.getsize(filepath)
                 bytes_copied = 0
-                chunk_size = 1024 * 1024 # 1MB chunks
-                
+                chunk_size = 1024 * 1024  # 1MB chunks
+
                 while True:
                     chunk = f_in.read(chunk_size)
                     if not chunk:
@@ -131,7 +143,7 @@ class SafetensorsService:
 
             # --- 4. Replace the original file with the temp file ---
             os.replace(temp_filepath, filepath)
-            
+
             if progress_callback is not None:
                 progress_callback(100)
 
@@ -149,4 +161,3 @@ class SafetensorsService:
                     os.remove(temp_filepath)
                 except OSError:
                     pass
-

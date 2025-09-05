@@ -13,16 +13,27 @@ when the user interacts with it. It has no direct knowledge of the model.
 import functools
 import os
 from typing import Any
-from PySide6.QtWidgets import QMainWindow, QWidget
-from PySide6.QtGui import QAction, QIcon, QPixmap, QDragEnterEvent, QDropEvent, QDragMoveEvent
-from PySide6.QtCore import Signal, QDateTime, Qt, QSize, QUrl
 
-# This imports the class generated from the .ui file.
-from .main_view_ui import Ui_EditorPanel
+from PySide6.QtCore import QDateTime, QSize, Qt, QUrl, Signal
+from PySide6.QtGui import (
+    QAction,
+    QDragEnterEvent,
+    QDragMoveEvent,
+    QDropEvent,
+    QIcon,
+    QPixmap,
+)
+from PySide6.QtWidgets import QMainWindow, QWidget
+
 from ..models.metadata_keys import MetadataKeys
+
 # Import custom widget so it can be found by the UI loader
 from ..widgets.image_widget import ImageWidget
 from .about_dialog import AboutDialog
+
+# This imports the class generated from the .ui file.
+from .main_view_ui import Ui_EditorPanel
+
 
 class MainView(QMainWindow):
     """
@@ -32,6 +43,7 @@ class MainView(QMainWindow):
     embeds the editor panel from the Qt Designer file as its central widget.
     It emits signals for user actions that the controller will connect to.
     """
+
     # --- Action Signals ---
     open_file_requested = Signal()
     save_requested = Signal()
@@ -39,7 +51,7 @@ class MainView(QMainWindow):
     file_dropped = Signal(str)
     recent_file_triggered = Signal(str)
     clear_recent_requested = Signal()
-    
+
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
@@ -60,7 +72,7 @@ class MainView(QMainWindow):
 
         # Set a default window size for a better initial appearance
         self.resize(900, 450)
-        
+
         # Set up window icon and title
         self._setup_window_properties()
 
@@ -83,14 +95,14 @@ class MainView(QMainWindow):
 
         # --- Widget Mapping for Data Binding ---
         self._widget_map = {
-            MetadataKeys.TITLE: (self.ui.titleEdit, 'setText'),
-            MetadataKeys.DESCRIPTION: (self.ui.descriptionEdit, 'setPlainText'),
-            MetadataKeys.AUTHOR: (self.ui.authorEdit, 'setText'),
-            MetadataKeys.DATE: (self.ui.dateTimeEdit, 'setDateTime'),
-            MetadataKeys.LICENSE: (self.ui.licenseEdit, 'setText'),
-            MetadataKeys.USAGE_HINT: (self.ui.usageHintEdit, 'setText'),
-            MetadataKeys.TAGS: (self.ui.tagsEdit, 'setText'),
-            MetadataKeys.MERGED_FROM: (self.ui.mergedFromEdit, 'setText'),
+            MetadataKeys.TITLE: (self.ui.titleEdit, "setText"),
+            MetadataKeys.DESCRIPTION: (self.ui.descriptionEdit, "setPlainText"),
+            MetadataKeys.AUTHOR: (self.ui.authorEdit, "setText"),
+            MetadataKeys.DATE: (self.ui.dateTimeEdit, "setDateTime"),
+            MetadataKeys.LICENSE: (self.ui.licenseEdit, "setText"),
+            MetadataKeys.USAGE_HINT: (self.ui.usageHintEdit, "setText"),
+            MetadataKeys.TAGS: (self.ui.tagsEdit, "setText"),
+            MetadataKeys.MERGED_FROM: (self.ui.mergedFromEdit, "setText"),
         }
         # ---
 
@@ -102,7 +114,7 @@ class MainView(QMainWindow):
 
     def _setup_window_properties(self):
         """Set up the window icon."""
-        
+
         # Set window icon from Qt resources
         icon = QIcon(":/assets/icon.ico")
         if not icon.isNull():
@@ -113,10 +125,10 @@ class MainView(QMainWindow):
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
         menu_bar = self.menuBar()
-        
+
         # File Menu
         file_menu = menu_bar.addMenu("&File")
-        
+
         open_action = QAction("&Open...", self)
         open_action.triggered.connect(self.open_file_requested)
         file_menu.addAction(open_action)
@@ -137,13 +149,13 @@ class MainView(QMainWindow):
 
         # View Menu
         view_menu = menu_bar.addMenu("&View")
-        
+
         raw_view_action = QAction("View &Raw Metadata", self)
-        raw_view_action.setEnabled(False) # Not implemented yet
+        raw_view_action.setEnabled(False)  # Not implemented yet
         view_menu.addAction(raw_view_action)
 
         tensors_view_action = QAction("View &Tensors", self)
-        tensors_view_action.setEnabled(False) # Not implemented yet
+        tensors_view_action.setEnabled(False)  # Not implemented yet
         view_menu.addAction(tensors_view_action)
 
         # Help Menu
@@ -160,7 +172,7 @@ class MainView(QMainWindow):
     def update_recent_files_menu(self, recent_files: list[str]):
         """
         Updates the "Open Recent" submenu with the provided list of files.
-        
+
         Args:
             recent_files: List of file paths to display in the menu
         """
@@ -170,7 +182,7 @@ class MainView(QMainWindow):
         """Internal method to rebuild the recent files menu."""
         # Clear existing actions
         self.recent_files_menu.clear()
-        
+
         if not recent_files:
             # Show "No Recent Files" when list is empty
             no_files_action = QAction("No Recent Files", self)
@@ -180,16 +192,19 @@ class MainView(QMainWindow):
             for file_path in recent_files:
                 # Show just the filename in the menu for readability
                 import os
+
                 filename = os.path.basename(file_path)
                 action = QAction(filename, self)
                 action.setToolTip(file_path)  # Show full path in tooltip
                 # Connect to signal with file path using functools.partial to avoid closure issues
-                action.triggered.connect(functools.partial(self.recent_file_triggered.emit, file_path))
+                action.triggered.connect(
+                    functools.partial(self.recent_file_triggered.emit, file_path)
+                )
                 self.recent_files_menu.addAction(action)
-            
+
             # Add separator and Clear action
             self.recent_files_menu.addSeparator()
-            
+
         # Always show Clear action (enabled only when there are files)
         clear_action = QAction("Clear List", self)
         clear_action.setVisible(len(recent_files) > 0)
@@ -237,16 +252,18 @@ class MainView(QMainWindow):
     def set_thumbnail_pixmap(self, pixmap: QPixmap | None):
         """
         Displays the provided QPixmap as the thumbnail.
-        
+
         Args:
             pixmap: The QPixmap to display, or None to clear the thumbnail.
         """
         self.thumbnail_widget.setPixmap(pixmap)
-        
+
         # Set property for CSS styling
         has_pixmap = pixmap is not None
-        self.thumbnail_widget.setProperty("hasPixmap", "true" if has_pixmap else "false")
-        
+        self.thumbnail_widget.setProperty(
+            "hasPixmap", "true" if has_pixmap else "false"
+        )
+
         # Apply the updated styling
         self.thumbnail_widget.style().unpolish(self.thumbnail_widget)
         self.thumbnail_widget.style().polish(self.thumbnail_widget)
@@ -287,10 +304,10 @@ class MainView(QMainWindow):
 
             # Block signals to prevent feedback loops
             widget.blockSignals(True)
-            
+
             # --- Type-Specific Handling ---
             # Convert string to QDateTime for the datetime widget
-            if setter_method_name == 'setDateTime':
+            if setter_method_name == "setDateTime":
                 if isinstance(value, str):
                     # Attempt to parse ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
                     dt = QDateTime.fromString(value, Qt.DateFormat.ISODateWithMs)
@@ -306,7 +323,7 @@ class MainView(QMainWindow):
             # ---
 
             widget.blockSignals(False)
-        
+
     def set_all_fields_enabled(self, enabled: bool):
         """Enables or disables all input fields."""
         self.ui.titleEdit.setEnabled(enabled)
@@ -322,7 +339,7 @@ class MainView(QMainWindow):
         self.ui.clearThumbnailBtn.setEnabled(enabled)
 
     # --- Drag and Drop Support ---
-    
+
     def _is_valid_safetensors_file(self, urls):
         """
         Checks if any of the provided QUrls point to a local .safetensors file.
@@ -331,7 +348,7 @@ class MainView(QMainWindow):
         for url in urls:
             if url.isLocalFile():
                 file_path = url.toLocalFile()
-                if file_path.lower().endswith('.safetensors'):
+                if file_path.lower().endswith(".safetensors"):
                     return file_path
         return None
 
@@ -342,7 +359,7 @@ class MainView(QMainWindow):
                 event.acceptProposedAction()
                 return
         event.ignore()
-    
+
     def dragMoveEvent(self, event: QDragMoveEvent):
         """Handle drag move events - accept if we accepted the drag enter."""
         if event.mimeData().hasUrls():
@@ -350,7 +367,7 @@ class MainView(QMainWindow):
                 event.acceptProposedAction()
                 return
         event.ignore()
-    
+
     def dropEvent(self, event: QDropEvent):
         """Handle drop events - process the first .safetensors file that was dropped."""
         if event.mimeData().hasUrls():
