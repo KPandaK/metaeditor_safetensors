@@ -1,14 +1,22 @@
 import logging
+from importlib.metadata import PackageNotFoundError, version
 
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
 from PySide6.QtWidgets import QDialog
 
-from .._version import __version__
 from ..widgets.svg_widget import SvgWidget
 from .about_dialog_ui import Ui_AboutDialog
 
 logger = logging.getLogger(__name__)
+
+
+def get_app_version():
+    """Get the application version from package metadata."""
+    try:
+        return version("metaeditor-safetensors")
+    except PackageNotFoundError:
+        return "dev"
 
 
 class AboutDialog(QDialog):
@@ -25,8 +33,9 @@ class AboutDialog(QDialog):
         # Always start on the first tab (About)
         self.ui.tabWidget.setCurrentIndex(0)
 
-        # Set version from _version.py
-        self.ui.aboutVersion.setText(f"v{__version__}")
+        # Set version from package metadata
+        app_version = get_app_version()
+        self.ui.aboutVersion.setText(f"v{app_version}")
 
         # Set logo from Qt resources for all tabs
         from PySide6.QtCore import QFile, QIODevice
@@ -79,5 +88,6 @@ class AboutDialog(QDialog):
         from PySide6.QtWidgets import QApplication
 
         clipboard = QApplication.clipboard()
-        version_text = f"v{__version__}"
+        app_version = get_app_version()
+        version_text = f"v{app_version}"
         clipboard.setText(version_text)

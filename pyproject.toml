@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=80.9.0", "setuptools_scm[simple]>=9.2.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,11 +26,6 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["."]
 
-[tool.setuptools_scm]
-write_to = "metaeditor_safetensors/_version.py"
-version_scheme = "guess-next-dev"
-local_scheme = "dirty-tag"
-
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
@@ -51,7 +46,6 @@ exclude = [
     "legacy", 
     "**/*_ui.py", 
     "**/resources_rc.py",
-    "_version.py",
 ]
 
 [tool.ruff.lint]
