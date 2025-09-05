@@ -9,6 +9,9 @@ import sys
 import os
 from PySide6.QtWidgets import QApplication
 from .services.stylesheet_service import StylesheetService
+from .services.config_service import ConfigService
+from .services.safetensors_service import SafetensorsService
+from .services.image_service import ImageService
 from .models.metadata_model import MetadataModel
 from .views.main_view import MainView
 from .controllers.main_controller import MainController
@@ -38,15 +41,20 @@ def main():
     stylesheet_service = StylesheetService(app, resource_path, filesystem_path)
     stylesheet_service.apply_stylesheet()
 
-    # 2. Instantiate the MVC components.
+    # 2. Instantiate services.
+    config_service = ConfigService()
+    safetensors_service = SafetensorsService()
+    image_service = ImageService()
+
+    # 3. Instantiate the MVC components.
     model = MetadataModel()
     view = MainView()
-    controller = MainController(model, view)
+    controller = MainController(model, view, config_service, safetensors_service, image_service)
 
-    # 3. Run the application.
+    # 4. Run the application.
     controller.run()
 
-    # 4. Start the Qt event loop.
+    # 5. Start the Qt event loop.
     try:
         exit_code = app.exec()
     finally:

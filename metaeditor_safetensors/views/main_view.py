@@ -10,6 +10,8 @@ The `MainView` is a "dumb" component; it only displays data and emits signals
 when the user interacts with it. It has no direct knowledge of the model.
 """
 
+import functools
+import os
 from PySide6.QtWidgets import QMainWindow, QWidget
 from PySide6.QtGui import QAction, QIcon, QPixmap, QDragEnterEvent, QDropEvent, QDragMoveEvent
 from PySide6.QtCore import Signal, QDateTime, Qt, QSize, QUrl
@@ -34,6 +36,8 @@ class MainView(QMainWindow):
     save_requested = Signal()
     exit_requested = Signal()
     file_dropped = Signal(str)
+    recent_file_triggered = Signal(str)
+    clear_recent_requested = Signal()
     
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
@@ -116,6 +120,10 @@ class MainView(QMainWindow):
         open_action.triggered.connect(self.open_file_requested)
         file_menu.addAction(open_action)
 
+        # Open Recent submenu
+        self.recent_files_menu = file_menu.addMenu("Open &Recent")
+        self._update_recent_files_menu([])  # Initialize with empty list
+
         save_action = QAction("&Save", self)
         save_action.triggered.connect(self.save_requested)
         file_menu.addAction(save_action)
@@ -147,6 +155,45 @@ class MainView(QMainWindow):
         """Shows the about window."""
         about_dialog = AboutDialog(self)
         about_dialog.exec()
+
+    def update_recent_files_menu(self, recent_files: list[str]):
+        """
+        Updates the "Open Recent" submenu with the provided list of files.
+        
+        Args:
+            recent_files: List of file paths to display in the menu
+        """
+        self._update_recent_files_menu(recent_files)
+
+    def _update_recent_files_menu(self, recent_files: list[str]):
+        """Internal method to rebuild the recent files menu."""
+        # Clear existing actions
+        self.recent_files_menu.clear()
+        
+        if not recent_files:
+            # Show "No Recent Files" when list is empty
+            no_files_action = QAction("No Recent Files", self)
+            no_files_action.setEnabled(False)
+            self.recent_files_menu.addAction(no_files_action)
+        else:
+            for file_path in recent_files:
+                # Show just the filename in the menu for readability
+                import os
+                filename = os.path.basename(file_path)
+                action = QAction(filename, self)
+                action.setToolTip(file_path)  # Show full path in tooltip
+                # Connect to signal with file path using functools.partial to avoid closure issues
+                action.triggered.connect(functools.partial(self.recent_file_triggered.emit, file_path))
+                self.recent_files_menu.addAction(action)
+            
+            # Add separator and Clear action
+            self.recent_files_menu.addSeparator()
+            
+        # Always show Clear action (enabled only when there are files)
+        clear_action = QAction("Clear List", self)
+        clear_action.setVisible(len(recent_files) > 0)
+        clear_action.triggered.connect(self.clear_recent_requested)
+        self.recent_files_menu.addAction(clear_action)
 
     def _connect_signals(self):
         """
