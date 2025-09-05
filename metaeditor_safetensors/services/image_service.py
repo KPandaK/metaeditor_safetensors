@@ -39,7 +39,7 @@ class ImageService:
             
             # Convert to JPEG format in memory using Qt's QBuffer
             buffer = QBuffer()
-            buffer.open(QIODevice.WriteOnly)
+            buffer.open(QIODevice.OpenModeFlag.WriteOnly)
             # Save as JPEG with good quality (85 is a good balance of quality/size)
             if not pixmap.save(buffer, 'JPEG', quality=85):
                 raise ValueError(f"Failed to convert image to JPEG format")

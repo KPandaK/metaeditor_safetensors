@@ -12,6 +12,7 @@ when the user interacts with it. It has no direct knowledge of the model.
 
 import functools
 import os
+from typing import Any
 from PySide6.QtWidgets import QMainWindow, QWidget
 from PySide6.QtGui import QAction, QIcon, QPixmap, QDragEnterEvent, QDropEvent, QDragMoveEvent
 from PySide6.QtCore import Signal, QDateTime, Qt, QSize, QUrl
@@ -275,7 +276,7 @@ class MainView(QMainWindow):
             value = data.get(field_name, "")
             self.set_field_value(field_name, value)
 
-    def set_field_value(self, field_name: str, value: any):
+    def set_field_value(self, field_name: str, value: Any):
         """
         Sets the value of a specific field in the UI using the widget map.
         The controller calls this when the model is updated.
@@ -292,10 +293,10 @@ class MainView(QMainWindow):
             if setter_method_name == 'setDateTime':
                 if isinstance(value, str):
                     # Attempt to parse ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
-                    dt = QDateTime.fromString(value, Qt.ISODateWithMs)
+                    dt = QDateTime.fromString(value, Qt.DateFormat.ISODateWithMs)
                     if not dt.isValid():
                         # Fallback for format without milliseconds
-                        dt = QDateTime.fromString(value, Qt.ISODate)
+                        dt = QDateTime.fromString(value, Qt.DateFormat.ISODate)
                     setter_method(dt)
                 elif isinstance(value, QDateTime):
                     setter_method(value)
