@@ -2,10 +2,18 @@
 # Include all runtime dependencies
 -r requirements.txt
 
+# Security: Ensure secure setuptools version (addresses CVE-2025-47273, CVE-2022-40897)
+setuptools>=78.1.1
+
 # Testing
-safetensors>=0.6.2
-numpy>=1.20.0
-coverage>=7.0.0
+Pillow==10.3.0
+PySide6>=6.6.1
+numpy<2
+
+
+# Code quality
+flake8>=6.0.0
+mypy>=1.0.0
 
 # Version management from git tags
 setuptools_scm>=8.0.0
