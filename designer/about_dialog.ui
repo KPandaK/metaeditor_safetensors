@@ -52,22 +52,22 @@
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <layout class="QHBoxLayout" name="topLayout" stretch="4,6">
+        <layout class="QHBoxLayout" name="topLayout" stretch="0,1">
          <property name="spacing">
-          <number>6</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="SvgWidget" name="logoLabel" native="true">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="minimumSize">
             <size>
-             <width>64</width>
-             <height>64</height>
+             <width>250</width>
+             <height>250</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -86,22 +86,10 @@
            <item>
             <widget class="QLabel" name="aboutTitle">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>373</width>
-               <height>16777215</height>
-              </size>
              </property>
              <property name="font">
               <font>
@@ -141,14 +129,14 @@
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>20</width>
-                 <height>20</height>
+                 <width>24</width>
+                 <height>24</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>20</width>
-                 <height>20</height>
+                 <width>24</width>
+                 <height>24</height>
                 </size>
                </property>
                <property name="toolTip">
@@ -162,33 +150,37 @@
                </property>
                <property name="iconSize">
                 <size>
-                 <width>12</width>
-                 <height>12</height>
+                 <width>16</width>
+                 <height>16</height>
                 </size>
                </property>
               </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer">
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Policy::Expanding</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </item>
            <item>
             <widget class="QLabel" name="aboutAuthor">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>373</width>
-               <height>16777215</height>
-              </size>
              </property>
              <property name="text">
               <string>Created by: KPandaK</string>
@@ -198,22 +190,10 @@
            <item>
             <widget class="QLabel" name="aboutDescription">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>373</width>
-               <height>16777215</height>
-              </size>
              </property>
              <property name="text">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is a free and open source app for viewing and editing metadata in safetensors model files. &lt;/p&gt;&lt;p&gt;It implements v1.01 of Stability.AI's model metadata standard &lt;a href=&quot;https://github.com/Stability-AI/ModelSpec&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#92ebff;&quot;&gt;specification&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If you enjoy this app, feel free to tip me for a coffee!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -324,19 +304,22 @@
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <layout class="QHBoxLayout" name="topLayout_2" stretch="4,6">
+        <layout class="QHBoxLayout" name="topLayout_2" stretch="0,1">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <item>
           <widget class="SvgWidget" name="logoLabel_2" native="true">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="minimumSize">
             <size>
-             <width>64</width>
-             <height>64</height>
+             <width>250</width>
+             <height>250</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -355,22 +338,10 @@
            <item>
             <widget class="QLabel" name="creditsTitle">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>373</width>
-               <height>16777215</height>
-              </size>
              </property>
              <property name="font">
               <font>
@@ -385,22 +356,10 @@
            <item>
             <widget class="QLabel" name="creditsText">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>373</width>
-               <height>16777215</height>
-              </size>
              </property>
              <property name="text">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Original Safetensors Icon by &lt;a href=&quot;https://github.com/SHADOW-LIGHTS&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#92ebff;&quot;&gt;SHADOW-LIGHTS&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -438,19 +397,22 @@
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_6">
        <item>
-        <layout class="QHBoxLayout" name="topLayout_3" stretch="4,6">
+        <layout class="QHBoxLayout" name="topLayout_3" stretch="0,1">
+         <property name="spacing">
+          <number>0</number>
+         </property>
          <item>
           <widget class="SvgWidget" name="logoLabel_3" native="true">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="minimumSize">
             <size>
-             <width>64</width>
-             <height>64</height>
+             <width>250</width>
+             <height>250</height>
             </size>
            </property>
            <property name="maximumSize">
@@ -469,16 +431,10 @@
            <item>
             <widget class="QLabel" name="licenseTitle">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
              </property>
              <property name="text">
               <string>The MIT License (MIT)</string>
@@ -488,22 +444,10 @@
            <item>
             <widget class="QScrollArea" name="scrollArea">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>373</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>373</width>
-               <height>16777215</height>
-              </size>
              </property>
              <property name="widgetResizable">
               <bool>true</bool>
