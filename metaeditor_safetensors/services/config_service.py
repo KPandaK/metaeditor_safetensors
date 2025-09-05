@@ -98,7 +98,8 @@ class ConfigService:
         Returns:
             List of file paths in most recent first order
         """
-        return self._settings.get("recent_files", [])
+        recent_files = self._settings.get("recent_files", [])
+        return list(recent_files)
 
     def add_recent_file(self, file_path: str) -> None:
         """

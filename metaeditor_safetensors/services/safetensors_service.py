@@ -59,7 +59,8 @@ class SafetensorsService:
                 header_json = json.loads(header_bytes.decode("utf-8"))
 
                 # 3. Extract and return the metadata dictionary
-                return header_json.get("__metadata__", {})
+                metadata = header_json.get("__metadata__", {})
+                return dict(metadata)
 
         except FileNotFoundError:
             raise
