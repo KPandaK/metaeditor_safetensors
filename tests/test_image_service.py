@@ -5,21 +5,22 @@ This module tests the image conversion functionality of the ImageService,
 including conversion to JPEG format and data URI generation.
 """
 
-import unittest
-import tempfile
-import os
 import base64
+import os
 import shutil
-from unittest.mock import patch, MagicMock
 
 # Add the project root to the path
 import sys
+import tempfile
+import unittest
+from unittest.mock import MagicMock, patch
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(project_root, 'src'))
 
-from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QPixmap, QPainter
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPainter, QPixmap
+from PySide6.QtWidgets import QApplication
 
 from metaeditor_safetensors.services.image_service import ImageService
 
@@ -49,25 +50,25 @@ class TestImageService(unittest.TestCase):
     def create_test_image(self, filename: str, format: str = 'PNG', size: tuple = (100, 100)) -> str:
         """
         Create a test image file for testing.
-        
+
         Args:
             filename: Name of the file to create
             format: Image format (PNG, JPEG, etc.)
             size: Image size as (width, height)
-            
+
         Returns:
             Full path to the created test image
         """
         # Create a simple test image
         pixmap = QPixmap(size[0], size[1])
         pixmap.fill(Qt.red)  # Fill with red color
-        
+
         # Add some content to make it a valid image
         painter = QPainter(pixmap)
         painter.setPen(Qt.blue)
         painter.drawRect(10, 10, size[0]-20, size[1]-20)
         painter.end()
-        
+
         filepath = os.path.join(self.temp_dir, filename)
         pixmap.save(filepath, format)
         return filepath
@@ -76,14 +77,14 @@ class TestImageService(unittest.TestCase):
         """Test converting a PNG file to JPEG data URI."""
         # Create a test PNG file
         png_file = self.create_test_image('test.png', 'PNG')
-        
+
         # Convert to data URI
         data_uri = self.service.image_to_data_uri(png_file)
-        
+
         # Verify the result
         self.assertTrue(data_uri.startswith('data:image/jpeg;base64,'))
         self.assertIn('base64,', data_uri)
-        
+
         # Verify the base64 part is valid
         base64_part = data_uri.split('base64,')[1]
         try:
@@ -96,10 +97,10 @@ class TestImageService(unittest.TestCase):
         """Test converting a BMP file to JPEG data URI."""
         # Create a test BMP file
         bmp_file = self.create_test_image('test.bmp', 'BMP')
-        
+
         # Convert to data URI
         data_uri = self.service.image_to_data_uri(bmp_file)
-        
+
         # Verify always outputs JPEG format
         self.assertTrue(data_uri.startswith('data:image/jpeg;base64,'))
 
@@ -107,17 +108,17 @@ class TestImageService(unittest.TestCase):
         """Test converting a JPEG file (should still output JPEG)."""
         # Create a test JPEG file
         jpeg_file = self.create_test_image('test.jpg', 'JPEG')
-        
+
         # Convert to data URI
         data_uri = self.service.image_to_data_uri(jpeg_file)
-        
+
         # Verify outputs JPEG format
         self.assertTrue(data_uri.startswith('data:image/jpeg;base64,'))
 
     def test_image_to_data_uri_nonexistent_file(self):
         """Test error handling for non-existent files."""
         nonexistent_file = os.path.join(self.temp_dir, 'nonexistent.png')
-        
+
         with self.assertRaises(ValueError):
             self.service.image_to_data_uri(nonexistent_file)
 
@@ -127,7 +128,7 @@ class TestImageService(unittest.TestCase):
         invalid_file = os.path.join(self.temp_dir, 'invalid.png')
         with open(invalid_file, 'w') as f:
             f.write('This is not an image file')
-        
+
         with self.assertRaises(ValueError):
             self.service.image_to_data_uri(invalid_file)
 
@@ -136,10 +137,10 @@ class TestImageService(unittest.TestCase):
         # First create a data URI from a test image
         png_file = self.create_test_image('test.png', 'PNG')
         data_uri = self.service.image_to_data_uri(png_file)
-        
+
         # Convert back to pixmap
         pixmap = self.service.data_uri_to_pixmap(data_uri)
-        
+
         # Verify the result
         self.assertIsNotNone(pixmap)
         self.assertFalse(pixmap.isNull())
@@ -158,7 +159,7 @@ class TestImageService(unittest.TestCase):
         # Test with empty string
         pixmap = self.service.data_uri_to_pixmap("")
         self.assertIsNone(pixmap)
-        
+
         # Test with None
         pixmap = self.service.data_uri_to_pixmap(None)
         self.assertIsNone(pixmap)
@@ -174,13 +175,13 @@ class TestImageService(unittest.TestCase):
         """Test full round-trip: image file -> data URI -> pixmap."""
         # Create a test image
         original_file = self.create_test_image('original.png', 'PNG', (50, 75))
-        
+
         # Convert to data URI
         data_uri = self.service.image_to_data_uri(original_file)
-        
+
         # Convert back to pixmap
         pixmap = self.service.data_uri_to_pixmap(data_uri)
-        
+
         # Verify the pixmap is valid and has reasonable dimensions
         self.assertIsNotNone(pixmap)
         self.assertFalse(pixmap.isNull())
@@ -192,14 +193,14 @@ class TestImageService(unittest.TestCase):
         """Test that JPEG compression is applied with reasonable quality."""
         # Create a larger test image for better compression testing
         large_file = self.create_test_image('large.png', 'PNG', (400, 300))
-        
+
         # Convert to data URI
         data_uri = self.service.image_to_data_uri(large_file)
-        
+
         # Decode the base64 to check size
         base64_part = data_uri.split('base64,')[1]
         jpeg_bytes = base64.b64decode(base64_part)
-        
+
         # Verify we have a reasonable file size (not too large, not too small)
         self.assertGreater(len(jpeg_bytes), 1000)  # At least 1KB
         self.assertLess(len(jpeg_bytes), 100000)   # Less than 100KB for a simple test image
@@ -212,16 +213,16 @@ class TestImageService(unittest.TestCase):
         mock_pixmap.isNull.return_value = False
         mock_pixmap.save.return_value = False  # Simulate save failure
         mock_qpixmap_class.return_value = mock_pixmap
-        
+
         # Create a test file (content doesn't matter since we're mocking)
         test_file = os.path.join(self.temp_dir, 'test.png')
         with open(test_file, 'wb') as f:
             f.write(b'fake image data')
-        
+
         # Test that conversion raises an appropriate error
         with self.assertRaises(ValueError) as context:
             self.service.image_to_data_uri(test_file)
-        
+
         self.assertIn("Failed to convert image to JPEG format", str(context.exception))
 
 

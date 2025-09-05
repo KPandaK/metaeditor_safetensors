@@ -7,11 +7,14 @@ including the recent files list.
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import List
 
 from .._version import __version__
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigService:
@@ -67,7 +70,7 @@ class ConfigService:
                 return data
 
             except (json.JSONDecodeError, IOError) as e:
-                print(f"Warning: Could not load settings file: {e}")
+                logger.warning(f"Could not load settings file: {e}")
                 return self._get_default_settings()
         return self._get_default_settings()
 
@@ -89,7 +92,7 @@ class ConfigService:
             with open(self._settings_file, "w", encoding="utf-8") as f:
                 json.dump(self._settings, f, indent=2, ensure_ascii=False)
         except IOError as e:
-            print(f"Warning: Could not save settings file: {e}")
+            logger.warning(f"Could not save settings file: {e}")
 
     def get_recent_files(self) -> List[str]:
         """
