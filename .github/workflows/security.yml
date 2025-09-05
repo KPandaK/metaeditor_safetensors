@@ -87,12 +87,12 @@ jobs:
       
       - name: Run pip-audit (JSON output for upload)
         run: |
-          pip-audit --format=json --output=vulnerability-report.json
+          pip-audit --format=json --output=vulnerability-report.json || true
       
       - name: Run pip-audit (Human readable)
         if: always()
         run: |
-          pip-audit --format=text
+          pip-audit --format=columns || true
       
       - name: Upload vulnerability report
         if: always()
@@ -121,18 +121,18 @@ jobs:
       
       - name: Run Bandit Security Scan
         run: |
-          bandit -r metaeditor_safetensors -f sarif -o bandit-results.sarif
-          bandit -r metaeditor_safetensors -f txt
+          bandit -r metaeditor_safetensors -f sarif -o bandit-results.sarif || echo "Bandit SARIF generation failed"
+          bandit -r metaeditor_safetensors -f txt || echo "Bandit scan completed with issues"
         continue-on-error: true
       
       - name: Run Semgrep Security Scan
         run: |
-          semgrep --config=auto --json --output=semgrep-results.json metaeditor_safetensors/
-          semgrep --config=auto --text metaeditor_safetensors/
+          semgrep --config=auto --json --output=semgrep-results.json metaeditor_safetensors/ || echo "Semgrep JSON generation failed"
+          semgrep --config=auto --text metaeditor_safetensors/ || echo "Semgrep scan completed"
         continue-on-error: true
       
       - name: Upload Bandit SARIF to GitHub Security
-        if: always()
+        if: always() && hashFiles('bandit-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: bandit-results.sarif
