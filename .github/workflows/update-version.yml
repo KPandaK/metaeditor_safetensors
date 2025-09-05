@@ -26,13 +26,13 @@ jobs:
     
     - name: Update _version.py file
       run: |
-        echo '__version__ = "${{ steps.get_version.outputs.version }}"' > src/metaeditor_safetensors/_version.py
+        echo '__version__ = "${{ steps.get_version.outputs.version }}"' > metaeditor_safetensors/_version.py
         echo "Updated _version.py with version ${{ steps.get_version.outputs.version }}"
     
     - name: Commit and push changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add src/metaeditor_safetensors/_version.py
+        git add metaeditor_safetensors/_version.py
         git commit -m "Update version to ${{ steps.get_version.outputs.version }}"
-        git push origin HEAD:main
+        git push origin HEAD:dev
