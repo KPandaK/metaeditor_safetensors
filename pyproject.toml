@@ -46,6 +46,13 @@ exclude = [
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+exclude = [
+    "venv", 
+    "legacy", 
+    "**/*_ui.py", 
+    "**/resources_rc.py",
+    "_version.py",
+]
 
 [tool.ruff.lint]
 # Just the basics - errors, warnings, and import sorting
@@ -57,9 +64,6 @@ ignore = [
     "F401",   # Unused imports in __init__.py files
     "E402",   # Module level import not at top (Qt apps need this sometimes)
 ]
-
-# Skip generated files and dependencies
-exclude = ["venv", "legacy", "**/*_ui.py", "**/resources_rc.py"]
 
 [tool.bandit]
 exclude_dirs = ["tests", "venv", "legacy"]

@@ -2,7 +2,7 @@
 Metadata Model
 ==============
 
-This module defines the `MetadataModel`, which is the central data store for the 
+This module defines the `MetadataModel`, which is the central data store for the
 application. It manages the safetensors metadata, tracks changes, and notifies
 observers when the data is modified.
 
@@ -13,14 +13,16 @@ logic (Controller).
 import copy
 from typing import Any, Callable, Dict, List, Set
 
+
 class MetadataModel:
     """
     Manages the application's metadata.
 
     This class holds the metadata from a safetensors file, keeps track of
-    the original state to detect changes ("dirty" state), and allows observers 
+    the original state to detect changes ("dirty" state), and allows observers
     to register for notifications when the data changes.
     """
+
     def __init__(self):
         self._data: Dict[str, Any] = {}
         self._original_data: Dict[str, Any] = {}
@@ -91,14 +93,14 @@ class MetadataModel:
         """
         original_keys = set(self._original_data.keys())
         current_keys = set(self._data.keys())
-        
+
         changed_keys = set()
 
         # Check for modified and added keys
         for key in current_keys:
             if key not in original_keys or self._data[key] != self._original_data[key]:
                 changed_keys.add(key)
-        
+
         # Check for removed keys
         changed_keys.update(original_keys - current_keys)
 
