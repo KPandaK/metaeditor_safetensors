@@ -7,6 +7,7 @@ that orchestrates the interactions between the Model and the View.
 """
 
 import os
+from typing import Optional
 from PySide6.QtCore import QObject, Slot, QDateTime, Qt, QThread
 from PySide6.QtWidgets import QFileDialog, QApplication
 from ..models.metadata_model import MetadataModel
@@ -25,6 +26,12 @@ class MainController(QObject):
     It connects the user interface (View) with the data model (Model) and
     handles the application's logic.
     """
+    
+    # Type annotations for instance attributes
+    _thread: Optional[QThread]
+    worker: Optional[SaveWorker]
+    _current_file: Optional[str]
+    
     def __init__(self, model: MetadataModel, view: MainView, config_service: ConfigService, 
                  safetensors_service: SafetensorsService, image_service: ImageService):
         super().__init__()
@@ -34,7 +41,7 @@ class MainController(QObject):
         self._safetensor_service = safetensors_service
         self._image_service = image_service
         self._current_file = None
-        self.thread = None
+        self._thread = None
         self.worker = None
 
         # Register the controller's update method as an observer of the model.
@@ -211,7 +218,7 @@ class MainController(QObject):
             return
 
         # Prevent multiple save operations
-        if self.thread and self.thread.isRunning():
+        if self._thread and self._thread.isRunning():
             self._view.set_status_message("Save operation already in progress.")
             return
 
@@ -221,13 +228,13 @@ class MainController(QObject):
         self._view.set_status_message(f"Saving {self._current_file}...")
 
         # --- Setup and run the background worker ---
-        self.thread = QThread()
+        self._thread = QThread()
         self.worker = SaveWorker(
             service=self._safetensor_service,
             filepath=self._current_file,
             metadata=self._model.get_all_data()
         )
-        self.worker.moveToThread(self.thread)
+        self.worker.moveToThread(self._thread)
 
         # Connect worker signals to controller slots
         self.worker.progress.connect(self.on_save_progress)
@@ -235,15 +242,15 @@ class MainController(QObject):
         self.worker.error.connect(self.on_save_error)
 
         # Connect thread signals
-        self.thread.started.connect(self.worker.run)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.finished.connect(self.thread.quit)
+        self._thread.started.connect(self.worker.run)
+        self._thread.finished.connect(self._thread.deleteLater)
+        self.worker.finished.connect(self._thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.error.connect(self.thread.quit)
+        self.worker.error.connect(self._thread.quit)
         self.worker.error.connect(self.worker.deleteLater)
 
         # Start the thread
-        self.thread.start()
+        self._thread.start()
 
     @Slot(int)
     def on_save_progress(self, value: int):
@@ -269,15 +276,15 @@ class MainController(QObject):
 
     def cleanup_thread(self):
         """Cleans up the thread and worker objects."""
-        if self.thread and self.thread.isRunning():
-            self.thread.quit()
+        if self._thread and self._thread.isRunning():
+            self._thread.quit()
             # Wait for thread to finish with a 5-second timeout
-            if not self.thread.wait(5000):  # 5000ms = 5 seconds
+            if not self._thread.wait(5000):  # 5000ms = 5 seconds
                 # Thread didn't finish gracefully, force terminate
-                self.thread.terminate()
+                self._thread.terminate()
                 # Give it a short time to terminate, then proceed
-                self.thread.wait(1000)  # 1 second timeout for terminate
-        self.thread = None
+                self._thread.wait(1000)  # 1 second timeout for terminate
+        self._thread = None
         self.worker = None
 
     def shutdown(self):
@@ -296,7 +303,7 @@ class MainController(QObject):
     def on_datetime_changed(self, dt: QDateTime):
         """Handles the datetime change signal."""
         # Convert QDateTime to a string format for the model, e.g., ISO 8601
-        self._model.set_value(MetadataKeys.DATE, dt.toString(Qt.ISODateWithMs))
+        self._model.set_value(MetadataKeys.DATE, dt.toString(Qt.DateFormat.ISODateWithMs))
 
     def update_view(self):
         """

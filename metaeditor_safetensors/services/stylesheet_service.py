@@ -6,6 +6,7 @@ Service for managing application stylesheets with optional live-reloading for de
 """
 
 import os
+from typing import Optional
 from PySide6.QtCore import QObject, QFile, QIODevice, QFileSystemWatcher
 from PySide6.QtWidgets import QApplication
 
@@ -17,7 +18,7 @@ class StylesheetService(QObject):
     Supports both production mode (Qt resources) and development mode (file watching).
     """
     
-    def __init__(self, app: QApplication, resource_path: str, filesystem_path: str = None):
+    def __init__(self, app: QApplication, resource_path: str, filesystem_path: Optional[str] = None):
         super().__init__()
         self._app = app
         self._resource_path = resource_path

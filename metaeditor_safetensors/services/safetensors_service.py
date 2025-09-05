@@ -11,7 +11,7 @@ UI and control flow.
 import json
 import os
 import struct
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, Optional
 
 class SafetensorsService:
     """
@@ -65,7 +65,7 @@ class SafetensorsService:
         except Exception as e:
             raise ValueError(f"An unexpected error occurred while reading the file: {e}")
 
-    def write_metadata(self, filepath: str, metadata: Dict[str, Any], progress_callback: Callable[[int], None] = None):
+    def write_metadata(self, filepath: str, metadata: Dict[str, Any], progress_callback: Optional[Callable[[int], None]] = None):
         """
         Writes updated metadata to a .safetensors file by creating a new
         file and then replacing the original. This is a safe way to prevent
@@ -121,7 +121,7 @@ class SafetensorsService:
                         break
                     f_out.write(chunk)
                     bytes_copied += len(chunk)
-                    if progress_callback and total_size > 0:
+                    if progress_callback is not None and total_size > 0:
                         denominator = total_size - tensor_data_start
                         if denominator > 0:
                             progress = int((bytes_copied / denominator) * 100)
@@ -132,7 +132,7 @@ class SafetensorsService:
             # --- 4. Replace the original file with the temp file ---
             os.replace(temp_filepath, filepath)
             
-            if progress_callback:
+            if progress_callback is not None:
                 progress_callback(100)
 
             return filepath
