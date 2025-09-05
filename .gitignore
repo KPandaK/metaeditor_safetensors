@@ -15,6 +15,10 @@ build/
 *.pyd
 __pycache__/
 
+# Cache folders
+.ruff_cache/
+.mypy_cache/
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -37,6 +41,11 @@ Thumbs.db
 # Test coverage
 .coverage
 htmlcov/
+coverage.xml
+
+# Security scan reports
+bandit-report.json
+safety-report.json
 
 # Logs
 *.log

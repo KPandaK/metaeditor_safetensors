@@ -10,9 +10,17 @@ authors = [{name = "KPandK"}]
 requires-python = ">=3.10"
 dependencies = [
     "PySide6>=6.6.1",
-    "Pillow>=10.3.0",
-    "tkcalendar>=1.6.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "bandit>=1.7.0",
+    "safety>=2.0.0",
     "numpy<2",
+    "safetensors>=0.6.2",
 ]
 
 [tool.setuptools.packages.find]
@@ -22,3 +30,41 @@ where = ["."]
 write_to = "metaeditor_safetensors/_version.py"
 version_scheme = "guess-next-dev"
 local_scheme = "dirty-tag"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+    "build/",
+    "dist/",
+    "venv/",
+    ".venv/",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+# Just the basics - errors, warnings, and import sorting
+select = ["E", "W", "F", "I"]
+
+# Allow common patterns in UI apps
+ignore = [
+    "E501",   # Line too long (let formatter handle this)
+    "F401",   # Unused imports in __init__.py files
+    "E402",   # Module level import not at top (Qt apps need this sometimes)
+]
+
+# Skip generated files and dependencies
+exclude = ["venv", "legacy", "**/*_ui.py", "**/resources_rc.py"]
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", "legacy"]
+skips = [
+    "B101",  # assert_used - asserts are okay in applications
+    "B603",  # subprocess_without_shell_equals_true - we use subprocess safely
+    "B607",  # start_process_with_partial_path - acceptable for our use case
+]
