@@ -10,15 +10,11 @@ import json
 import logging
 import os
 import shutil
-
-# Import the service to test
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from metaeditor_safetensors.services.config_service import ConfigService
 
 
@@ -42,7 +38,9 @@ class TestConfigService(unittest.TestCase):
 
     def _create_config_service_with_temp_file(self):
         """Helper to create a ConfigService with a temporary settings file."""
-        with patch.object(ConfigService, '_get_settings_directory', return_value=Path(self.temp_dir)):
+        with patch.object(
+            ConfigService, "_get_settings_directory", return_value=Path(self.temp_dir)
+        ):
             return ConfigService()
 
     def test_initialization_creates_default_settings(self):
@@ -51,9 +49,9 @@ class TestConfigService(unittest.TestCase):
 
         # Verify default settings structure
         self.assertEqual(config_service.get_recent_files(), [])
-        self.assertEqual(config_service._settings['config_version'], '1.0')
-        self.assertIn('app_version', config_service._settings)
-        self.assertIn('recent_files', config_service._settings)
+        self.assertEqual(config_service._settings["config_version"], "1.0")
+        self.assertIn("app_version", config_service._settings)
+        self.assertIn("recent_files", config_service._settings)
 
     def test_add_recent_file(self):
         """Test adding files to the recent files list."""
@@ -153,7 +151,7 @@ class TestConfigService(unittest.TestCase):
     def test_corrupted_settings_file_handling(self):
         """Test handling of corrupted settings file."""
         # Create a corrupted JSON file
-        with open(self.temp_settings_file, 'w') as f:
+        with open(self.temp_settings_file, "w") as f:
             f.write("{ invalid json }")
 
         # Should not crash and should use defaults
@@ -161,12 +159,12 @@ class TestConfigService(unittest.TestCase):
 
         # Verify defaults are used
         self.assertEqual(config_service.get_recent_files(), [])
-        self.assertEqual(config_service._settings['config_version'], '1.0')
+        self.assertEqual(config_service._settings["config_version"], "1.0")
 
     def test_invalid_settings_file_format(self):
         """Test handling of invalid settings file format (non-dict)."""
         # Create a file with a list instead of dict
-        with open(self.temp_settings_file, 'w') as f:
+        with open(self.temp_settings_file, "w") as f:
             json.dump(["/some/file.safetensors"], f)
 
         # Should use defaults when format is invalid
@@ -174,18 +172,18 @@ class TestConfigService(unittest.TestCase):
 
         # Verify defaults are used
         self.assertEqual(config_service.get_recent_files(), [])
-        self.assertEqual(config_service._settings['config_version'], '1.0')
+        self.assertEqual(config_service._settings["config_version"], "1.0")
 
     def test_missing_recent_files_key(self):
         """Test handling when recent_files key is missing."""
         # Create a settings file without recent_files
         incomplete_data = {
             "config_version": "1.0",
-            "app_version": "1.0.0"
+            "app_version": "1.0.0",
             # Missing recent_files
         }
 
-        with open(self.temp_settings_file, 'w') as f:
+        with open(self.temp_settings_file, "w") as f:
             json.dump(incomplete_data, f)
 
         # Should add empty recent_files array
@@ -193,13 +191,18 @@ class TestConfigService(unittest.TestCase):
 
         # Verify recent_files was added
         self.assertEqual(config_service.get_recent_files(), [])
-        self.assertEqual(config_service._settings['config_version'], '1.0')
+        self.assertEqual(config_service._settings["config_version"], "1.0")
 
-    @unittest.skipUnless(os.name == 'nt', "Windows-specific test")
+    @unittest.skipUnless(os.name == "nt", "Windows-specific test")
     def test_windows_settings_directory(self):
         """Test that Windows settings directory is correctly determined."""
-        with patch.dict('metaeditor_safetensors.services.config_service.os.environ', {'APPDATA': 'C:\\Users\\Test\\AppData\\Roaming'}):
-            with patch('metaeditor_safetensors.services.config_service.Path') as mock_path_class:
+        with patch.dict(
+            "metaeditor_safetensors.services.config_service.os.environ",
+            {"APPDATA": "C:\\Users\\Test\\AppData\\Roaming"},
+        ):
+            with patch(
+                "metaeditor_safetensors.services.config_service.Path"
+            ) as mock_path_class:
                 # Create mock path objects
                 mock_appdata_path = MagicMock()
                 mock_settings_path = MagicMock()
@@ -209,24 +212,34 @@ class TestConfigService(unittest.TestCase):
                 mock_path_class.return_value = mock_appdata_path
                 mock_appdata_path.__truediv__.return_value = mock_settings_path
                 mock_settings_path.__truediv__.return_value = mock_settings_file
-                mock_settings_file.exists.return_value = False  # No existing settings file
+                mock_settings_file.exists.return_value = (
+                    False  # No existing settings file
+                )
 
                 config_service = ConfigService()
 
                 # Verify Path was called with APPDATA value
-                mock_path_class.assert_called_with('C:\\Users\\Test\\AppData\\Roaming')
+                mock_path_class.assert_called_with("C:\\Users\\Test\\AppData\\Roaming")
                 # Verify the settings directory creation
-                mock_appdata_path.__truediv__.assert_called_with("SafetensorsMetadataEditor")
-                mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+                mock_appdata_path.__truediv__.assert_called_with(
+                    "SafetensorsMetadataEditor"
+                )
+                mock_settings_path.mkdir.assert_called_once_with(
+                    parents=True, exist_ok=True
+                )
 
                 # Verify the ConfigService has the mocked settings directory
                 self.assertEqual(config_service._settings_dir, mock_settings_path)
 
-    @unittest.skipUnless(os.name == 'nt', "Windows-specific test")
+    @unittest.skipUnless(os.name == "nt", "Windows-specific test")
     def test_windows_settings_directory_no_appdata(self):
         """Test Windows settings directory when APPDATA is not available."""
-        with patch.dict('metaeditor_safetensors.services.config_service.os.environ', {}, clear=True):  # No APPDATA
-            with patch('metaeditor_safetensors.services.config_service.Path') as mock_path_class:
+        with patch.dict(
+            "metaeditor_safetensors.services.config_service.os.environ", {}, clear=True
+        ):  # No APPDATA
+            with patch(
+                "metaeditor_safetensors.services.config_service.Path"
+            ) as mock_path_class:
                 # Create mock path objects
                 mock_home_path = MagicMock()
                 mock_settings_path = MagicMock()
@@ -236,15 +249,21 @@ class TestConfigService(unittest.TestCase):
                 mock_path_class.home.return_value = mock_home_path
                 mock_home_path.__truediv__.return_value = mock_settings_path
                 mock_settings_path.__truediv__.return_value = mock_settings_file
-                mock_settings_file.exists.return_value = False  # No existing settings file
+                mock_settings_file.exists.return_value = (
+                    False  # No existing settings file
+                )
 
                 config_service = ConfigService()
 
                 # Verify Path.home() was called
                 mock_path_class.home.assert_called_once()
                 # Verify the settings directory creation
-                mock_home_path.__truediv__.assert_called_with(".safetensors_metadata_editor")
-                mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+                mock_home_path.__truediv__.assert_called_with(
+                    ".safetensors_metadata_editor"
+                )
+                mock_settings_path.mkdir.assert_called_once_with(
+                    parents=True, exist_ok=True
+                )
 
                 # Verify the ConfigService has the mocked settings directory
                 self.assertEqual(config_service._settings_dir, mock_settings_path)
@@ -252,24 +271,25 @@ class TestConfigService(unittest.TestCase):
     def test_json_decode_error_handling(self):
         """Test handling of JSON decode errors with specific error message."""
         # Create a file with invalid JSON
-        with open(self.temp_settings_file, 'w') as f:
-            f.write('{invalid json')  # Definitely invalid JSON
+        with open(self.temp_settings_file, "w") as f:
+            f.write("{invalid json")  # Definitely invalid JSON
 
         # Instead of testing print output, test that we get expected behavior
         config_service = self._create_config_service_with_temp_file()
 
         # Verify defaults are used (this proves the error handling worked)
         self.assertEqual(config_service.get_recent_files(), [])
-        self.assertEqual(config_service._settings['config_version'], '1.0')
+        self.assertEqual(config_service._settings["config_version"], "1.0")
 
     def test_io_error_during_load(self):
         """Test handling of IO errors during settings load."""
         # Create a valid settings file first
-        with open(self.temp_settings_file, 'w') as f:
+        with open(self.temp_settings_file, "w") as f:
             json.dump({"recent_files": ["/test/file.safetensors"]}, f)
 
         # Make the file unreadable by changing permissions (Windows approach)
         import stat
+
         try:
             # Remove read permissions
             os.chmod(self.temp_settings_file, stat.S_IWRITE)
@@ -295,13 +315,14 @@ class TestConfigService(unittest.TestCase):
 
         # Mock open to raise IOError during write operations
         original_open = open
+
         def mock_open_func(*args, **kwargs):
-            mode = kwargs.get('mode', args[1] if len(args) > 1 else 'r')
-            if 'w' in mode:
+            mode = kwargs.get("mode", args[1] if len(args) > 1 else "r")
+            if "w" in mode:
                 raise IOError("Disk full")
             return original_open(*args, **kwargs)
 
-        with patch('builtins.open', side_effect=mock_open_func):
+        with patch("builtins.open", side_effect=mock_open_func):
             # This should not raise an exception, but should handle the error gracefully
             try:
                 config_service.add_recent_file(test_file)
@@ -319,40 +340,41 @@ class TestConfigService(unittest.TestCase):
         invalid_data = {
             "config_version": "1.0",
             "app_version": "1.0.0",
-            "recent_files": "not_a_list"  # Should be a list
+            "recent_files": "not_a_list",  # Should be a list
         }
 
-        with open(self.temp_settings_file, 'w') as f:
+        with open(self.temp_settings_file, "w") as f:
             json.dump(invalid_data, f)
 
         config_service = self._create_config_service_with_temp_file()
 
         # Should fix the invalid recent_files and make it an empty list
         self.assertEqual(config_service.get_recent_files(), [])
-        self.assertIsInstance(config_service._settings['recent_files'], list)
+        self.assertIsInstance(config_service._settings["recent_files"], list)
 
     def test_save_settings_version_enforcement(self):
         """Test that save always enforces current version info."""
         config_service = self._create_config_service_with_temp_file()
 
         # Manually corrupt the internal settings version
-        config_service._settings['config_version'] = 'old_version'
-        config_service._settings['app_version'] = 'old_app_version'
+        config_service._settings["config_version"] = "old_version"
+        config_service._settings["app_version"] = "old_app_version"
 
         # Add a file to trigger save
         config_service.add_recent_file("/test/file.safetensors")
 
         # Reload and verify version was enforced during save
         config_service2 = self._create_config_service_with_temp_file()
-        self.assertEqual(config_service2._settings['config_version'], '1.0')
+        self.assertEqual(config_service2._settings["config_version"], "1.0")
         # App version should be current version from _version module
-        self.assertIn('app_version', config_service2._settings)
+        self.assertIn("app_version", config_service2._settings)
 
-
-    @unittest.skipIf(os.name == 'nt', "Unix/Linux/macOS-specific test")
+    @unittest.skipIf(os.name == "nt", "Unix/Linux/macOS-specific test")
     def test_unix_settings_directory(self):
         """Test that Unix/Linux/macOS settings directory is correctly determined."""
-        with patch('metaeditor_safetensors.services.config_service.Path') as mock_path_class:
+        with patch(
+            "metaeditor_safetensors.services.config_service.Path"
+        ) as mock_path_class:
             # Create mock path objects
             mock_home_path = MagicMock()
             mock_settings_path = MagicMock()
@@ -369,12 +391,16 @@ class TestConfigService(unittest.TestCase):
             # Verify Path.home() was called
             mock_path_class.home.assert_called_once()
             # Verify the settings directory creation
-            mock_home_path.__truediv__.assert_called_with(".safetensors_metadata_editor")
-            mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+            mock_home_path.__truediv__.assert_called_with(
+                ".safetensors_metadata_editor"
+            )
+            mock_settings_path.mkdir.assert_called_once_with(
+                parents=True, exist_ok=True
+            )
 
             # Verify the ConfigService has the mocked settings directory
             self.assertEqual(config_service._settings_dir, mock_settings_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
