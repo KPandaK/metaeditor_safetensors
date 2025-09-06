@@ -23,12 +23,12 @@ class TestSafetensorsService(unittest.TestCase):
         self.service = SafetensorsService()
         self.dummy_tensors = {
             "weight1": np.array([1, 2, 3]),
-            "weight2": np.array([[4, 5], [6, 7]], dtype=np.float32)
+            "weight2": np.array([[4, 5], [6, 7]], dtype=np.float32),
         }
         self.dummy_metadata = {
             "author": "Test Suite",
             "license": "MIT",
-            "description": "A file generated for compatibility testing."
+            "description": "A file generated for compatibility testing.",
         }
         self.test_filepath = os.path.join(self.test_dir, "format_test.safetensors")
 
@@ -47,8 +47,11 @@ class TestSafetensorsService(unittest.TestCase):
         read_metadata = self.service.read_metadata(self.test_filepath)
 
         # Assert that the metadata is identical
-        self.assertEqual(read_metadata, self.dummy_metadata,
-                         "READ FAILED: The metadata read does not match the safetensors file format.")
+        self.assertEqual(
+            read_metadata,
+            self.dummy_metadata,
+            "READ FAILED: The metadata read does not match the safetensors file format.",
+        )
 
     def test_write_equivalency(self):
         """
@@ -80,18 +83,30 @@ class TestSafetensorsService(unittest.TestCase):
             metadata_ours = f.metadata()
 
         # 5. Assert that metadata is identical
-        self.assertEqual(metadata_theirs, metadata_ours,
-                         "WRITE FAILED: The metadata does not match the numpy library's output.")
+        self.assertEqual(
+            metadata_theirs,
+            metadata_ours,
+            "WRITE FAILED: The metadata does not match the numpy library's output.",
+        )
 
         # 6. Assert that tensor data is identical
-        self.assertEqual(len(tensors_theirs), len(tensors_ours),
-                         "WRITE FAILED: The number of tensors changed between numpy's save and our save.")
+        self.assertEqual(
+            len(tensors_theirs),
+            len(tensors_ours),
+            "WRITE FAILED: The number of tensors changed between numpy's save and our save.",
+        )
         for key, their_tensor in tensors_theirs.items():
-            self.assertIn(key, tensors_ours,
-                          f"WRITE FAILED: Tensor '{key}' is missing from our service's output.")
+            self.assertIn(
+                key,
+                tensors_ours,
+                f"WRITE FAILED: Tensor '{key}' is missing from our service's output.",
+            )
             our_tensor = tensors_ours[key]
-            np.testing.assert_array_equal(their_tensor, our_tensor,
-                                          f"WRITE FAILED: Tensor '{key}' was corrupted by our service's save operation.")
+            np.testing.assert_array_equal(
+                their_tensor,
+                our_tensor,
+                f"WRITE FAILED: Tensor '{key}' was corrupted by our service's save operation.",
+            )
 
     def test_read_metadata_file_not_found(self):
         """Test FileNotFoundError handling when file doesn't exist."""
@@ -102,7 +117,7 @@ class TestSafetensorsService(unittest.TestCase):
         """Test file too small error handling."""
         # Create a file with less than 8 bytes
         tiny_file = os.path.join(self.test_dir, "tiny.safetensors")
-        with open(tiny_file, 'wb') as f:
+        with open(tiny_file, "wb") as f:
             f.write(b"tiny")  # Only 4 bytes
 
         with self.assertRaises(ValueError) as context:
@@ -112,7 +127,7 @@ class TestSafetensorsService(unittest.TestCase):
     def test_read_metadata_invalid_header_length(self):
         """Test when header length field doesn't equal 8 bytes."""
         invalid_header_file = os.path.join(self.test_dir, "invalid_header.safetensors")
-        with open(invalid_header_file, 'wb') as f:
+        with open(invalid_header_file, "wb") as f:
             # Write only 6 bytes instead of 8 for the header length
             f.write(b"123456")
 
@@ -122,8 +137,10 @@ class TestSafetensorsService(unittest.TestCase):
 
     def test_write_metadata_invalid_header_length(self):
         """Test write_metadata when header length field doesn't equal 8 bytes during write operation."""
-        invalid_header_file = os.path.join(self.test_dir, "invalid_header_write.safetensors")
-        with open(invalid_header_file, 'wb') as f:
+        invalid_header_file = os.path.join(
+            self.test_dir, "invalid_header_write.safetensors"
+        )
+        with open(invalid_header_file, "wb") as f:
             # Write only 6 bytes instead of 8 for the header length
             f.write(b"123456")
 
@@ -135,9 +152,9 @@ class TestSafetensorsService(unittest.TestCase):
     def test_read_metadata_truncated_header(self):
         """Test truncated header error handling."""
         truncated_file = os.path.join(self.test_dir, "truncated.safetensors")
-        with open(truncated_file, 'wb') as f:
+        with open(truncated_file, "wb") as f:
             # Write valid 8-byte header length indicating 100 bytes
-            f.write((100).to_bytes(8, 'little'))
+            f.write((100).to_bytes(8, "little"))
             # But only write 10 bytes instead of 100
             f.write(b"short_data")
 
@@ -150,9 +167,9 @@ class TestSafetensorsService(unittest.TestCase):
         invalid_json_file = os.path.join(self.test_dir, "invalid_json.safetensors")
         invalid_json = b"invalid json content"
 
-        with open(invalid_json_file, 'wb') as f:
+        with open(invalid_json_file, "wb") as f:
             # Write header length
-            f.write(len(invalid_json).to_bytes(8, 'little'))
+            f.write(len(invalid_json).to_bytes(8, "little"))
             # Write invalid JSON
             f.write(invalid_json)
 
@@ -166,11 +183,14 @@ class TestSafetensorsService(unittest.TestCase):
         save_file(self.dummy_tensors, self.test_filepath, metadata=self.dummy_metadata)
 
         progress_calls = []
+
         def progress_callback(progress):
             progress_calls.append(progress)
 
         # Test with callback
-        result = self.service.write_metadata(self.test_filepath, {"new": "data"}, progress_callback)
+        result = self.service.write_metadata(
+            self.test_filepath, {"new": "data"}, progress_callback
+        )
 
         # Verify progress was called and ended at 100%
         self.assertTrue(len(progress_calls) > 0)
@@ -184,7 +204,7 @@ class TestSafetensorsService(unittest.TestCase):
         temp_file = self.test_filepath + ".tmp"
 
         # Mock to cause an error during file operations
-        with patch('builtins.open', side_effect=IOError("Simulated write error")):
+        with patch("builtins.open", side_effect=IOError("Simulated write error")):
             with self.assertRaises(IOError) as context:
                 self.service.write_metadata(self.test_filepath, {"new": "data"})
             self.assertIn("Failed to save file", str(context.exception))
@@ -198,11 +218,14 @@ class TestSafetensorsService(unittest.TestCase):
         save_file(self.dummy_tensors, self.test_filepath, metadata=self.dummy_metadata)
 
         # Mock struct.unpack to raise an unexpected error
-        with patch('metaeditor_safetensors.services.safetensors_service.struct.unpack',
-                   side_effect=RuntimeError("Unexpected error")):
+        with patch(
+            "metaeditor_safetensors.services.safetensors_service.struct.unpack",
+            side_effect=RuntimeError("Unexpected error"),
+        ):
             with self.assertRaises(ValueError) as context:
                 self.service.read_metadata(self.test_filepath)
             self.assertIn("unexpected error occurred", str(context.exception))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
