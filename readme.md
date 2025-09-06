@@ -1,13 +1,13 @@
-# MetaEditor Safetensors
-
-<div align="center">
+<div align="left">
 
 [![CI](https://github.com/KPandaK/metaeditor_safetensors/actions/workflows/ci.yml/badge.svg)](https://github.com/KPandaK/metaeditor_safetensors/actions/workflows/ci.yml)
-[![Coverage](https://github.com/KPandaK/metaeditor_safetensors/blob/python-coverage-comment-action-data/badge.svg)](https://github.com/KPandaK/metaeditor_safetensors/tree/python-coverage-comment-action-data)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/KPandaK/metaeditor_safetensors/python-coverage-comment-action-data/endpoint.json)](https://github.com/KPandaK/metaeditor_safetensors/tree/python-coverage-comment-action-data)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 </div>
+
+# MetaEditor Safetensors
 
 A lightweight Python tool and GUI for inspecting and editing `.safetensors` files, commonly used in AI and ML model storage.
 
