@@ -1,5 +1,6 @@
 [run]
 source = metaeditor_safetensors
+relative_files = true
 omit = 
     */shibokensupport/*
     */PySide6/*
