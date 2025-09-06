@@ -39,11 +39,10 @@ if [ ! -d "venv" ]; then
     
     echo "Installing dependencies..."
     venv/bin/pip install --upgrade pip
-    venv/bin/pip install -r requirements.txt
+    venv/bin/pip install -e .
 fi
 
 # Activate virtual environment and run
 echo "Starting MetaEditor SafeTensors..."
 source venv/bin/activate
-cd src/metaeditor_safetensors
 python main.py "$@"

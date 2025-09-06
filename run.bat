@@ -51,7 +51,7 @@ if not exist venv (
     
     echo Installing dependencies...
     venv\Scripts\pip install --upgrade pip
-    venv\Scripts\pip install -r requirements.txt
+    venv\Scripts\pip install -e .
     if errorlevel 1 (
         echo ERROR: Failed to install dependencies
         pause
@@ -61,6 +61,6 @@ if not exist venv (
 
 REM Activate virtual environment and run
 echo Starting MetaEditor SafeTensors...
-call venv\Scripts\activate && cd src\metaeditor_safetensors && python main.py %*
+call venv\Scripts\activate && python main.py %*
 
 pause
