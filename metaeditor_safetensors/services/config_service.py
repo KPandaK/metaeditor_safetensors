@@ -87,6 +87,7 @@ class ConfigService:
             "config_version": self.CONFIG_VERSION,
             "app_version": get_app_version(),
             "recent_files": [],
+            "theme_preference": "auto",
         }
 
     def _save_settings(self) -> None:
@@ -134,6 +135,26 @@ class ConfigService:
         # Update settings and save
         self._settings["recent_files"] = recent_files
         self._save_settings()
+
+    def get_theme_preference(self) -> str:
+        """
+        Get the user's theme preference.
+        
+        Returns:
+            Theme preference string ('auto', theme filename, etc.)
+        """
+        return self._settings.get("theme_preference", "auto")
+
+    def set_theme_preference(self, theme_preference: str) -> None:
+        """
+        Set the user's theme preference.
+        
+        Args:
+            theme_preference: Theme preference string
+        """
+        self._settings["theme_preference"] = theme_preference
+        self._save_settings()
+        logger.debug(f"Theme preference saved: {theme_preference}")
 
     def clear_recent_files(self) -> None:
         """Clear the recent files list."""

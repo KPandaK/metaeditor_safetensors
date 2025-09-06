@@ -18,7 +18,9 @@ from ..services.config_service import ConfigService
 from ..services.image_service import ImageService
 from ..services.safetensors_service import SafetensorsService
 from ..services.save_worker import SaveWorker
+from ..services.theme_service import ThemeService
 from ..views.main_view import MainView
+from ..views.settings_dialog import SettingsDialog
 from ..views.thumbnail_dialog import ThumbnailDialog
 
 
@@ -42,6 +44,7 @@ class MainController(QObject):
         config_service: ConfigService,
         safetensors_service: SafetensorsService,
         image_service: ImageService,
+        theme_service: ThemeService
     ):
         super().__init__()
         self._model = model
@@ -49,6 +52,7 @@ class MainController(QObject):
         self._config_service = config_service
         self._safetensor_service = safetensors_service
         self._image_service = image_service
+        self._theme_service = theme_service
         self._current_file = None
         self._thread = None
         self.worker = None
@@ -64,11 +68,15 @@ class MainController(QObject):
         self._view.open_file_requested.connect(self.on_open_file_requested)
         self._view.file_dropped.connect(self.on_file_dropped)
         self._view.save_requested.connect(self.on_save_requested)
+        self._view.settings_requested.connect(self.on_settings_requested)
         self._view.exit_requested.connect(self.on_exit_requested)
 
         # Connect recent files signals
         self._view.recent_file_triggered.connect(self.on_recent_file_triggered)
         self._view.clear_recent_requested.connect(self.on_clear_recent_requested)
+
+        # Connect theme signals
+        self._view.theme_requested.connect(self.on_theme_requested)
 
         # Connect metadata field changes
         self._view.title_changed.connect(
@@ -102,7 +110,7 @@ class MainController(QObject):
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
 
     def run(self):
-        """Shows the main window and starts the application."""
+        """Shows the main window and starts the application."""        
         self._view.show()
         self.update_view()  # Initial view update
         self._view.set_all_fields_enabled(False)
@@ -166,6 +174,56 @@ class MainController(QObject):
         self._config_service.clear_recent_files()
         self._update_recent_files_menu()
         self._view.set_status_message("Recent files cleared.", 3000)
+
+    @Slot(str)
+    def on_theme_requested(self, theme_identifier: str):
+        """
+        Handles theme change requests from the UI.
+        
+        Args:
+            theme_identifier: The theme identifier (filename or 'auto')
+        """
+        if not self._theme_service:
+            return
+        
+        success = self._theme_service.apply_theme(theme_identifier, save_preference=True)
+        if success:
+            current_theme = self._theme_service.get_current_theme()
+            if current_theme:
+                self._view.set_status_message(f"Applied theme: {current_theme.display_name}", 3000)
+        else:
+            self._view.set_status_message(f"Failed to apply theme: {theme_identifier}", 3000)
+
+    def on_settings_requested(self):
+        """Handle settings dialog request from the File menu."""
+        if not self._theme_service:
+            self._view.set_status_message("Theme service not available", 3000)
+            return
+            
+        # Create and configure settings dialog
+        settings_dialog = SettingsDialog(self._view)
+        settings_dialog.set_theme_service(self._theme_service)
+        
+        # Connect settings dialog signals
+        settings_dialog.theme_changed.connect(self._on_settings_theme_changed)
+        settings_dialog.settings_applied.connect(self._on_settings_applied)
+        
+        # Show dialog
+        result = settings_dialog.exec()
+        
+        if result == SettingsDialog.Accepted:
+            self._view.set_status_message("Settings saved successfully", 2000)
+
+    def _on_settings_theme_changed(self, theme_identifier: str):
+        """Handle theme changes from the settings dialog."""
+        current_theme = self._theme_service.get_current_theme()
+        if current_theme:
+            self._view.set_status_message(f"Theme changed to: {current_theme.display_name}", 2000)
+    
+    def _on_settings_applied(self):
+        """Handle when settings are applied in the dialog."""
+        # Refresh any UI elements that might be affected by settings changes
+        pass
 
     def _update_recent_files_menu(self):
         """Update the recent files menu in the view."""
