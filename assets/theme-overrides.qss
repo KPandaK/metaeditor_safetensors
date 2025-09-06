@@ -1,0 +1,239 @@
+/* 
+PyQtDarkTheme Custom Overrides
+==============================
+
+This stylesheet provides custom overrides for PyQtDarkTheme to improve
+font sizes, widget sizes, and usability. Applied on top of the base theme.
+*/
+
+/* =================================================================
+   FONT CONFIGURATION - Larger fonts for better readability
+   ================================================================= */
+
+QWidget {
+    font-family: 'Segoe UI', 'Arial', sans-serif;  /* Modern font stack */
+    font-size: 11pt;  /* Increased from default for better readability */
+    font-weight: normal;
+}
+
+/* Larger fonts for headings and important elements */
+QGroupBox {
+    font-size: 12pt;
+    font-weight: 500;
+}
+
+QTabBar::tab {
+    font-size: 11pt;
+    font-weight: 500;
+}
+
+QMenuBar {
+    font-size: 11pt;
+}
+
+QMenu {
+    font-size: 11pt;
+}
+
+/* =================================================================
+   WIDGET SIZE IMPROVEMENTS - Bigger touch targets and padding
+   ================================================================= */
+
+/* Larger input fields */
+QLineEdit,
+QTextEdit,
+QDateTimeEdit,
+QSpinBox,
+QComboBox {
+    min-height: 28px;  /* Larger minimum height */
+    padding: 6px 8px;  /* More padding for better usability */
+    border-radius: 6px;  /* Slightly more rounded */
+}
+
+QTextEdit {
+    min-height: 60px;  /* Taller text areas */
+}
+
+/* Larger buttons */
+QPushButton {
+    min-height: 32px;  /* Bigger buttons */
+    padding: 8px 16px;  /* More generous padding */
+    border-radius: 6px;
+    font-weight: 500;  /* Slightly bolder button text */
+}
+
+/* Larger checkboxes and radio buttons */
+QCheckBox,
+QRadioButton {
+    spacing: 8px;  /* More space between indicator and text */
+    font-size: 11pt;
+}
+
+QCheckBox::indicator,
+QRadioButton::indicator {
+    width: 18px;   /* Larger indicators */
+    height: 18px;
+}
+
+/* Larger tabs */
+QTabBar::tab {
+    padding: 12px 20px;  /* More generous tab padding */
+    margin-right: 2px;
+    min-width: 100px;  /* Minimum tab width */
+}
+
+/* =================================================================
+   MENU SYSTEM IMPROVEMENTS
+   ================================================================= */
+
+QMenuBar::item {
+    padding: 8px 12px;  /* Larger menu bar items */
+}
+
+QMenu::item {
+    padding: 8px 20px;  /* Larger menu items */
+    margin: 2px 4px;    /* Space between menu items */
+    border-radius: 4px;
+}
+
+QMenu::separator {
+    height: 2px;
+    margin: 4px 0px;
+}
+
+/* =================================================================
+   TOOLTIP IMPROVEMENTS
+   ================================================================= */
+
+QToolTip {
+    font-size: 10pt;
+    padding: 6px 8px;
+    border-radius: 4px;
+    max-width: 300px;
+}
+
+/* =================================================================
+   SPECIFIC UI ELEMENTS
+   ================================================================= */
+
+/* About dialog styling */
+#aboutTitle, #creditsTitle, #licenseTitle {
+    font-size: 20pt;  /* Larger titles */
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+#aboutVersion {
+    font-size: 12pt;  /* Larger version text */
+    margin-left: 8px;
+}
+
+#aboutAuthor {
+    font-size: 10pt;  /* Larger author text */
+    margin-left: 8px;
+    margin-bottom: 16px;
+}
+
+#aboutDescription {
+    font-size: 11pt;  /* Larger description */
+    line-height: 1.4;
+}
+
+/* Settings dialog improvements */
+QGroupBox {
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 8px;
+    padding: 0 8px 0 8px;
+}
+
+/* =================================================================
+   THUMBNAIL DISPLAY IMPROVEMENTS
+   ================================================================= */
+
+#thumbnailDisplay {
+    border-radius: 8px;
+    min-height: 120px;  /* Larger minimum height */
+    padding: 12px;
+}
+
+/* =================================================================
+   STATUS BAR IMPROVEMENTS
+   ================================================================= */
+
+QStatusBar {
+    min-height: 28px;  /* Taller status bar */
+    padding: 4px 8px;
+}
+
+QStatusBar::item {
+    padding: 2px 4px;
+}
+
+/* =================================================================
+   SCROLLBAR IMPROVEMENTS - Wider scrollbars for easier interaction
+   ================================================================= */
+
+QScrollBar:vertical {
+    width: 16px;  /* Wider vertical scrollbar */
+    margin: 0px;
+}
+
+QScrollBar:horizontal {
+    height: 16px;  /* Taller horizontal scrollbar */
+    margin: 0px;
+}
+
+QScrollBar::handle {
+    border-radius: 8px;
+    min-height: 20px;
+}
+
+/* =================================================================
+   DIALOG IMPROVEMENTS
+   ================================================================= */
+
+QDialog {
+    min-width: 400px;  /* Minimum dialog width */
+}
+
+QDialogButtonBox {
+    padding: 12px;
+}
+
+QDialogButtonBox QPushButton {
+    min-width: 80px;  /* Wider dialog buttons */
+}
+
+/* =================================================================
+   TABLE AND LIST IMPROVEMENTS
+   ================================================================= */
+
+QTableWidget::item,
+QTreeWidget::item,
+QListWidget::item {
+    padding: 6px 8px;  /* More padding in table cells */
+    min-height: 24px;
+}
+
+QHeaderView::section {
+    padding: 8px 12px;  /* Larger header sections */
+    font-weight: 600;
+    min-height: 28px;
+}
+
+/* =================================================================
+   SPLITTER IMPROVEMENTS
+   ================================================================= */
+
+QSplitter::handle:horizontal {
+    width: 6px;  /* Wider horizontal splitter */
+}
+
+QSplitter::handle:vertical {
+    height: 6px;  /* Taller vertical splitter */
+}

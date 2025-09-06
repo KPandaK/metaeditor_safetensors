@@ -12,7 +12,7 @@ from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QDialog, QButtonGroup
 
 from .settings_dialog_ui import Ui_SettingsDialog
-from ..services.theme_service import ThemeService, ThemeCategory, MaterialTheme
+from ..services.theme_service import ThemeService, ThemeCategory, ModernTheme
 
 logger = logging.getLogger(__name__)
 
@@ -86,22 +86,11 @@ class SettingsDialog(QDialog):
             
         self.ui.themeComboBox.clear()
         
-        # Get all themes organized by category
-        all_themes = self._theme_service.get_available_themes()
-        categories = [ThemeCategory.LIGHT, ThemeCategory.DARK]
-        
-        for category in categories:
-            # Add category separator
-            if self.ui.themeComboBox.count() > 0:
-                self.ui.themeComboBox.insertSeparator(self.ui.themeComboBox.count())
-                
-            # Add themes in this category
-            category_themes = [theme for theme in all_themes.values() 
-                             if theme.category == category]
-            category_themes.sort(key=lambda t: t.display_name)
-            
-            for theme in category_themes:
-                self.ui.themeComboBox.addItem(theme.display_name, theme.filename)
+        # Since PyQtDarkTheme only has 3 built-in themes (auto, dark, light),
+        # and these are already covered by the radio buttons,
+        # we'll disable the combo box for now or use it for future custom themes
+        self.ui.themeComboBox.addItem("No additional themes available", None)
+        self.ui.themeComboBox.setEnabled(False)
     
     def _load_current_settings(self):
         """Load current settings from the theme service."""
@@ -122,18 +111,13 @@ class SettingsDialog(QDialog):
         # Set UI state based on current preference
         if current_preference == 'auto':
             self.ui.autoThemeRadio.setChecked(True)
-        elif current_preference in ['system_light', 'light']:
+        elif current_preference == 'light':
             self.ui.lightThemeRadio.setChecked(True)
-        elif current_preference in ['system_dark', 'dark']:
+        elif current_preference == 'dark':
             self.ui.darkThemeRadio.setChecked(True)
         else:
-            # Custom theme
-            self.ui.customThemeRadio.setChecked(True)
-            # Find and select the current theme in combo box
-            for i in range(self.ui.themeComboBox.count()):
-                if self.ui.themeComboBox.itemData(i) == current_preference:
-                    self.ui.themeComboBox.setCurrentIndex(i)
-                    break
+            # Unknown theme - default to auto
+            self.ui.autoThemeRadio.setChecked(True)
         
         # Update theme info display
         self._update_theme_info()
@@ -160,14 +144,8 @@ class SettingsDialog(QDialog):
             
         button_id = self._theme_mode_group.id(button)
         
-        if button_id == 0:  # Auto
-            self.ui.themeComboBox.setEnabled(False)
-        elif button_id == 1:  # Light
-            self.ui.themeComboBox.setEnabled(False)
-        elif button_id == 2:  # Dark
-            self.ui.themeComboBox.setEnabled(False)
-        elif button_id == 3:  # Custom
-            self.ui.themeComboBox.setEnabled(True)
+        # Since we only have 3 themes (auto, light, dark), always keep combo box disabled
+        self.ui.themeComboBox.setEnabled(False)
             
         # Update preview if we have a theme service
         self._preview_theme_selection()
@@ -193,13 +171,12 @@ class SettingsDialog(QDialog):
         if self.ui.autoThemeRadio.isChecked():
             return 'auto'
         elif self.ui.lightThemeRadio.isChecked():
-            return 'system_light'
+            return 'light'
         elif self.ui.darkThemeRadio.isChecked():
-            return 'system_dark'
+            return 'dark'
         elif self.ui.customThemeRadio.isChecked():
-            current_index = self.ui.themeComboBox.currentIndex()
-            if current_index >= 0:
-                return self.ui.themeComboBox.itemData(current_index)
+            # For now, default to auto since we don't have custom themes
+            return 'auto'
         return None
     
     def _on_button_clicked(self, button):
