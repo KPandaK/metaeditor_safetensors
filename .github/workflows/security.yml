@@ -1,0 +1,37 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      
+      - name: Security Scan
+        run: |
+          python -m bandit -r metaeditor_safetensors -f json -o bandit-report.json || true
+          echo "Bandit security scan completed"
+      
+      - name: Dependency Scan
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          summary: true
+          
