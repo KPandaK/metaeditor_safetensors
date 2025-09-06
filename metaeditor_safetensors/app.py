@@ -16,7 +16,7 @@ from .models.metadata_model import MetadataModel
 from .services.config_service import ConfigService
 from .services.image_service import ImageService
 from .services.safetensors_service import SafetensorsService
-from .services.stylesheet_service import StylesheetService
+from .services.theme_service import ThemeService
 from .views.main_view import MainView
 
 
@@ -32,38 +32,26 @@ def main():
     """
     The main function that sets up and runs the application.
     """
-    # TODO: Add support for themes in the future
-    # Force light mode on Windows by setting environment variable before QApplication
-    if sys.platform == "win32":
-        os.environ["QT_QPA_PLATFORM"] = "windows:darkmode=0"
-
     # 1. Create the QApplication instance. This is a requirement for any Qt app.
     app = QApplication(sys.argv)
 
-    # TODO: Add support for themes in the future
-    # Force Qt to use its own style instead of system theme
-    app.setStyle("Fusion")
-
     app.setApplicationDisplayName("Safetensors Metadata Editor")
     app.setApplicationVersion(get_app_version())
-
-    resource_path = ":/assets/style.qss"
-    filesystem_path = os.path.join(
-        os.path.dirname(__file__), "..", "assets", "style.qss"
-    )
-    stylesheet_service = StylesheetService(app, resource_path, filesystem_path)
-    stylesheet_service.apply_stylesheet()
 
     # 2. Instantiate services.
     config_service = ConfigService()
     safetensors_service = SafetensorsService()
     image_service = ImageService()
+    
+    # Initialize theme service and apply user's theme preference
+    theme_service = ThemeService(app, config_service)
+    theme_service.apply_user_preference()
 
     # 3. Instantiate the MVC components.
     model = MetadataModel()
     view = MainView()
     controller = MainController(
-        model, view, config_service, safetensors_service, image_service
+        model, view, config_service, safetensors_service, image_service, theme_service
     )
 
     # 4. Run the application.

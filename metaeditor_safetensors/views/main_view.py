@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 from PySide6.QtCore import QDateTime, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import (
     QAction,
+    QActionGroup,
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
@@ -50,11 +51,15 @@ class MainView(QMainWindow):
     # --- Action Signals ---
     open_file_requested = Signal()
     save_requested = Signal()
+    settings_requested = Signal()
     exit_requested = Signal()
     file_dropped = Signal(str)
     recent_file_triggered = Signal(str)
     clear_recent_requested = Signal()
 
+    # --- Theme Signals ---
+    theme_requested = Signal(str)
+    
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
@@ -146,6 +151,13 @@ class MainView(QMainWindow):
 
         file_menu.addSeparator()
 
+        # Settings action in File menu
+        settings_action = QAction("&Settings...", self)
+        settings_action.triggered.connect(self.settings_requested)
+        file_menu.addAction(settings_action)
+
+        file_menu.addSeparator()
+
         exit_action = QAction("E&xit", self)
         exit_action.triggered.connect(self.exit_requested)
         file_menu.addAction(exit_action)
@@ -155,6 +167,7 @@ class MainView(QMainWindow):
 
         raw_view_action = QAction("View &Raw Metadata", self)
         raw_view_action.setEnabled(False)  # Not implemented yet
+        view_menu.addAction(raw_view_action)
         view_menu.addAction(raw_view_action)
 
         tensors_view_action = QAction("View &Tensors", self)
