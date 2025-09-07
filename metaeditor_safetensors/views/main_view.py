@@ -59,7 +59,7 @@ class MainView(QMainWindow):
 
     # --- Theme Signals ---
     theme_requested = Signal(str)
-    
+
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
@@ -79,7 +79,7 @@ class MainView(QMainWindow):
         super().__init__()
 
         # Set a default window size for a better initial appearance
-        self.resize(900, 450)
+        self.resize(1200, 800)
 
         # Set up window icon and title
         self._setup_window_properties()
@@ -238,7 +238,9 @@ class MainView(QMainWindow):
         self.ui.authorEdit.textChanged.connect(self.author_changed)
         self.ui.dateTimeEdit.dateTimeChanged.connect(self.datetime_changed)
         self.ui.licenseEdit.textChanged.connect(self.license_changed)
-        self.ui.usageHintEdit.textChanged.connect(self.usage_hint_changed)
+        self.ui.usageHintEdit.textChanged.connect(
+            lambda: self.usage_hint_changed.emit(self.ui.usageHintEdit.toPlainText())
+        )
         self.ui.tagsEdit.textChanged.connect(self.tags_changed)
         self.ui.mergedFromEdit.textChanged.connect(self.merged_from_changed)
 

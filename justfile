@@ -31,7 +31,7 @@ compile: _compile-resources && _compile-ui
 # Format code with Ruff
 fmt:
     @echo "Formatting code with Ruff..."
-    @{{ python }} -m ruff format --check --diff .
+    @{{ python }} -m ruff format .
 
 # Lint code with Ruff
 lint:

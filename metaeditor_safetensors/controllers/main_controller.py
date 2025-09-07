@@ -44,7 +44,7 @@ class MainController(QObject):
         config_service: ConfigService,
         safetensors_service: SafetensorsService,
         image_service: ImageService,
-        theme_service: ThemeService
+        theme_service: ThemeService,
     ):
         super().__init__()
         self._model = model
@@ -110,7 +110,7 @@ class MainController(QObject):
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
 
     def run(self):
-        """Shows the main window and starts the application."""        
+        """Shows the main window and starts the application."""
         self._view.show()
         self.update_view()  # Initial view update
         self._view.set_all_fields_enabled(False)
@@ -179,38 +179,44 @@ class MainController(QObject):
     def on_theme_requested(self, theme_identifier: str):
         """
         Handles theme change requests from the UI.
-        
+
         Args:
             theme_identifier: The theme identifier (filename or 'auto')
         """
         if not self._theme_service:
             return
-        
-        success = self._theme_service.apply_theme(theme_identifier, save_preference=True)
+
+        success = self._theme_service.apply_theme(
+            theme_identifier, save_preference=True
+        )
         if success:
             current_theme = self._theme_service.get_current_theme()
             if current_theme:
-                self._view.set_status_message(f"Applied theme: {current_theme.display_name}", 3000)
+                self._view.set_status_message(
+                    f"Applied theme: {current_theme.display_name}", 3000
+                )
         else:
-            self._view.set_status_message(f"Failed to apply theme: {theme_identifier}", 3000)
+            self._view.set_status_message(
+                f"Failed to apply theme: {theme_identifier}", 3000
+            )
 
     def on_settings_requested(self):
         """Handle settings dialog request from the File menu."""
         if not self._theme_service:
             self._view.set_status_message("Theme service not available", 3000)
             return
-            
+
         # Create and configure settings dialog
         settings_dialog = SettingsDialog(self._view)
-        settings_dialog.set_theme_service(self._theme_service)
-        
+        settings_dialog.set_services(self._theme_service, self._config_service)
+
         # Connect settings dialog signals
         settings_dialog.theme_changed.connect(self._on_settings_theme_changed)
         settings_dialog.settings_applied.connect(self._on_settings_applied)
-        
+
         # Show dialog
         result = settings_dialog.exec()
-        
+
         if result == SettingsDialog.Accepted:
             self._view.set_status_message("Settings saved successfully", 2000)
 
@@ -218,8 +224,10 @@ class MainController(QObject):
         """Handle theme changes from the settings dialog."""
         current_theme = self._theme_service.get_current_theme()
         if current_theme:
-            self._view.set_status_message(f"Theme changed to: {current_theme.display_name}", 2000)
-    
+            self._view.set_status_message(
+                f"Theme changed to: {current_theme.display_name}", 2000
+            )
+
     def _on_settings_applied(self):
         """Handle when settings are applied in the dialog."""
         # Refresh any UI elements that might be affected by settings changes

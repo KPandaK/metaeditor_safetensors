@@ -139,16 +139,16 @@ class ConfigService:
     def get_theme_preference(self) -> str:
         """
         Get the user's theme preference.
-        
+
         Returns:
             Theme preference string ('auto', theme filename, etc.)
         """
-        return self._settings.get("theme_preference", "auto")
+        return str(self._settings.get("theme_preference", "auto"))
 
     def set_theme_preference(self, theme_preference: str) -> None:
         """
         Set the user's theme preference.
-        
+
         Args:
             theme_preference: Theme preference string
         """

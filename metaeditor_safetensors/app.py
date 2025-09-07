@@ -42,7 +42,7 @@ def main():
     config_service = ConfigService()
     safetensors_service = SafetensorsService()
     image_service = ImageService()
-    
+
     # Initialize theme service and apply user's theme preference
     theme_service = ThemeService(app, config_service)
     theme_service.apply_user_preference()
