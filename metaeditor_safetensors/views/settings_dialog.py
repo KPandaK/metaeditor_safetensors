@@ -143,12 +143,8 @@ class SettingsDialog(QDialog):
         if not checked:
             return
 
-        self._theme_mode_group.id(button)
-
         # Since we only have 3 themes (auto, light, dark), always keep combo box disabled
         self.ui.themeComboBox.setEnabled(False)
-
-        # Update preview if we have a theme service
         self._preview_theme_selection()
 
     def _on_specific_theme_changed(self):
