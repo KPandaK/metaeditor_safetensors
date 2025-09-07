@@ -12,10 +12,11 @@ from typing import Optional, List, Dict, Any, Literal
 from enum import Enum
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QObject, Signal, QFile, QIODevice
+from PySide6.QtCore import QObject, Signal, QFile, QIODevice, QFileSystemWatcher
 
 import qdarktheme
 import darkdetect
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +70,16 @@ class ThemeService(QObject):
         self._current_theme: Optional[ModernTheme] = None
         self._available_themes: Dict[str, ModernTheme] = {}
         
+        # Development mode settings
+        self._enable_live_reload = os.getenv("DEV_LIVE_STYLING", "false").lower() == "true"
+        self._file_watcher: Optional[QFileSystemWatcher] = None
+        
         # Initialize available themes
         self._initialize_themes()
+        
+        # Setup file watching if in development mode
+        if self._enable_live_reload:
+            self._setup_file_watcher()
         
         logger.info("ThemeService initialized with PyQtDarkTheme")
     
@@ -95,7 +104,20 @@ class ThemeService(QObject):
         logger.info(f"Initialized {len(self._available_themes)} PyQtDarkTheme themes")
     
     def _load_theme_overrides(self) -> str:
-        """Load the theme overrides QSS from resources."""
+        """Load the theme overrides QSS from resources or filesystem."""
+        # In development mode, try to load from filesystem first for live reloading
+        if self._enable_live_reload:
+            try:
+                filesystem_path = "assets/theme-overrides.qss"
+                if os.path.exists(filesystem_path):
+                    with open(filesystem_path, "r", encoding="utf-8") as f:
+                        qss_content = f.read()
+                        logger.debug("Loaded theme overrides from filesystem (dev mode)")
+                        return qss_content
+            except Exception as e:
+                logger.debug(f"Could not load from filesystem, falling back to resources: {e}")
+        
+        # Load from compiled resources (production mode)
         try:
             qss_file = QFile(":/assets/theme-overrides.qss")
             if qss_file.open(QIODevice.ReadOnly | QIODevice.Text):
@@ -109,6 +131,24 @@ class ThemeService(QObject):
         except Exception as e:
             logger.error(f"Error loading theme overrides: {e}")
             return ""
+    
+    def _setup_file_watcher(self):
+        """Setup file watching for live reload in development mode."""
+        filesystem_path = "assets/theme-overrides.qss"
+        if not os.path.exists(filesystem_path):
+            logger.debug(f"Theme overrides file not found for watching: {filesystem_path}")
+            return
+        
+        self._file_watcher = QFileSystemWatcher([filesystem_path])
+        self._file_watcher.fileChanged.connect(self._on_theme_file_changed)
+        logger.info(f"Live theme reloading enabled, watching: {filesystem_path}")
+    
+    def _on_theme_file_changed(self):
+        """Handle theme file changes for live reloading."""
+        logger.debug("Theme overrides file changed, reloading...")
+        if self._current_theme:
+            # Re-apply the current theme to pick up CSS changes
+            self._apply_modern_theme(self._current_theme, save_preference=False)
     
     def _detect_system_theme(self, use_cache: bool = True) -> SystemTheme:
         """
