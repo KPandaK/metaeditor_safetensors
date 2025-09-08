@@ -197,11 +197,12 @@ class Ui_EditorPanel(object):
 
         self.thumbnailDisplay = ImageWidget(EditorPanel)
         self.thumbnailDisplay.setObjectName(u"thumbnailDisplay")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(1)
+        sizePolicy2.setVerticalStretch(0)
         sizePolicy2.setHeightForWidth(self.thumbnailDisplay.sizePolicy().hasHeightForWidth())
         self.thumbnailDisplay.setSizePolicy(sizePolicy2)
+        self.thumbnailDisplay.setMinimumSize(QSize(150, 150))
 
         self.thumbnailColumn.addWidget(self.thumbnailDisplay)
 
@@ -232,6 +233,7 @@ class Ui_EditorPanel(object):
 
         self.thumbnailColumn.addItem(self.thumbnailSpacer)
 
+        self.thumbnailColumn.setStretch(1, 1)
 
         self.horizontalLayout.addLayout(self.thumbnailColumn)
 

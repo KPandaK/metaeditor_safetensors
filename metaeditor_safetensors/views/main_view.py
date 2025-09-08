@@ -79,7 +79,7 @@ class MainView(QMainWindow):
         super().__init__()
 
         # Set a default window size for a better initial appearance
-        self.resize(1200, 800)
+        self.resize(1100, 800)
 
         # Set up window icon and title
         self._setup_window_properties()
@@ -100,6 +100,9 @@ class MainView(QMainWindow):
         # The thumbnail widget is now created directly by Qt Designer promotion
         # Store reference to the custom widget for easy access
         self.thumbnail_widget = self.ui.thumbnailDisplay
+
+        # Configure thumbnail widget for vertical column layout
+        self.thumbnail_widget.setPrimaryDimension("width")
 
         # --- Widget Mapping for Data Binding ---
         self._widget_map = {
@@ -276,16 +279,6 @@ class MainView(QMainWindow):
             pixmap: The QPixmap to display, or None to clear the thumbnail.
         """
         self.thumbnail_widget.setPixmap(pixmap)
-
-        # Set property for CSS styling
-        has_pixmap = pixmap is not None
-        self.thumbnail_widget.setProperty(
-            "hasPixmap", "true" if has_pixmap else "false"
-        )
-
-        # Apply the updated styling
-        self.thumbnail_widget.style().unpolish(self.thumbnail_widget)
-        self.thumbnail_widget.style().polish(self.thumbnail_widget)
 
     def set_status_message(self, message: str, timeout: int = 0):
         """Displays a message in the status bar."""

@@ -60,7 +60,6 @@ QLabel[class="description"] {
 
 QLineEdit,
 QTextEdit,
-QDateTimeEdit,
 QSpinBox {
     min-height: 26px;
     padding: 4px 8px;
@@ -69,7 +68,14 @@ QSpinBox {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Focus states */
+QDateTimeEdit {
+    min-height: 26px;
+    padding: 3px 8px; /* DateTimeEdit has a slightly different internal padding from standard inputs */
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 QLineEdit:focus,
 QTextEdit:focus,
 QDateTimeEdit:focus,
@@ -79,7 +85,6 @@ QSpinBox:focus {
     border-color: rgb(0, 120, 212);
 }
 
-/* Hover states - subtle background change */
 QLineEdit:hover,
 QTextEdit:hover,
 QDateTimeEdit:hover,
@@ -87,7 +92,6 @@ QSpinBox:hover {
     background-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Combo boxes with VS Code styling */
 QComboBox {
     min-height: 26px;
     padding: 4px 8px;
@@ -111,57 +115,41 @@ QComboBox::drop-down {
     padding-right: 8px;
 }
 
-/* Text areas */
 QTextEdit {
     min-height: 80px;
     padding: 8px;
 }
 
 /* =================================================================
-   MODERN BUTTON SYSTEM - VS Code-inspired button design
+   Button Styling
    ================================================================= */
 
-/* Primary buttons following VS Code's design */
 QPushButton {
-    min-height: 28px;         /* VS Code button height */
-    padding: 4px 14px;        /* VS Code button padding */
+    min-height: 28px;
+    padding: 4px;
     border: 1px solid transparent;
-    border-radius: 2px;       /* Minimal radius */
+    border-radius: 2px;
+    
     font-weight: 400;
-    background-color: rgb(14, 99, 156); /* VS Code primary button blue */
-    color: white;
+    font-size: 14px;
+    
+    /* background-color: rgb(0, 120, 212); */
+    background-color: solid rgb(100, 0, 0);
+    color: rgb(255, 255, 255);
 }
 
 QPushButton:hover {
-    background-color: rgb(0, 120, 212); /* Brighter blue on hover */
-}
+    background-color: rgb(0, 103, 183);
+    }
 
 QPushButton:pressed {
-    background-color: rgb(0, 103, 183); /* Darker blue when pressed */
+    background-color: rgb(0, 86, 151);
 }
 
-QPushButton:focus {
-    outline: 1px solid rgb(0, 120, 212);
-    outline-offset: 1px;
-}
-
-/* Secondary buttons using CSS class system */
-QPushButton[class="secondary"] {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: rgb(204, 204, 204);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-QPushButton[class="secondary"]:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Disabled state */
 QPushButton:disabled {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: rgb(109, 109, 109);
-    border-color: transparent;
+    background-color: rgb(69, 69, 69);
+    color: rgb(153, 153, 153);
+    border-color: rgb(69, 69, 69);
 }
 
 /* =================================================================
@@ -287,7 +275,7 @@ QMenu::indicator {
    ================================================================= */
 
 QToolTip {
-    background-color: rgb(45, 45, 45);  /* VS Code tooltip background */
+    background-color: rgb(45, 45, 45);
     border: 1px solid rgb(69, 69, 69);
     border-radius: 3px;
     padding: 6px 8px;
@@ -359,16 +347,6 @@ QDialogButtonBox QPushButton {
    DATA DISPLAY ELEMENTS - Tables, lists, and content areas
    ================================================================= */
 
-/* Thumbnail display with modern styling */
-#thumbnailDisplay {
-    border: 1px solid rgb(69, 69, 69);
-    border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.02);
-    min-height: 120px;
-    padding: 12px;
-}
-
-/* Tables and lists following VS Code patterns */
 QTableWidget,
 QTreeWidget,
 QListWidget {
@@ -408,6 +386,19 @@ QHeaderView::section {
     font-weight: 600;
     color: rgb(204, 204, 204);
     min-height: 24px;
+}
+
+/* Image display widget - custom styling for image thumbnails */
+ImageWidget {
+    background-color: rgb(30, 30, 30);
+    padding: 0px;
+    margin: 0px;
+    border: 0px;    
+}
+
+ImageWidget[hasImage="false"] {
+    border: 1px dotted rgb(69, 69, 69);     /* Dashed border for empty state */
+    border-radius: 3px;
 }
 
 /* =================================================================

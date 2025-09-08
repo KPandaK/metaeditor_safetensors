@@ -2,18 +2,18 @@
 Theme Management Service
 ========================
 
-Service for managing application themes with PyQtDarkTheme integration,
+Service for managing application themes with custom QSS files,
 system theme detection, user preferences, and runtime theme switching.
+Supports QSS inheritance where themes can extend base styles.
 """
 
 import logging
 import os
 import platform
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Optional
 
 import darkdetect
-import qdarktheme
 from PySide6.QtCore import QFile, QFileSystemWatcher, QIODevice, QObject, Signal
 from PySide6.QtWidgets import QApplication
 
@@ -36,30 +36,26 @@ class ThemeCategory(Enum):
     DARK = "dark"  # Dark theme
 
 
-class ModernTheme:
-    """Represents a PyQtDarkTheme configuration."""
+class CustomTheme:
+    """Represents a custom QSS theme configuration."""
 
     def __init__(
         self,
         theme_id: str,
         display_name: str,
         category: ThemeCategory,
-        theme_mode: str = "dark",
-        custom_colors: Optional[Dict[str, str]] = None,
-        corner_shape: str = "rounded",
+        qss_file: str,
     ):
         self.theme_id = theme_id
         self.display_name = display_name
         self.category = category
-        self.theme_mode = theme_mode
-        self.custom_colors = custom_colors or {}
-        self.corner_shape = corner_shape
+        self.qss_file = qss_file  # Path to QSS file in resources
 
     def __str__(self):
         return f"{self.display_name} ({self.theme_id})"
 
     def __repr__(self):
-        return f"ModernTheme('{self.theme_id}', '{self.display_name}', {self.category})"
+        return f"CustomTheme('{self.theme_id}', '{self.display_name}', {self.category})"
 
 
 class ThemeService(QObject):
