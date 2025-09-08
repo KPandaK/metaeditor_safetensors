@@ -1,0 +1,17 @@
+# Light Theme Configuration
+# ==========================
+
+name: "Light"
+description: "A clean light theme with professional styling"
+category: "light"
+version: "1.0.0"
+
+# QSS file loading order (files will be loaded in this order)
+# If a file is not listed here, it will be loaded alphabetically after these
+qss_order:
+  - "base.qss"      # Base styles - colors, fonts, fundamental widgets
+  - "inputs.qss"    # Input controls - line edits, combo boxes, checkboxes
+  - "buttons.qss"   # Button styling - primary, secondary, danger
+  - "menus.qss"     # Navigation - menus, tabs, menu bars
+  - "tables.qss"    # Data views - tables, lists, trees, scrollbars
+  - "misc.qss"      # Everything else - status bars, tooltips, dialogs

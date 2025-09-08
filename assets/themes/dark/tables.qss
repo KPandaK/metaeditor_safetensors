@@ -1,0 +1,92 @@
+/* 
+Dark Theme - Data Views
+========================
+
+Styling for tables, lists, trees, and other data display widgets.
+*/
+
+QTableWidget,
+QTreeWidget,
+QListWidget {
+    background-color: rgb(30, 30, 30);
+    alternate-background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgb(69, 69, 69);
+    gridline-color: rgb(69, 69, 69);
+    selection-background-color: rgba(0, 120, 212, 0.3);
+    color: rgb(204, 204, 204);
+}
+
+QTableWidget::item,
+QTreeWidget::item,
+QListWidget::item {
+    padding: 4px 8px;
+    min-height: 20px;
+    border: none;
+    color: rgb(204, 204, 204);
+}
+
+QTableWidget::item:selected,
+QTreeWidget::item:selected,
+QListWidget::item:selected {
+    background-color: rgba(0, 120, 212, 0.3);
+    color: rgb(255, 255, 255);
+}
+
+QTableWidget::item:hover,
+QTreeWidget::item:hover,
+QListWidget::item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+QHeaderView::section {
+    background-color: rgb(37, 37, 38);
+    border: 1px solid rgb(69, 69, 69);
+    padding: 6px 8px;
+    font-weight: 600;
+    color: rgb(204, 204, 204);
+    min-height: 24px;
+}
+
+QScrollBar:vertical {
+    background-color: rgba(255, 255, 255, 0.05);
+    width: 14px;
+    border: none;
+    border-radius: 0px;
+    margin: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 7px;
+    min-height: 20px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+QScrollBar:horizontal {
+    background-color: rgba(255, 255, 255, 0.05);
+    height: 14px;
+    border: none;
+    margin: 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 7px;
+    min-width: 20px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    border: none;
+    background: none;
+    width: 0px;
+    height: 0px;
+}

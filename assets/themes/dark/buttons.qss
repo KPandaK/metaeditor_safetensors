@@ -1,0 +1,59 @@
+/* 
+Dark Theme - Button Styles
+===========================
+
+Button styling for the dark theme including hover and pressed states.
+*/
+
+QPushButton {
+    min-height: 28px;
+    padding: 4px 16px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    font-weight: 400;
+    font-size: 14px;
+    background-color: rgb(0, 120, 212);
+    color: rgb(255, 255, 255);
+}
+
+QPushButton:hover {
+    background-color: rgb(0, 103, 183);
+}
+
+QPushButton:pressed {
+    background-color: rgb(0, 86, 151);
+}
+
+QPushButton:disabled {
+    background-color: rgb(69, 69, 69);
+    color: rgb(153, 153, 153);
+    border-color: rgb(69, 69, 69);
+}
+
+QPushButton[class="secondary"] {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgb(204, 204, 204);
+    border: 1px solid rgb(69, 69, 69);
+}
+
+QPushButton[class="secondary"]:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgb(101, 101, 101);
+}
+
+QPushButton[class="secondary"]:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+QPushButton[class="danger"] {
+    background-color: rgb(164, 14, 38);
+    color: rgb(255, 255, 255);
+}
+
+QPushButton[class="danger"]:hover {
+    background-color: rgb(196, 43, 28);
+}
+
+QPushButton[class="danger"]:pressed {
+    background-color: rgb(143, 12, 33);
+}

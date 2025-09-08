@@ -43,7 +43,7 @@ class ImageWidget(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.setProperty("hasImage", "false") 
+        self.setProperty("hasImage", "false")
 
         # Add pixmap item to scene
         self._scene.addItem(self._pixmap_item)
@@ -104,9 +104,9 @@ class ImageWidget(QGraphicsView):
         # Prevent infinite recursion
         if self._updating_size:
             return
-        
+
         self._updating_size = True
-        
+
         try:
             # Get current dimensions
             current_width = self.width()
@@ -115,7 +115,7 @@ class ImageWidget(QGraphicsView):
             aspect_ratio = 1.0
             image_width = 0
             image_height = 0
-            
+
             if self.hasPixmap():
                 # Image state: maintain aspect ratio
                 pixmap = self._original_pixmap
@@ -138,13 +138,13 @@ class ImageWidget(QGraphicsView):
                 # Remove any width constraints
                 self.setMaximumWidth(16777215)  # Qt's QWIDGETSIZE_MAX
             elif self._primary_dimension == "height":
-                # Height drives the size, set maximum width based on current height  
+                # Height drives the size, set maximum width based on current height
                 desired_width = int(current_height / aspect_ratio)
                 constrained_width = max(self._min_width, desired_width)
                 self.setMaximumWidth(constrained_width)
                 # Remove any height constraints
                 self.setMaximumHeight(16777215)  # Qt's QWIDGETSIZE_MAX
-                
+
         finally:
             self._updating_size = False
 
@@ -219,7 +219,7 @@ class ImageWidget(QGraphicsView):
     def resizeEvent(self, event):
         """Handle resize events by refitting the image and updating size."""
         super().resizeEvent(event)
-        
+
         # Re-fit the image when the widget is resized
         self._fit_in_view()
         # Update size for current state (empty or image)

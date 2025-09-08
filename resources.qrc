@@ -6,7 +6,5 @@
     <file>assets/support_me.png</file>
     <file>assets/logo.svg</file>
     <file>assets/icon.ico</file>
-    <file>assets/themes/dark.qss</file>
-    <file>assets/themes/light.qss</file>
   </qresource>
 </RCC>

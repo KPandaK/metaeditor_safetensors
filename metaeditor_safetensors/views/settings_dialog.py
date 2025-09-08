@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QButtonGroup, QDialog
 
 from ..services.config_service import ConfigService
-from ..services.theme_service import ModernTheme, ThemeCategory, ThemeService
+from ..services.theme_service import Theme, ThemeCategory, ThemeService
 from .settings_dialog_ui import Ui_SettingsDialog
 
 logger = logging.getLogger(__name__)

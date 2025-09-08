@@ -1,0 +1,55 @@
+/* 
+Dark Theme - Base Styles
+========================
+
+Base colors and fundamental widget styling for the dark theme.
+*/
+
+QWidget {
+    background-color: rgb(30, 30, 30);
+    color: rgb(204, 204, 204);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+QMainWindow {
+    background-color: rgb(30, 30, 30);
+    color: rgb(204, 204, 204);
+}
+
+QDialog {
+    background-color: rgb(30, 30, 30);
+    color: rgb(204, 204, 204);
+    border: 1px solid rgb(69, 69, 69);
+}
+
+QGroupBox {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 1px solid rgb(69, 69, 69);
+    border-radius: 3px;
+    margin-top: 8px;
+    padding-top: 16px;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 8px;
+    padding: 0 4px;
+    color: rgb(204, 204, 204);
+    background-color: rgb(30, 30, 30);
+}
+
+QLabel {
+    color: rgb(204, 204, 204);
+    background-color: transparent;
+}
+
+QLabel[class="description"] {
+    color: rgb(153, 153, 153);
+    font-size: 13px;
+}

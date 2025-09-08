@@ -25,8 +25,16 @@ compile-resources: _compile-resources
 # Compiles Qt ui files
 compile-ui: _compile-ui
 
+# Compiles themes
+compile-themes:
+    @{{ python }} scripts/build_themes.py
+
+    
 # Compile all Qt files
-compile: _compile-resources && _compile-ui
+compile:
+    @just _compile-resources
+    @just _compile-ui
+    @just compile-themes
 
 # Format code with Ruff
 fmt:
@@ -70,7 +78,6 @@ presub:
 # Platform specific recipe implementations
 # ============================================================================
 
-[windows]
 _compile-resources:
     @just file-exists {{ rcc_input_path }}
     @just file-exists {{ rcc_output_path }}

@@ -1,0 +1,83 @@
+/* 
+Dark Theme - Menus and Navigation
+==================================
+
+Styling for menus, menu bars, tabs, and navigation elements.
+*/
+
+QMenuBar {
+    background-color: rgb(30, 30, 30);
+    border-bottom: 1px solid rgb(69, 69, 69);
+    padding: 0px;
+}
+
+QMenuBar::item {
+    padding: 6px 12px;
+    border-radius: 2px;
+    color: rgb(204, 204, 204);
+}
+
+QMenuBar::item:selected {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgb(255, 255, 255);
+}
+
+QMenuBar::item:pressed {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+QMenu {
+    background-color: rgb(37, 37, 38);
+    border: 1px solid rgb(69, 69, 69);
+    border-radius: 3px;
+    padding: 4px 0px;
+    min-width: 160px;
+}
+
+QMenu::item {
+    padding: 6px 12px 6px 24px;
+    margin: 0px 4px;
+    border-radius: 2px;
+    color: rgb(204, 204, 204);
+}
+
+QMenu::item:selected {
+    background-color: rgba(0, 120, 212, 0.8);
+    color: rgb(255, 255, 255);
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: rgb(69, 69, 69);
+    margin: 4px 8px;
+}
+
+QMenu::indicator {
+    width: 16px;
+    height: 16px;
+    left: 4px;
+}
+
+QTabBar::tab {
+    padding: 8px 16px;
+    margin-right: 0px;
+    min-width: 80px;
+    border: none;
+    border-bottom: 1px solid transparent;
+    background-color: transparent;
+    color: rgb(153, 153, 153);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+
+QTabBar::tab:selected {
+    color: rgb(255, 255, 255);
+    border-bottom: 1px solid rgb(0, 120, 212);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+QTabBar::tab:hover:!selected {
+    color: rgb(204, 204, 204);
+    background-color: rgba(255, 255, 255, 0.03);
+}
