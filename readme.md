@@ -37,9 +37,38 @@ A lightweight Python tool and GUI for inspecting and editing `.safetensors` file
 ## Usage
 Run the main application:
 ```sh
-python metaeditor_safetensors/main.py
+python main.py
 ```
-Use the GUI for interactive editing.
+
+## Development Setup
+
+Follow these steps to set up MetaEditor SafeTensors for development:
+
+**Install Just task runner**  
+  - **Windows:**  
+    Run in terminal:  
+    ```powershell
+    winget install casey.just
+    ```
+  - **macOS/Linux:**  
+    See [Just installation instructions](https://github.com/casey/just#installation).
+
+**Install Python 3.10+**  
+  - Download from [python.org](https://www.python.org/downloads/).
+  - Make sure Python is added to your system PATH.
+  - Verify in terminal:
+    ```powershell
+    python --version
+    ```
+
+**Install dependencies**  
+  - In your project folder, run:
+    ```powershell
+    just install
+    ```
+  - This will create a virtual environment and install all required packages.
+
+You’re now ready to build, test, and run the application!
 
 ## License
 MIT License

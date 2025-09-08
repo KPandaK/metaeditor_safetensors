@@ -4,8 +4,8 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Variables
 
 python := if os_family() == "windows" { "./venv/Scripts/python.exe" } else { "./venv/bin/python" }
-rcc := if os_family() == "windows" { require("pyside6-rcc.exe") } else { require("pyside6-rcc") }
-uic := if os_family() == "windows" { require("pyside6-uic.exe") } else { require("pyside6-uic") }
+rcc := if os_family() == "windows" { "./venv/Scripts/pyside6-rcc.exe" } else { "./venv/bin/pyside6-rcc" }
+uic := if os_family() == "windows" { "./venv/Scripts/pyside6-uic.exe" } else { "./venv/bin/pyside6-uic" }
 
 rcc_input_path := env("RCC_INPUT_PATH")
 rcc_output_path := env("RCC_OUTPUT_PATH")
@@ -15,9 +15,7 @@ uic_output_dir := env("UIC_OUTPUT_DIR")
 default: run
 
 # Install dependencies
-install:
-    {{ python }} -m pip install --upgrade pip
-    {{ python }} -m pip install -e .[dev]
+install: _install
 
 # Compile Qt resources
 compile-resources: _compile-resources
@@ -28,7 +26,6 @@ compile-ui: _compile-ui
 # Compiles themes
 compile-themes:
     @{{ python }} scripts/build_themes.py
-
     
 # Compile all Qt files
 compile:
@@ -60,7 +57,6 @@ bandit:
 test:
     @echo "Running unit tests..."
     @{{ python }} -m coverage run -m unittest discover tests -v
-
 
 # Run the MetaEditor application
 run: compile
@@ -105,6 +101,33 @@ _compile-ui:
         echo "Compiling $$(basename $$ui_file) -> $$(base_name)_ui.py"; \
         {{ uic }} --from-imports $$ui_file -o $$output_file; \
     done
+
+[windows]
+_install:
+    @if (Test-Path "./venv/") { \
+        Write-Host "Virtual environment already exists. Skipping creation." -ForegroundColor Yellow; \
+    } else { \
+        Write-Host "Creating virtual environment..."; \
+        & {{ python }} -m venv venv; \
+        Write-Host "Installing dependencies from requirements.txt..."; \
+        & {{ python }} -m pip install --upgrade pip; \
+    }
+
+    @{{ python }} -m pip install -e .[dev]
+
+[linux]
+[macos]
+_install:
+    @if [ -d "./venv/" ]; then \
+        echo "Virtual environment already exists. Skipping creation."; \
+    else \
+        echo "Creating virtual environment..."; \
+        {{ python }} -m venv venv; \
+        echo "Installing dependencies from requirements.txt..."; \
+        {{ python }} -m pip install --upgrade pip; \
+    fi
+
+    @{{ python }} -m pip install -e .[dev]
 
 # ============================================================================
 # Utility Recipes

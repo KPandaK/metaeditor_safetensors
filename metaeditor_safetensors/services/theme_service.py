@@ -32,14 +32,6 @@ class SystemTheme(Enum):
     UNKNOWN = "unknown"
 
 
-class ThemeCategory(Enum):
-    """Theme category enumeration."""
-
-    AUTO = "auto"  # Use system theme
-    LIGHT = "light"  # Light theme
-    DARK = "dark"  # Dark theme
-
-
 class Theme:
     """Represents a modular QSS theme configuration."""
 
@@ -47,7 +39,7 @@ class Theme:
         self,
         theme_id: str,
         display_name: str,
-        category: ThemeCategory,
+        category: str,
         theme_directory: Optional[str] = None,
     ):
         self.theme_id = theme_id
@@ -118,7 +110,7 @@ class ThemeService(QObject):
         logger.debug("Searching for themes")
 
         # Auto theme (follows system)
-        auto_theme = Theme("auto", "Auto (Use System)", ThemeCategory.AUTO, None)
+        auto_theme = Theme("auto", "Auto (Use System)", "", None)
         self._available_themes["auto"] = auto_theme
 
         # Scan for themes based on mode
@@ -142,11 +134,49 @@ class ThemeService(QObject):
         for theme_dir in self._dev_themes_root.iterdir():
             if theme_dir.is_dir():
                 try:
-                    theme = self._load_theme(theme_dir.name, str(theme_dir))
+                    # Load theme info from YAML config file
+                    theme_info = self._load_filesystem_theme_info(theme_dir)
+                    theme = self._load_theme(theme_dir.name, str(theme_dir), theme_info)
                     self._available_themes[theme.theme_id] = theme
                     logger.debug(f"Found filesystem theme: {theme}")
                 except Exception as e:
                     logger.warning(f"Failed to load theme from {theme_dir}: {e}")
+
+    def _load_filesystem_theme_info(self, theme_dir: Path) -> Optional[dict]:
+        """Load theme info from YAML config file in filesystem theme directory."""
+        theme_id = theme_dir.name
+        yaml_files = list(theme_dir.glob("*.yaml")) + list(theme_dir.glob("*.yml"))
+        if not yaml_files:
+            logger.warning(f"No YAML config file found for theme: {theme_id}")
+            return None
+        
+        try:
+            with open(yaml_files[0], "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                if config:
+                    logger.debug(f"Loaded theme info from filesystem: {yaml_files[0]}")
+                    return config[]
+                
+        for config_file in config_files:
+            if config_file.exists():
+                try:
+                    with open(config_file, "r", encoding="utf-8") as f:
+                        config = yaml.safe_load(f)
+                    
+                    if config:
+                        logger.debug(f"Loaded theme info from filesystem: {config_file}")
+                        return config
+                        
+                except Exception as e:
+                    logger.warning(f"Could not load theme info from {config_file}: {e}")
+        
+        # Return minimal theme info if no config file found
+        return {
+            "name": theme_id.replace("_", " ").title(),
+            "description": f"Theme: {theme_id.replace('_', ' ').title()}",
+            "version": "1.0.0",
+            "category": theme_id
+        }
 
     def _scan_themes_from_resource(self):
         """Scan Qt resources for themes (production mode)."""
@@ -183,64 +213,42 @@ class ThemeService(QObject):
             logger.error(f"Error loading registry: {e}")
             return None                
 
-    def _load_theme(self, theme_id: str, theme_path: str, registry_info: Optional[dict] = None) -> Theme:
+    def _load_theme(self, theme_id: str, theme_path: str, theme_info: Optional[dict] = None) -> Theme:
         """
         Load a theme from either filesystem or Qt resources.
         
         Args:
             theme_id: Theme identifier
             theme_path: Path to theme (filesystem directory or Qt resource path like :/themes/dark)
-            registry_info: Optional registry metadata for resource themes
+            theme_info: Theme metadata dictionary from YAML config
             
         Returns:
             Theme object with configuration loaded
         """
-        # Set defaults based on theme_id and registry info
-        if registry_info:
-            display_name = registry_info.get("name", theme_id.replace("_", " ").title())
-            description = registry_info.get("description", f"Theme: {display_name}")
-            version = registry_info.get("version", "1.0.0")
-            category_str = registry_info.get("category", theme_id)
+        # Use theme_info if provided, otherwise create minimal defaults
+        if theme_info:
+            display_name = theme_info.get("name", theme_id.replace("_", " ").title())
+            description = theme_info.get("description", f"Theme: {display_name}")
+            version = theme_info.get("version", "1.0.0")
+            category_str = theme_info.get("category", theme_id).lower()
+            qss_order = theme_info.get("qss_order", [])
+            settings = theme_info.get("settings", {})
         else:
             display_name = theme_id.replace("_", " ").title()
             description = f"Theme: {display_name}"
             version = "1.0.0"
-            category_str = theme_id
+            category_str = theme_id.lower()
+            qss_order = []
+            settings = {}
 
-        # Special handling for built-in theme names
-        if theme_id == "dark":
-            display_name = "Dark"
-            category = ThemeCategory.DARK
-        elif theme_id == "light":
-            display_name = "Light"
-            category = ThemeCategory.LIGHT
+        # Determine category from theme info or theme name
+        if category_str in ["dark", "night", "black"]:
+            category = "dark"
+        elif category_str in ["light", "bright", "white"]:
+            category = "light"
         else:
-            # Determine category from registry or theme name
-            if category_str == "dark":
-                category = ThemeCategory.DARK
-            elif category_str == "light":
-                category = ThemeCategory.LIGHT
-            else:
-                category = ThemeCategory.DARK
-
-        qss_order = []
-        settings = {}
-
-        # Try to load YAML configuration
-        config = self._load_yaml_config(theme_id, theme_path, registry_info)
-        if config:
-            display_name = config.get("name", display_name)
-            description = config.get("description", description)
-            version = config.get("version", version)
-            qss_order = config.get("qss_order", [])
-            settings = config.get("settings", {})
-
-            # Override category if specified in config
-            config_category = config.get("category", "").lower()
-            if config_category == "light":
-                category = ThemeCategory.LIGHT
-            elif config_category == "dark":
-                category = ThemeCategory.DARK
+            # Default to dark for unknown categories
+            category = "dark"
 
         # Create and return theme object
         theme = Theme(
@@ -538,7 +546,7 @@ class ThemeService(QObject):
         """Get all available themes."""
         return self._available_themes.copy()
 
-    def get_themes_by_category(self, category: ThemeCategory) -> List[Theme]:
+    def get_themes_by_category(self, category: str) -> List[Theme]:
         """Get themes filtered by category."""
         return [
             theme
@@ -546,9 +554,12 @@ class ThemeService(QObject):
             if theme.category == category
         ]
 
-    def get_theme_categories(self) -> List[ThemeCategory]:
+    def get_theme_categories(self) -> List[str]:
         """Get all available theme categories."""
-        return list(ThemeCategory)
+        categories = set()
+        for theme in self._available_themes.values():
+            categories.add(theme.category)
+        return sorted(list(categories))
 
     def get_current_theme(self) -> Optional[Theme]:
         """Get the currently applied theme."""
@@ -659,7 +670,7 @@ class ThemeService(QObject):
             current_theme_info = {
                 "theme_id": self._current_theme.theme_id,
                 "display_name": self._current_theme.display_name,
-                "category": self._current_theme.category.value,
+                "category": self._current_theme.category,
                 "theme_directory": self._current_theme.theme_directory,
                 "description": self._current_theme.description,
                 "version": self._current_theme.version,
@@ -673,7 +684,7 @@ class ThemeService(QObject):
                 {
                     "id": theme.theme_id,
                     "name": theme.display_name,
-                    "category": theme.category.value,
+                    "category": theme.category,
                     "directory": theme.theme_directory,
                     "description": theme.description,
                     "version": theme.version,
@@ -689,7 +700,7 @@ class ThemeService(QObject):
                 if self._config_service
                 else None
             ),
-            "categories": [cat.value for cat in self.get_theme_categories()],
+            "categories": self.get_theme_categories(),
             "themes_root": str(self._dev_themes_root),
             "live_reload_enabled": self._enable_live_reload,
             "watched_files": len(self._watched_files) if self._watched_files else 0,
