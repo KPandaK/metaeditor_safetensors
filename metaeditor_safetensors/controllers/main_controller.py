@@ -10,7 +10,7 @@ import os
 from typing import Optional
 
 from PySide6.QtCore import QDateTime, QObject, Qt, QThread, Slot
-from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from ..models.metadata_keys import MetadataKeys
 from ..models.metadata_model import MetadataModel
@@ -193,7 +193,7 @@ class MainController(QObject):
             current_theme = self._theme_service.get_current_theme()
             if current_theme:
                 self._view.set_status_message(
-                    f"Applied theme: {current_theme.display_name}", 3000
+                    f"Applied theme: {current_theme.name}", 3000
                 )
         else:
             self._view.set_status_message(
@@ -217,7 +217,7 @@ class MainController(QObject):
         # Show dialog
         result = settings_dialog.exec()
 
-        if result == SettingsDialog.Accepted:
+        if result == QDialog.DialogCode.Accepted:
             self._view.set_status_message("Settings saved successfully", 2000)
 
     def _on_settings_theme_changed(self, theme_identifier: str):
@@ -225,7 +225,7 @@ class MainController(QObject):
         current_theme = self._theme_service.get_current_theme()
         if current_theme:
             self._view.set_status_message(
-                f"Theme changed to: {current_theme.display_name}", 2000
+                f"Theme changed to: {current_theme.name}", 2000
             )
 
     def _on_settings_applied(self):

@@ -10,10 +10,11 @@ import logging
 from typing import Any, Dict, Optional
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QButtonGroup, QDialog
+from PySide6.QtWidgets import QButtonGroup, QDialog, QDialogButtonBox
 
+from ..models.theme import Theme
 from ..services.config_service import ConfigService
-from ..services.theme_service import Theme, ThemeCategory, ThemeService
+from ..services.theme_service import ThemeService
 from .settings_dialog_ui import Ui_SettingsDialog
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ class SettingsDialog(QDialog):
         system_theme = self._theme_service._detect_system_theme()
 
         if current_theme:
-            self.ui.currentThemeValue.setText(current_theme.display_name)
+            self.ui.currentThemeValue.setText(current_theme.name)
         else:
             self.ui.currentThemeValue.setText("Unknown")
 
@@ -180,11 +181,11 @@ class SettingsDialog(QDialog):
         """Handle button box clicks."""
         role = self.ui.buttonBox.buttonRole(button)
 
-        if role == self.ui.buttonBox.AcceptRole:
+        if role == QDialogButtonBox.ButtonRole.AcceptRole:
             # OK button: Save current preview as permanent setting
             self._save_settings()
             self.accept()
-        elif role == self.ui.buttonBox.RejectRole:
+        elif role == QDialogButtonBox.ButtonRole.RejectRole:
             # Cancel button: Revert to original theme
             self._revert_settings()
             self.reject()

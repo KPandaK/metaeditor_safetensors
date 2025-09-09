@@ -5,8 +5,10 @@ Provides utilities for finding project root and package directories
 using modern Python best practices.
 """
 
+import os
+from importlib import resources
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 
 def get_project_root(start_path: Optional[Path] = None) -> Path:
@@ -46,15 +48,8 @@ def get_package_root(package_name: str = "metaeditor_safetensors") -> Path:
         Path to the package directory.
     """
     try:
-        from importlib import resources
-
         package_files = resources.files(package_name)
-
-        # Convert to Path
-        if hasattr(package_files, "__fspath__"):
-            return Path(package_files)
-        else:
-            return Path(str(package_files))
+        return Path(str(package_files))
 
     except Exception:
         # Fallback: find in project structure
