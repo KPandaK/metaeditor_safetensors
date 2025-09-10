@@ -5,6 +5,7 @@ Application Entry Point
 This module contains the main application logic for the Safetensors Metadata Editor.
 """
 
+import logging
 import os
 import sys
 from importlib.metadata import PackageNotFoundError, version
@@ -32,6 +33,10 @@ def main():
     """
     The main function that sets up and runs the application.
     """
+    # Set logging level from environment variable
+    log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
+    logging.basicConfig(level=log_level)
+
     # 1. Create the QApplication instance. This is a requirement for any Qt app.
     app = QApplication(sys.argv)
 
@@ -43,9 +48,17 @@ def main():
     safetensors_service = SafetensorsService()
     image_service = ImageService()
 
-    # Initialize theme service and apply user's theme preference
-    theme_service = ThemeService(app, config_service)
-    theme_service.apply_user_preference()
+    # Initialize theme service
+    theme_service = ThemeService(app)
+
+    # Apply user's theme preference (app coordinates between config and theme services)
+    preferred_theme = config_service.get_theme_preference()
+    if preferred_theme and theme_service.has_theme(preferred_theme):
+        theme_service.apply_theme(preferred_theme)
+    else:
+        # Default to auto theme
+        theme_service.apply_theme("auto")
+        config_service.set_theme_preference("auto")
 
     # 3. Instantiate the MVC components.
     model = MetadataModel()

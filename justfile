@@ -23,15 +23,10 @@ compile-resources: _compile-resources
 # Compiles Qt ui files
 compile-ui: _compile-ui
 
-# Compiles themes
-compile-themes:
-    @{{ python }} scripts/build_themes.py
-    
 # Compile all Qt files
 compile:
     @just _compile-resources
     @just _compile-ui
-    @just compile-themes
 
 # Format code with Ruff
 fmt:

@@ -186,10 +186,11 @@ class MainController(QObject):
         if not self._theme_service:
             return
 
-        success = self._theme_service.apply_theme(
-            theme_identifier, save_preference=True
-        )
+        success = self._theme_service.apply_theme(theme_identifier)
         if success:
+            # Save the theme preference to config
+            self._config_service.set_theme_preference(theme_identifier)
+
             current_theme = self._theme_service.get_current_theme()
             if current_theme:
                 self._view.set_status_message(
@@ -222,11 +223,15 @@ class MainController(QObject):
 
     def _on_settings_theme_changed(self, theme_identifier: str):
         """Handle theme changes from the settings dialog."""
-        current_theme = self._theme_service.get_current_theme()
-        if current_theme:
-            self._view.set_status_message(
-                f"Theme changed to: {current_theme.name}", 2000
-            )
+        # Apply theme and save preference
+        success = self._theme_service.apply_theme(theme_identifier)
+        if success:
+            self._config_service.set_theme_preference(theme_identifier)
+            current_theme = self._theme_service.get_current_theme()
+            if current_theme:
+                self._view.set_status_message(
+                    f"Theme changed to: {current_theme.name}", 2000
+                )
 
     def _on_settings_applied(self):
         """Handle when settings are applied in the dialog."""

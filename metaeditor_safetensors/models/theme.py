@@ -43,18 +43,6 @@ class Theme:
 
     @classmethod
     def from_directory(cls, theme_directory: Path) -> "Theme":
-        """
-        Create a Theme from a directory containing a YAML file.
-
-        Args:
-            theme_directory: Path to the theme directory
-
-        Returns:
-            Theme instance loaded from YAML file
-
-        Raises:
-            ValueError: If directory is invalid or config cannot be loaded
-        """
         # Find the yaml file in the directory
         yaml_files = list(theme_directory.glob("*.yaml"))
         if not yaml_files:
@@ -64,8 +52,6 @@ class Theme:
 
         # Try to load YAML configuration
         config = cls._load_theme_config(yaml_files[0])
-        if not config:
-            raise ValueError(f"Invalid theme config: {yaml_files[0]}")
 
         # Extract config values with defaults
         theme_id = config.get("theme_id", theme_directory.stem)
@@ -113,15 +99,31 @@ class Theme:
         Returns:
             dict: Parsed YAML configuration as a dictionary.
             If the YAML file is invalid or empty, returns an empty dictionary.
-        """
-        with open(yaml_file, "r", encoding="utf-8") as f:
-            config: Dict[str, Any] = yaml.safe_load(f)
-            if config and isinstance(config, dict):
-                logger.debug(f"Loaded theme config: {yaml_file}")
-                return config
 
-        logger.warning(f"Could not load config from {yaml_file}")
-        return {}
+        Raises:
+            ValueError: If the YAML file contains invalid YAML syntax.
+        """
+        try:
+            with open(yaml_file, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+
+                # Handle empty file (returns None)
+                if config is None:
+                    logger.debug(f"Empty YAML file, using defaults: {yaml_file}")
+                    return {}
+
+                # Ensure we got a dictionary
+                if isinstance(config, dict):
+                    logger.debug(f"Loaded theme config: {yaml_file}")
+                    return config
+                else:
+                    logger.warning(f"YAML file is not a dictionary: {yaml_file}")
+                    return {}
+
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML syntax in {yaml_file}: {e}")
+        except Exception as e:
+            raise ValueError(f"Error reading theme config from {yaml_file}: {e}")
 
     @staticmethod
     def _infer_category(theme_id: str) -> str:

@@ -160,8 +160,7 @@ class SettingsDialog(QDialog):
 
         theme_identifier = self._get_selected_theme_identifier()
         if theme_identifier:
-            # Apply theme without saving preference
-            self._theme_service.apply_theme(theme_identifier, save_preference=False)
+            self._theme_service.apply_theme(theme_identifier)
             self._update_theme_info()
 
     def _get_selected_theme_identifier(self) -> Optional[str]:
@@ -215,8 +214,7 @@ class SettingsDialog(QDialog):
 
         original_theme = self._original_settings.get("theme_preference")
         if original_theme:
-            # Revert without saving
-            self._theme_service.apply_theme(original_theme, save_preference=False)
+            self._theme_service.apply_theme(original_theme)
             logger.debug(f"Reverted to original theme: {original_theme}")
 
     def closeEvent(self, event):

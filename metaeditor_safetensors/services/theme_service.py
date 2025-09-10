@@ -43,10 +43,9 @@ class ThemeService(QObject):
     # Signals
     theme_changed = Signal(str)
 
-    def __init__(self, app: QApplication, config_service=None):
+    def __init__(self, app: QApplication):
         super().__init__()
         self._app = app
-        self._config_service = config_service
         self._cached_system_theme: Optional[SystemTheme] = None
         self._current_theme: Optional[Theme] = None
         self._available_themes: Dict[str, Theme] = {}
@@ -72,18 +71,11 @@ class ThemeService(QObject):
 
         # Setup file watching if in development mode
         if self._enable_live_reload:
-            self._setup_file_watcher()
-
-        mode = "dev" if self._enable_live_reload else "prod"
-        logger.info(f"ThemeService initialized in {mode} mode")
+            self._setup_file_watchers()
 
     def _initialize_themes(self):
         """Find available themes from the package themes directory."""
         logger.debug("Searching for themes")
-
-        # Auto theme (follows system)
-        auto_theme = Theme("auto", "Auto (Use System)", "", None)
-        self._available_themes["auto"] = auto_theme
 
         # Scan for themes from package
         if not self._themes_root or not self._themes_root.exists():
@@ -91,7 +83,7 @@ class ThemeService(QObject):
             return
 
         for theme_dir in self._themes_root.iterdir():
-            if theme_dir.is_dir() and not theme_dir.name.startswith("__"):
+            if self.is_valid_theme_directory(theme_dir):
                 try:
                     theme = Theme.from_directory(theme_dir)
                     self._available_themes[theme.theme_id] = theme
@@ -103,7 +95,15 @@ class ThemeService(QObject):
             f"Initialized {len(self._available_themes)} themes: {list(self._available_themes.keys())}"
         )
 
-    def _setup_file_watcher(self):
+    def is_valid_theme_directory(self, theme_directory: Path) -> bool:
+        if not theme_directory.exists() or not theme_directory.is_dir():
+            return False
+
+        # Check for YAML files
+        yaml_files = list(theme_directory.glob("*.yaml"))
+        return len(yaml_files) > 0
+
+    def _setup_file_watchers(self):
         """Setup file watching for live reload in development mode."""
         if not self._enable_live_reload:
             return
@@ -130,18 +130,9 @@ class ThemeService(QObject):
         if self._current_theme:
             # Clear cached QSS and re-apply the current theme
             self._current_theme.clear_cache()
-            self._apply_theme_internal(self._current_theme, save_preference=False)
+            self._apply_theme_internal(self._current_theme)
 
     def _detect_system_theme(self, use_cache: bool = True) -> SystemTheme:
-        """
-        Detect the current system theme preference.
-
-        Args:
-            use_cache: If True, return cached result if available
-
-        Returns:
-            SystemTheme enum value (LIGHT, DARK, or UNKNOWN)
-        """
         if use_cache and self._cached_system_theme is not None:
             return self._cached_system_theme
 
@@ -168,77 +159,60 @@ class ThemeService(QObject):
         logger.info(f"Detected system theme: {theme.value}")
         return theme
 
-    def _clear_system_theme_cache(self):
-        """Clear the cached system theme detection result."""
-        self._cached_system_theme = None
-        logger.debug("System theme detection cache cleared")
+    def _resolve_auto_theme(self) -> str:
+        system_theme = self._detect_system_theme()
 
-    def _get_platform_info(self) -> dict:
-        """
-        Get platform information for debugging.
+        # Find the best matching theme for the detected system theme
+        if system_theme == SystemTheme.DARK:
+            # Look for the first theme matching the dark category
+            for theme_id, theme in self._available_themes.items():
+                if theme_id != "auto" and theme.category == SystemTheme.DARK.value:
+                    return theme_id
+        elif system_theme == SystemTheme.LIGHT:
+            # Look for the first theme matching the light category
+            for theme_id, theme in self._available_themes.items():
+                if theme_id != "auto" and theme.category == SystemTheme.LIGHT.value:
+                    return theme_id
 
-        Returns:
-            Dictionary with platform information
-        """
-        import platform
-
-        return {
-            "platform": platform.system().lower(),
-            "platform_detailed": platform.platform(),
-            "python_version": platform.python_version(),
-            "darkdetect_available": True,  # We imported it successfully
-            "theme_service_version": "2.0.0-modular",
-        }
-
-    def get_available_themes(self) -> Dict[str, Theme]:
-        """Get all available themes."""
-        return self._available_themes.copy()
-
-    def get_themes_by_category(self, category: str) -> List[Theme]:
-        """Get themes filtered by category."""
-        return [
-            theme
-            for theme in self._available_themes.values()
-            if theme.category == category
-        ]
-
-    def get_theme_categories(self) -> List[str]:
-        """Get all available theme categories."""
-        categories = set()
-        for theme in self._available_themes.values():
-            categories.add(theme.category)
-        return sorted(list(categories))
+        # Ultimate fallback (shouldn't happen if we have themes)
+        logger.error("No themes available for auto resolution")
+        return ""
 
     def get_current_theme(self) -> Optional[Theme]:
         """Get the currently applied theme."""
         return self._current_theme
 
-    def apply_theme(self, theme_identifier: str, save_preference: bool = True) -> bool:
-        """
-        Apply a theme to the application.
+    def has_theme(self, theme_id: str) -> bool:
+        """Check if a theme ID exists (including 'auto')."""
+        return theme_id == "auto" or theme_id in self._available_themes
 
-        Args:
-            theme_identifier: Theme ID from available themes
-            save_preference: Whether to save this choice to config
-
-        Returns:
-            True if theme was applied successfully
-        """
+    def apply_theme(self, theme_identifier: str) -> bool:
         logger.debug(f"Applying theme: {theme_identifier}")
 
         try:
-            theme = self._available_themes.get(theme_identifier)
+            # Resolve auto theme to actual theme based on system detection
+            if theme_identifier == "auto":
+                resolved_theme_id = self._resolve_auto_theme()
+                logger.debug(f"Auto theme resolved to: {resolved_theme_id}")
+                theme = self._available_themes.get(resolved_theme_id)
+            else:
+                theme = self._available_themes.get(theme_identifier)
+
             if not theme:
                 logger.error(f"Theme not found: {theme_identifier}")
                 return False
 
-            return self._apply_theme_internal(theme, save_preference)
+            return self._apply_theme_internal(
+                theme, original_preference=theme_identifier
+            )
 
         except Exception as e:
             logger.error(f"Error applying theme {theme_identifier}: {e}")
             return False
 
-    def _apply_theme_internal(self, theme: Theme, save_preference: bool = True) -> bool:
+    def _apply_theme_internal(
+        self, theme: Theme, original_preference: Optional[str] = None
+    ) -> bool:
         """Apply a theme configuration."""
         try:
             logger.debug(f"Applying theme: {theme}")
@@ -251,12 +225,9 @@ class ThemeService(QObject):
 
             self._current_theme = theme
 
-            # Save preference if requested
-            if save_preference and self._config_service:
-                self._config_service.set_theme_preference(theme.theme_id)
-
-            # Emit signal
-            self.theme_changed.emit(theme.theme_id)
+            # Emit signal with original preference (so UI knows "auto" is selected)
+            signal_theme_id = original_preference or theme.theme_id
+            self.theme_changed.emit(signal_theme_id)
 
             logger.info(f"Successfully applied theme: {theme.name}")
             return True
@@ -264,26 +235,3 @@ class ThemeService(QObject):
         except Exception as e:
             logger.error(f"Error applying theme {theme}: {e}")
             return False
-
-    def apply_user_preference(self) -> bool:
-        """
-        Apply theme based on user preference from config.
-
-        Returns:
-            True if theme was applied successfully
-        """
-        if not self._config_service:
-            logger.warning("No config service available, applying auto theme")
-            return self.apply_theme("auto", False)
-
-        try:
-            preferred_theme = self._config_service.get_theme_preference()
-            if preferred_theme and preferred_theme in self._available_themes:
-                return self.apply_theme(preferred_theme, False)  # Don't re-save
-            else:
-                logger.debug("No valid theme preference found, applying auto theme")
-                return self.apply_theme("auto", True)  # Save the auto preference
-
-        except Exception as e:
-            logger.error(f"Error applying user preference: {e}")
-            return self.apply_theme("auto", True)
