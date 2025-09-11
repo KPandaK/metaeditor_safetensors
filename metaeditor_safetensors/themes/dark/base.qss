@@ -51,6 +51,10 @@ QLabel {
 
 QLabel[class="description"] {
     color: #999999;
+    font-size: 13px;
+}
+
+QLabel[class="note"] {
     font-size: 12px;
 }
 

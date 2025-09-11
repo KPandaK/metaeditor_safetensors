@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
-    QPushButton, QScrollArea, QSizePolicy, QSpacerItem,
-    QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout,
+    QLabel, QPushButton, QScrollArea, QSizePolicy,
+    QSpacerItem, QTabWidget, QVBoxLayout, QWidget)
 
 from metaeditor_safetensors.widgets.svg_widget import SvgWidget
 from . import resources_rc
@@ -75,7 +75,7 @@ class Ui_AboutDialog(object):
         self.versionHLayout.setObjectName(u"versionHLayout")
         self.aboutVersion = QLabel(self.aboutTab)
         self.aboutVersion.setObjectName(u"aboutVersion")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.aboutVersion.sizePolicy().hasHeightForWidth())
@@ -112,14 +112,23 @@ class Ui_AboutDialog(object):
 
         self.rightColumnLayout.addWidget(self.aboutAuthor)
 
-        self.aboutDescription = QLabel(self.aboutTab)
+        self.frame = QFrame(self.aboutTab)
+        self.frame.setObjectName(u"frame")
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_4 = QVBoxLayout(self.frame)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.aboutDescription = QLabel(self.frame)
         self.aboutDescription.setObjectName(u"aboutDescription")
         sizePolicy.setHeightForWidth(self.aboutDescription.sizePolicy().hasHeightForWidth())
         self.aboutDescription.setSizePolicy(sizePolicy)
         self.aboutDescription.setWordWrap(True)
         self.aboutDescription.setOpenExternalLinks(True)
 
-        self.rightColumnLayout.addWidget(self.aboutDescription)
+        self.verticalLayout_4.addWidget(self.aboutDescription)
+
+
+        self.rightColumnLayout.addWidget(self.frame)
 
         self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
 
@@ -133,6 +142,7 @@ class Ui_AboutDialog(object):
         sizePolicy2.setHeightForWidth(self.kofiLink.sizePolicy().hasHeightForWidth())
         self.kofiLink.setSizePolicy(sizePolicy2)
         self.kofiLink.setMaximumSize(QSize(100, 56))
+        self.kofiLink.setFrameShadow(QFrame.Shadow.Sunken)
         self.kofiLink.setPixmap(QPixmap(u":/assets/support_me.png"))
         self.kofiLink.setScaledContents(True)
 
@@ -279,7 +289,7 @@ class Ui_AboutDialog(object):
 
         self.retranslateUi(AboutDialog)
 
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(AboutDialog)
@@ -294,12 +304,14 @@ class Ui_AboutDialog(object):
         self.copyVersion.setToolTip(QCoreApplication.translate("AboutDialog", u"Copy version to clipboard.", None))
 #endif // QT_CONFIG(tooltip)
         self.copyVersion.setText("")
-        self.copyVersion.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"icon", None))
+        self.copyVersion.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"icon-small", None))
         self.aboutAuthor.setText(QCoreApplication.translate("AboutDialog", u"Created by: KPandaK", None))
-        self.aboutAuthor.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"description", None))
+        self.aboutAuthor.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"note", None))
         self.aboutDescription.setText(QCoreApplication.translate("AboutDialog", u"<html><head/><body><p>This is a free and open source app for viewing and editing metadata in safetensors model files. </p><p>It implements v1.01 of Stability.AI's model metadata standard <a href=\"https://github.com/Stability-AI/ModelSpec\"><span style=\" text-decoration: underline; color:#92ebff;\">specification</span></a>.</p><p>If you enjoy this app, feel free to tip me for a coffee!</p></body></html>", None))
         self.kofiLink.setText("")
+        self.kofiLink.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"clickable-image", None))
         self.githubLink.setText("")
+        self.githubLink.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"clickable-image", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.aboutTab), QCoreApplication.translate("AboutDialog", u"About", None))
         self.creditsTitle.setText(QCoreApplication.translate("AboutDialog", u"Credits", None))
         self.creditsTitle.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"title", None))

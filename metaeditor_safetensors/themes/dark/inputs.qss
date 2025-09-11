@@ -2,11 +2,9 @@
 Dark Theme - Input Controls
 ============================
 
-VS Code inspired input styling based on monaco-inputbox and related components.
-Follows VS Code's input design patterns with proper focus states and visual hierarchy.
+Input control styling 
 */
 
-/* Text Input Fields - based on VS Code's input styling */
 QLineEdit,
 QTextEdit,
 QSpinBox {
@@ -15,8 +13,6 @@ QSpinBox {
     border: 1px solid #454545;
     border-radius: 2px;
     background-color: #3c3c3c;
-    color: #cccccc;
-    font-size: 13px;
     selection-background-color: #264f78;
     selection-color: #ffffff;
 }
@@ -27,11 +23,8 @@ QDateTimeEdit {
     border: 1px solid #454545;
     border-radius: 2px;
     background-color: #3c3c3c;
-    color: #cccccc;
-    font-size: 13px;
 }
 
-/* Focus states - VS Code blue outline */
 QLineEdit:focus,
 QTextEdit:focus,
 QDateTimeEdit:focus,
@@ -39,14 +32,6 @@ QSpinBox:focus {
     border-color: #007acc;
     background-color: #1e1e1e;
     outline: none;
-}
-
-/* Hover states */
-QLineEdit:hover,
-QTextEdit:hover,
-QDateTimeEdit:hover,
-QSpinBox:hover {
-    border-color: #007acc;
 }
 
 /* Disabled state */
@@ -57,15 +42,6 @@ QSpinBox:disabled {
     background-color: #2d2d30;
     border-color: #2d2d30;
     color: #999999;
-}
-
-/* Placeholder text styling */
-QLineEdit {
-    placeholder-text-color: #999999;
-}
-
-QTextEdit {
-    placeholder-text-color: #999999;
 }
 
 /* ComboBox styling - matches VS Code dropdown */

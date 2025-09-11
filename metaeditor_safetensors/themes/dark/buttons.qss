@@ -51,3 +51,31 @@ QPushButton[class="icon"]:hover {
 QPushButton[class="icon"]:pressed {
     background-color: rgba(255, 255, 255, 0.2);
 }
+
+QPushButton[class="icon-small"] {
+    min-width: 16px;
+    min-height: 16px;
+    padding: 3px;
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+QPushButton[class="icon-small"]:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+QPushButton[class="icon-small"]:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+QLabel[class="clickable-image"] {
+    padding: 2px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background-color: transparent;    
+}
+
+QLabel[class="clickable-image"]:hover {
+    border: 1px solid #454545;    
+}
