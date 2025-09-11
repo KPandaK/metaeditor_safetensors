@@ -3,7 +3,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QApplication, QDialog
 
 from ..widgets.svg_widget import SvgWidget
 from .about_dialog_ui import Ui_AboutDialog
@@ -52,6 +52,12 @@ class AboutDialog(QDialog):
 
         # Make GitHub and Ko-fi links clickable
         self._setup_clickable_links()
+
+        # Ensure the dialog uses the current application stylesheet
+        # This fixes hover effects not applying until after a stylesheet refresh
+        app = QApplication.instance()
+        if app:
+            self.setStyleSheet(app.styleSheet())
 
         self.ui.copyVersion.clicked.connect(self._copy_version_to_clipboard)
 
