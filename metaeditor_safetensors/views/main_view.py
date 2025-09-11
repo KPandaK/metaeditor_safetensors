@@ -133,6 +133,8 @@ class MainView(QMainWindow):
         else:
             logger.warning("Could not load icon from resources")
 
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
         menu_bar = self.menuBar()

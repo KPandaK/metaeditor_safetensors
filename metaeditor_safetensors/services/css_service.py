@@ -29,40 +29,14 @@ def set_css_class(widget: QWidget, class_name: str) -> None:
     widget.setProperty("class", class_name)
 
 
-def add_css_class(widget: QWidget, class_name: str) -> None:
-    """Add a CSS class to a widget, preserving existing classes."""
-    current_classes = get_css_classes(widget)
-    current_classes.add(class_name)
-
-    class_string = " ".join(sorted(current_classes))
-    widget.setProperty("class", class_string)
-
-
-def remove_css_class(widget: QWidget, class_name: str) -> None:
-    """Remove a CSS class from a widget."""
-    current_classes = get_css_classes(widget)
-    current_classes.discard(class_name)
-
-    if current_classes:
-        class_string = " ".join(sorted(current_classes))
-        widget.setProperty("class", class_string)
-    else:
-        widget.setProperty("class", None)
-
-
 def has_css_class(widget: QWidget, class_name: str) -> bool:
     """Check if a widget has a specific CSS class."""
-    current_classes = get_css_classes(widget)
-    return class_name in current_classes
+    return widget.property("class") == class_name
 
 
-def get_css_classes(widget: QWidget) -> Set[str]:
-    """Get all CSS classes currently applied to a widget."""
-    class_property = widget.property("class")
-    if not class_property:
-        return set()
-
-    if isinstance(class_property, str):
-        return set(class_property.split())
-
-    return set()
+def refresh_style_recursive(widget: QWidget) -> None:
+    """Recursively refresh the style of a widget and its children."""
+    widget.style().unpolish(widget)
+    widget.style().polish(widget)
+    for child in widget.findChildren(QWidget):
+        refresh_style_recursive(child)

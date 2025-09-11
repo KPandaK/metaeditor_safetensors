@@ -1,11 +1,12 @@
 import logging
 from importlib.metadata import PackageNotFoundError, version
 
-from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtCore import QFile, QIODevice, Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
 from PySide6.QtWidgets import QApplication, QDialog
 
 from ..widgets.svg_widget import SvgWidget
+from ..services.css_service import refresh_style_recursive
 from .about_dialog_ui import Ui_AboutDialog
 
 logger = logging.getLogger(__name__)
@@ -43,16 +44,14 @@ class AboutDialog(QDialog):
         app_version = get_app_version()
         self.ui.aboutVersion.setText(f"v{app_version}")
 
-        # Set logo from Qt resources for all tabs
-        from PySide6.QtCore import QFile, QIODevice
-
-        style_file = QFile(":/assets/logo.svg")
-        if style_file.open(QIODevice.ReadOnly):
-            svg_data = style_file.readAll()
-            self.ui.logoLabel.setSvgData(svg_data)  # About tab
-            self.ui.logoLabel_2.setSvgData(svg_data)  # Credits tab
-            self.ui.logoLabel_3.setSvgData(svg_data)  # License tab
-            style_file.close()
+        logo_file = QFile(":/assets/logo.svg")
+        if logo_file.open(QIODevice.OpenModeFlag.ReadOnly):
+            byte_array = logo_file.readAll()
+            svg_data = bytes(byte_array.data())
+            self.ui.logoLabel.setSvgData(svg_data)
+            self.ui.logoLabel_2.setSvgData(svg_data)
+            self.ui.logoLabel_3.setSvgData(svg_data)
+            logo_file.close()
         else:
             logger.warning("Could not load logo from resources")
 
@@ -61,11 +60,12 @@ class AboutDialog(QDialog):
 
         self.ui.copyVersion.clicked.connect(self._copy_version_to_clipboard)
 
+
     def _setup_clickable_links(self):
         """Set up clickable functionality for GitHub and Ko-fi links."""
         # Make labels look clickable
-        self.ui.githubLink.setCursor(Qt.PointingHandCursor)
-        self.ui.kofiLink.setCursor(Qt.PointingHandCursor)
+        self.ui.githubLink.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ui.kofiLink.setCursor(Qt.CursorShape.PointingHandCursor)
 
         # Add tooltips
         self.ui.githubLink.setToolTip("Visit the GitHub repository")
@@ -79,14 +79,14 @@ class AboutDialog(QDialog):
 
     def _open_github_link(self, event):
         """Open the GitHub repository in the default browser."""
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             QDesktopServices.openUrl(
                 QUrl("https://github.com/KPandaK/metaeditor_safetensors")
             )
 
     def _open_kofi_link(self, event):
         """Open the Ko-fi page in the default browser."""
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             QDesktopServices.openUrl(QUrl("https://ko-fi.com/kpandak"))
 
     def _copy_version_to_clipboard(self):

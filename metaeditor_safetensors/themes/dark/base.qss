@@ -1,38 +1,39 @@
 /* 
-Dark Theme - Base Styles
-========================
+Dark Theme - Base Styles  
+=========================
 
-Base colors and fundamental widget styling for the dark theme.
+Base colors and fundamental widget styling
+
+Color Palette Reference:
+- Background: #1e1e1e
+- Sidebar: #252526
+- Borders: #454545
+- Text Primary: #cccccc
+- Text Secondary: #999999
+- Accent: #007acc
 */
 
 QWidget {
-    background-color: rgb(30, 30, 30);
-    color: rgb(204, 204, 204);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 14px;
     font-weight: 400;
-}
-
-QMainWindow {
-    background-color: rgb(30, 30, 30);
-    color: rgb(204, 204, 204);
+    color: #cccccc;
+    background-color: #1e1e1e;
 }
 
 QDialog {
-    background-color: rgb(30, 30, 30);
-    color: rgb(204, 204, 204);
-    border: 1px solid rgb(69, 69, 69);
+    border: 1px solid #454545;
+    border-radius: 3px;
 }
 
 QGroupBox {
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    border: 1px solid rgb(69, 69, 69);
+    border: 1px solid #454545;
     border-radius: 3px;
     margin-top: 8px;
-    padding-top: 16px;
+    padding-top: 17px;
+    font-size: 12px;
     background-color: rgba(255, 255, 255, 0.02);
+    color: #cccccc;
 }
 
 QGroupBox::title {
@@ -40,16 +41,39 @@ QGroupBox::title {
     subcontrol-position: top left;
     left: 8px;
     padding: 0 4px;
-    color: rgb(204, 204, 204);
-    background-color: rgb(30, 30, 30);
+    color: #cccccc;
 }
 
 QLabel {
-    color: rgb(204, 204, 204);
+    color: #cccccc;
     background-color: transparent;
 }
 
 QLabel[class="description"] {
-    color: rgb(153, 153, 153);
-    font-size: 13px;
+    color: #999999;
+    font-size: 12px;
+}
+
+QLabel[class="heading"] {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+QLabel[class="title"] {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+QLabel[class="success"] {
+    color: #4ec9b0;
+}
+
+QLabel[class="warning"] {
+    color: #ffcc02;
+}
+
+QLabel[class="error"] {
+    color: #f44747;
 }
