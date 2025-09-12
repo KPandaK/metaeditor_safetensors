@@ -2,11 +2,10 @@
 Dark Theme - Menus and Navigation
 ==================================
 
-VS Code inspired menu styling based on VS Code's menu system and tab interface.
-Follows VS Code's visual hierarchy and interaction patterns.
+Menu and navigation styling.
+
 */
 
-/* Menu Bar - VS Code title bar style */
 QMenuBar {
     background-color: #1e1e1e;
     border-bottom: 1px solid #454545;
@@ -22,21 +21,18 @@ QMenuBar::item {
     background-color: transparent;
 }
 
-QMenuBar::item:selected {
+QMenuBar::item:selected,
+QMenuBar::item:pressed {
     background-color: #2a2d2e;
     color: #ffffff;
-}
-
-QMenuBar::item:pressed {
-    background-color: #37373d;
-    color: #ffffff;
+    margin: 2px;
+    border-radius: 4px;
 }
 
 QMenuBar::item:disabled {
     color: #999999;
 }
 
-/* Context Menus and Dropdown Menus - VS Code style */
 QMenu {
     background-color: #252526;
     border: 1px solid #454545;
