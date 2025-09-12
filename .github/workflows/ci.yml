@@ -80,8 +80,8 @@ jobs:
       
       - name: Run tests with coverage
         run: |
-          xvfb-run -a python -m coverage run -m unittest discover tests -v
-          xvfb-run -a python -m coverage html
+          xvfb-run -a python -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v
+          python -m coverage html
         env:
           QT_QPA_PLATFORM: offscreen
       
@@ -113,6 +113,6 @@ jobs:
       
       - name: Run tests
         run: |
-          python -m unittest discover tests -v
+          python -m pytest -v --tb=short
         env:
           QT_QPA_PLATFORM: offscreen

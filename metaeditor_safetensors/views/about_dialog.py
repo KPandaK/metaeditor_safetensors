@@ -28,9 +28,8 @@ class AboutDialog(QDialog):
         self.ui.setupUi(self)
 
         # Ensure the dialog uses the current application stylesheet
-        # This fixes hover effects not applying until after a stylesheet refresh
         app = QApplication.instance()
-        if app:
+        if isinstance(app, QApplication):
             self.setStyleSheet(app.styleSheet())
 
         self.setWindowTitle("About")
