@@ -292,6 +292,156 @@ qss_order:
         # Test non-existent theme
         self.assertFalse(theme_service.has_theme("nonexistent"))
 
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
+    def test_system_theme_detection_caching(self, mock_darkdetect, mock_get_package_root):
+        """Test system theme detection caching functionality."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # First call should call darkdetect
+        mock_darkdetect.return_value = "Dark"
+        result1 = theme_service._detect_system_theme(use_cache=True)
+        self.assertEqual(result1, SystemTheme.DARK)
+        
+        # Second call should use cache and not call darkdetect again
+        mock_darkdetect.return_value = "Light"  # Change value but should not be used
+        result2 = theme_service._detect_system_theme(use_cache=True)
+        self.assertEqual(result2, SystemTheme.DARK)  # Should still be dark from cache
+        
+        # Call with use_cache=False should call darkdetect again
+        result3 = theme_service._detect_system_theme(use_cache=False)
+        self.assertEqual(result3, SystemTheme.LIGHT)  # Should be light now
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
+    def test_system_theme_detection_error_handling(self, mock_darkdetect, mock_get_package_root):
+        """Test system theme detection error handling."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Test exception during detection
+        mock_darkdetect.side_effect = Exception("System error")
+        result = theme_service._detect_system_theme(use_cache=False)
+        self.assertEqual(result, SystemTheme.UNKNOWN)
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
+    def test_system_theme_detection_unexpected_value(self, mock_darkdetect, mock_get_package_root):
+        """Test system theme detection with unexpected return value."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Test unexpected return value
+        mock_darkdetect.return_value = "Purple"  # Unexpected value
+        result = theme_service._detect_system_theme(use_cache=False)
+        self.assertEqual(result, SystemTheme.UNKNOWN)
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
+    def test_auto_theme_resolution_no_themes(self, mock_darkdetect, mock_get_package_root):
+        """Test auto theme resolution when no themes are available."""
+        # Point to empty directory
+        empty_themes_dir = self.temp_dir / "empty" / "metaeditor_safetensors"
+        empty_themes_dir.mkdir(parents=True)
+        mock_get_package_root.return_value = empty_themes_dir
+        
+        mock_darkdetect.return_value = "Dark"
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Should return empty string when no themes available
+        result = theme_service._resolve_auto_theme()
+        self.assertEqual(result, "")
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    def test_themes_directory_not_found(self, mock_get_package_root):
+        """Test initialization when themes directory doesn't exist."""
+        # Point to non-existent directory
+        mock_get_package_root.return_value = self.temp_dir / "nonexistent"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Should not crash and should have no themes except auto
+        self.assertTrue(theme_service.has_theme("auto"))
+        self.assertFalse(theme_service.has_theme("dark"))
+        self.assertFalse(theme_service.has_theme("light"))
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    def test_package_root_exception_handling(self, mock_get_package_root):
+        """Test initialization when get_package_root raises exception."""
+        mock_get_package_root.side_effect = Exception("Cannot determine package root")
+        
+        # Should not crash during initialization
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Should still support auto theme (even if no actual themes available)
+        self.assertTrue(theme_service.has_theme("auto"))
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    def test_apply_theme_exception_handling(self, mock_get_package_root):
+        """Test apply_theme method exception handling."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Mock theme to raise exception during QSS loading
+        with patch.object(theme_service._available_themes['dark'], 'get_qss') as mock_get_qss:
+            mock_get_qss.side_effect = Exception("QSS loading failed")
+            
+            result = theme_service.apply_theme("dark")
+            self.assertFalse(result)
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
+    def test_auto_theme_resolution_empty_result(self, mock_darkdetect, mock_get_package_root):
+        """Test auto theme application when resolution returns empty string."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Mock _resolve_auto_theme to return empty string
+        with patch.object(theme_service, '_resolve_auto_theme', return_value=""):
+            result = theme_service.apply_theme("auto")
+            self.assertFalse(result)
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    def test_get_current_theme_initially_none(self, mock_get_package_root):
+        """Test get_current_theme returns None initially."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        theme_service = ThemeService(self.__class__.app)  # type: ignore
+        
+        # Should be None initially
+        self.assertIsNone(theme_service.get_current_theme())
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    def test_live_reload_disabled_by_default(self, mock_get_package_root):
+        """Test that live reload is disabled by default."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        # Ensure environment variable is not set
+        with patch.dict('os.environ', {}, clear=True):
+            theme_service = ThemeService(self.__class__.app)  # type: ignore
+            
+            # Should not have file watcher when live reload is disabled
+            self.assertIsNone(theme_service._file_watcher)
+            self.assertEqual(theme_service._watched_files, [])
+
+    @patch("metaeditor_safetensors.services.theme_service.get_package_root")
+    def test_live_reload_enabled(self, mock_get_package_root):
+        """Test that live reload can be enabled via environment variable."""
+        mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        
+        # Enable live reload via environment variable
+        with patch.dict('os.environ', {'DEV_LIVE_STYLING': 'true'}):
+            theme_service = ThemeService(self.__class__.app)  # type: ignore
+            
+            # Should have file watcher when live reload is enabled
+            self.assertIsNotNone(theme_service._file_watcher)
+
 
 if __name__ == "__main__":
     unittest.main()

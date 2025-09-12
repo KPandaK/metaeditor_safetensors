@@ -401,6 +401,73 @@ class TestConfigService(unittest.TestCase):
             # Verify the ConfigService has the mocked settings directory
             self.assertEqual(config_service._settings_dir, mock_settings_path)
 
+    def test_get_theme_preference_default(self):
+        """Test getting default theme preference."""
+        config_service = self._create_config_service_with_temp_file()
+        
+        # Should return default "auto" theme preference
+        theme_preference = config_service.get_theme_preference()
+        self.assertEqual(theme_preference, "auto")
+
+    def test_set_and_get_theme_preference(self):
+        """Test setting and getting theme preference."""
+        config_service = self._create_config_service_with_temp_file()
+        
+        # Set a custom theme preference
+        test_theme = "dark"
+        config_service.set_theme_preference(test_theme)
+        
+        # Verify it was set correctly
+        theme_preference = config_service.get_theme_preference()
+        self.assertEqual(theme_preference, test_theme)
+        
+        # Verify persistence by creating new service instance
+        config_service2 = self._create_config_service_with_temp_file()
+        theme_preference2 = config_service2.get_theme_preference()
+        self.assertEqual(theme_preference2, test_theme)
+
+    def test_get_theme_preference_missing_key(self):
+        """Test getting theme preference when key is missing from settings."""
+        # Create settings file without theme_preference
+        incomplete_data = {
+            "config_version": "1.0",
+            "app_version": "1.0.0",
+            "recent_files": []
+            # Missing theme_preference
+        }
+        
+        with open(self.temp_settings_file, "w") as f:
+            json.dump(incomplete_data, f)
+        
+        config_service = self._create_config_service_with_temp_file()
+        
+        # Should return default "auto" when key is missing
+        theme_preference = config_service.get_theme_preference()
+        self.assertEqual(theme_preference, "auto")
+
+    def test_set_theme_preference_with_save_error(self):
+        """Test setting theme preference handles save errors gracefully."""
+        config_service = self._create_config_service_with_temp_file()
+        
+        # Mock open to raise IOError during write operations
+        original_open = open
+        
+        def mock_open_func(*args, **kwargs):
+            mode = kwargs.get("mode", args[1] if len(args) > 1 else "r")
+            if "w" in mode:
+                raise IOError("Disk full")
+            return original_open(*args, **kwargs)
+        
+        with patch("builtins.open", side_effect=mock_open_func):
+            # This should not raise an exception
+            try:
+                config_service.set_theme_preference("dark")
+                success = True
+            except IOError:
+                success = False
+            
+            self.assertTrue(success, "IOError during theme preference save should be handled gracefully")
+
 
 if __name__ == "__main__":
     unittest.main()
