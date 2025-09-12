@@ -3,7 +3,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QApplication, QDialog
 
 from ..widgets.svg_widget import SvgWidget
 from .about_dialog_ui import Ui_AboutDialog
@@ -25,6 +25,12 @@ class AboutDialog(QDialog):
 
         self.ui = Ui_AboutDialog()
         self.ui.setupUi(self)
+
+        # Ensure the dialog uses the current application stylesheet
+        # This fixes hover effects not applying until after a stylesheet refresh
+        app = QApplication.instance()
+        if app:
+            self.setStyleSheet(app.styleSheet())
 
         self.setWindowTitle("About")
         self.setFixedSize(690, 425)
