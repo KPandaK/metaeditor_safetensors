@@ -3,9 +3,10 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 # Variables
 
-python := if os_family() == "windows" { "./venv/Scripts/python.exe" } else { "./venv/bin/python" }
-rcc := if os_family() == "windows" { "./venv/Scripts/pyside6-rcc.exe" } else { "./venv/bin/pyside6-rcc" }
-uic := if os_family() == "windows" { "./venv/Scripts/pyside6-uic.exe" } else { "./venv/bin/pyside6-uic" }
+# Use python from PATH (works in both venv and CI)
+python := "python"
+rcc := "pyside6-rcc"
+uic := "pyside6-uic"
 
 rcc_input_path := env("RCC_INPUT_PATH")
 rcc_output_path := env("RCC_OUTPUT_PATH")
@@ -29,9 +30,9 @@ compile:
     @just _compile-ui
 
 # Format code with Ruff
-fmt:
+fmt *ARGS:
     @echo "Formatting code with Ruff..."
-    @{{ python }} -m ruff format .
+    @{{ python }} -m ruff format {{ ARGS }} .
 
 # Lint code with Ruff
 lint:
@@ -48,10 +49,10 @@ bandit:
     @echo "Running bandit security checks..."
     @{{ python }} -m bandit -r metaeditor_safetensors/ -ll
 
-# Run unit tests
+# Run unit tests with coverage
 test:
-    @echo "Running unit tests..."
-    @{{ python }} -m coverage run -m unittest discover tests -v
+    @echo "Running unit tests with pytest and coverage..."
+    @{{ python }} -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v --tb=short
 
 # Run the MetaEditor application
 run: compile
