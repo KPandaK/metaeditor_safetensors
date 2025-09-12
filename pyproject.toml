@@ -10,6 +10,8 @@ authors = [{name = "KPandK"}]
 requires-python = ">=3.10"
 dependencies = [
     "PySide6>=6.6.1",
+    "darkdetect>=0.8.0",
+    "PyYAML>=6.0.0",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +21,7 @@ dev = [
     "ruff>=0.1.0",
     "bandit>=1.7.0",
     "pip-audit>=2.0.0",
+    "types-PyYAML>=6.0.12",
     "numpy<2",
     "safetensors>=0.6.2",
     "setuptools>=80.9.0",
@@ -34,7 +37,9 @@ warn_unused_configs = true
 ignore_missing_imports = true
 files = ["metaeditor_safetensors", "tests"]
 exclude = [
-    "__pycache__",
+    ".*/__pycache__/.*",
+    ".*/.*_ui\\.py$",
+    ".*/resources_rc\\.py$"
 ]
 
 [tool.ruff]

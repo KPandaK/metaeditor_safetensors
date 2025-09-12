@@ -99,17 +99,20 @@
              <property name="text">
               <string>Safetensors Metadata Editor</string>
              </property>
+             <property name="class" stdset="0">
+              <string>title</string>
+             </property>
             </widget>
            </item>
            <item>
             <layout class="QHBoxLayout" name="versionHLayout">
              <property name="spacing">
-              <number>0</number>
+              <number>6</number>
              </property>
              <item alignment="Qt::AlignmentFlag::AlignLeft">
               <widget class="QLabel" name="aboutVersion">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -117,9 +120,12 @@
                <property name="text">
                 <string>v1.0.0</string>
                </property>
+               <property name="class" stdset="0">
+                <string>description</string>
+               </property>
               </widget>
              </item>
-             <item alignment="Qt::AlignmentFlag::AlignLeft">
+             <item alignment="Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter">
               <widget class="QPushButton" name="copyVersion">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -154,6 +160,9 @@
                  <height>16</height>
                 </size>
                </property>
+               <property name="class" stdset="0">
+                <string>icon-small</string>
+               </property>
               </widget>
              </item>
              <item>
@@ -185,25 +194,40 @@
              <property name="text">
               <string>Created by: KPandaK</string>
              </property>
+             <property name="class" stdset="0">
+              <string>note</string>
+             </property>
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="aboutDescription">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <widget class="QFrame" name="frame">
+             <property name="frameShape">
+              <enum>QFrame::Shape::StyledPanel</enum>
              </property>
-             <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is a free and open source app for viewing and editing metadata in safetensors model files. &lt;/p&gt;&lt;p&gt;It implements v1.01 of Stability.AI's model metadata standard &lt;a href=&quot;https://github.com/Stability-AI/ModelSpec&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#92ebff;&quot;&gt;specification&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If you enjoy this app, feel free to tip me for a coffee!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <property name="frameShadow">
+              <enum>QFrame::Shadow::Raised</enum>
              </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-             <property name="openExternalLinks">
-              <bool>true</bool>
-             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_4">
+              <item>
+               <widget class="QLabel" name="aboutDescription">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is a free and open source app for viewing and editing metadata in safetensors model files. &lt;/p&gt;&lt;p&gt;It implements v1.01 of Stability.AI's model metadata standard &lt;a href=&quot;https://github.com/Stability-AI/ModelSpec&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#92ebff;&quot;&gt;specification&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If you enjoy this app, feel free to tip me for a coffee!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+                <property name="openExternalLinks">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
            <item>
@@ -241,6 +265,9 @@
                  <height>56</height>
                 </size>
                </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Sunken</enum>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -249,6 +276,9 @@
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
+               </property>
+               <property name="class" stdset="0">
+                <string>clickable-image</string>
                </property>
               </widget>
              </item>
@@ -274,6 +304,9 @@
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
+               </property>
+               <property name="class" stdset="0">
+                <string>clickable-image</string>
                </property>
               </widget>
              </item>
@@ -332,6 +365,9 @@
          </item>
          <item>
           <layout class="QVBoxLayout" name="textLayout_2">
+           <property name="spacing">
+            <number>12</number>
+           </property>
            <property name="leftMargin">
             <number>0</number>
            </property>
@@ -350,6 +386,9 @@
              </property>
              <property name="text">
               <string>Credits</string>
+             </property>
+             <property name="class" stdset="0">
+              <string>title</string>
              </property>
             </widget>
            </item>
@@ -425,6 +464,9 @@
          </item>
          <item>
           <layout class="QVBoxLayout" name="textLayout_3">
+           <property name="spacing">
+            <number>12</number>
+           </property>
            <property name="leftMargin">
             <number>0</number>
            </property>
@@ -436,8 +478,16 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="font">
+              <font>
+               <pointsize>18</pointsize>
+              </font>
+             </property>
              <property name="text">
               <string>The MIT License (MIT)</string>
+             </property>
+             <property name="class" stdset="0">
+              <string>title</string>
              </property>
             </widget>
            </item>
@@ -457,7 +507,7 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>359</width>
+                <width>374</width>
                 <height>358</height>
                </rect>
               </property>

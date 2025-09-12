@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 from PySide6.QtCore import QDateTime, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import (
     QAction,
+    QActionGroup,
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
@@ -50,10 +51,14 @@ class MainView(QMainWindow):
     # --- Action Signals ---
     open_file_requested = Signal()
     save_requested = Signal()
+    settings_requested = Signal()
     exit_requested = Signal()
     file_dropped = Signal(str)
     recent_file_triggered = Signal(str)
     clear_recent_requested = Signal()
+
+    # --- Theme Signals ---
+    theme_requested = Signal(str)
 
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
@@ -74,7 +79,7 @@ class MainView(QMainWindow):
         super().__init__()
 
         # Set a default window size for a better initial appearance
-        self.resize(900, 450)
+        self.resize(1100, 800)
 
         # Set up window icon and title
         self._setup_window_properties()
@@ -95,6 +100,9 @@ class MainView(QMainWindow):
         # The thumbnail widget is now created directly by Qt Designer promotion
         # Store reference to the custom widget for easy access
         self.thumbnail_widget = self.ui.thumbnailDisplay
+
+        # Configure thumbnail widget for vertical column layout
+        self.thumbnail_widget.setPrimaryDimension("width")
 
         # --- Widget Mapping for Data Binding ---
         self._widget_map = {
@@ -125,6 +133,8 @@ class MainView(QMainWindow):
         else:
             logger.warning("Could not load icon from resources")
 
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
         menu_bar = self.menuBar()
@@ -146,6 +156,13 @@ class MainView(QMainWindow):
 
         file_menu.addSeparator()
 
+        # Settings action in File menu
+        settings_action = QAction("&Settings...", self)
+        settings_action.triggered.connect(self.settings_requested)
+        file_menu.addAction(settings_action)
+
+        file_menu.addSeparator()
+
         exit_action = QAction("E&xit", self)
         exit_action.triggered.connect(self.exit_requested)
         file_menu.addAction(exit_action)
@@ -155,6 +172,7 @@ class MainView(QMainWindow):
 
         raw_view_action = QAction("View &Raw Metadata", self)
         raw_view_action.setEnabled(False)  # Not implemented yet
+        view_menu.addAction(raw_view_action)
         view_menu.addAction(raw_view_action)
 
         tensors_view_action = QAction("View &Tensors", self)
@@ -225,7 +243,9 @@ class MainView(QMainWindow):
         self.ui.authorEdit.textChanged.connect(self.author_changed)
         self.ui.dateTimeEdit.dateTimeChanged.connect(self.datetime_changed)
         self.ui.licenseEdit.textChanged.connect(self.license_changed)
-        self.ui.usageHintEdit.textChanged.connect(self.usage_hint_changed)
+        self.ui.usageHintEdit.textChanged.connect(
+            lambda: self.usage_hint_changed.emit(self.ui.usageHintEdit.toPlainText())
+        )
         self.ui.tagsEdit.textChanged.connect(self.tags_changed)
         self.ui.mergedFromEdit.textChanged.connect(self.merged_from_changed)
 
@@ -261,16 +281,6 @@ class MainView(QMainWindow):
             pixmap: The QPixmap to display, or None to clear the thumbnail.
         """
         self.thumbnail_widget.setPixmap(pixmap)
-
-        # Set property for CSS styling
-        has_pixmap = pixmap is not None
-        self.thumbnail_widget.setProperty(
-            "hasPixmap", "true" if has_pixmap else "false"
-        )
-
-        # Apply the updated styling
-        self.thumbnail_widget.style().unpolish(self.thumbnail_widget)
-        self.thumbnail_widget.style().polish(self.thumbnail_widget)
 
     def set_status_message(self, message: str, timeout: int = 0):
         """Displays a message in the status bar."""

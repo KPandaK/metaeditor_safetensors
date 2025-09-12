@@ -15,10 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QHBoxLayout,
-    QLabel, QLineEdit, QProgressBar, QPushButton,
-    QSizePolicy, QSpacerItem, QTextEdit, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QDateTimeEdit, QGroupBox,
+    QHBoxLayout, QLabel, QLineEdit, QProgressBar,
+    QPushButton, QSizePolicy, QSpacerItem, QTextEdit,
+    QVBoxLayout, QWidget)
 
 from metaeditor_safetensors.widgets.image_widget import ImageWidget
 from . import resources_rc
@@ -27,7 +27,7 @@ class Ui_EditorPanel(object):
     def setupUi(self, EditorPanel):
         if not EditorPanel.objectName():
             EditorPanel.setObjectName(u"EditorPanel")
-        EditorPanel.resize(900, 450)
+        EditorPanel.resize(1100, 900)
         self.verticalLayout = QVBoxLayout(EditorPanel)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(15, 15, 15, 15)
@@ -35,43 +35,87 @@ class Ui_EditorPanel(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.leftColumn = QVBoxLayout()
         self.leftColumn.setObjectName(u"leftColumn")
-        self.titleLabel = QLabel(EditorPanel)
+        self.generalBox = QGroupBox(EditorPanel)
+        self.generalBox.setObjectName(u"generalBox")
+        self.verticalLayout_2 = QVBoxLayout(self.generalBox)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.titleGroup = QVBoxLayout()
+        self.titleGroup.setObjectName(u"titleGroup")
+        self.titleLabel = QLabel(self.generalBox)
         self.titleLabel.setObjectName(u"titleLabel")
 
-        self.leftColumn.addWidget(self.titleLabel)
+        self.titleGroup.addWidget(self.titleLabel)
 
-        self.titleEdit = QLineEdit(EditorPanel)
+        self.titleEdit = QLineEdit(self.generalBox)
         self.titleEdit.setObjectName(u"titleEdit")
 
-        self.leftColumn.addWidget(self.titleEdit)
+        self.titleGroup.addWidget(self.titleEdit)
 
-        self.descriptionLabel = QLabel(EditorPanel)
+
+        self.verticalLayout_2.addLayout(self.titleGroup)
+
+        self.descGroup = QVBoxLayout()
+        self.descGroup.setSpacing(6)
+        self.descGroup.setObjectName(u"descGroup")
+        self.descriptionLabel = QLabel(self.generalBox)
         self.descriptionLabel.setObjectName(u"descriptionLabel")
 
-        self.leftColumn.addWidget(self.descriptionLabel)
+        self.descGroup.addWidget(self.descriptionLabel)
 
-        self.descriptionEdit = QTextEdit(EditorPanel)
+        self.descriptionEdit = QTextEdit(self.generalBox)
         self.descriptionEdit.setObjectName(u"descriptionEdit")
-        self.descriptionEdit.setMaximumSize(QSize(16777215, 100))
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.descriptionEdit.sizePolicy().hasHeightForWidth())
+        self.descriptionEdit.setSizePolicy(sizePolicy)
+        self.descriptionEdit.setMinimumSize(QSize(0, 300))
+        self.descriptionEdit.setMaximumSize(QSize(16777215, 16777215))
 
-        self.leftColumn.addWidget(self.descriptionEdit)
+        self.descGroup.addWidget(self.descriptionEdit)
 
+        self.descGroup.setStretch(1, 1)
+
+        self.verticalLayout_2.addLayout(self.descGroup)
+
+        self.tagGroup = QVBoxLayout()
+        self.tagGroup.setObjectName(u"tagGroup")
+        self.tagsLabel = QLabel(self.generalBox)
+        self.tagsLabel.setObjectName(u"tagsLabel")
+
+        self.tagGroup.addWidget(self.tagsLabel)
+
+        self.tagsEdit = QLineEdit(self.generalBox)
+        self.tagsEdit.setObjectName(u"tagsEdit")
+
+        self.tagGroup.addWidget(self.tagsEdit)
+
+
+        self.verticalLayout_2.addLayout(self.tagGroup)
+
+
+        self.leftColumn.addWidget(self.generalBox)
+
+        self.sourceBox = QGroupBox(EditorPanel)
+        self.sourceBox.setObjectName(u"sourceBox")
+        self.verticalLayout_3 = QVBoxLayout(self.sourceBox)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.authorDateLayout = QHBoxLayout()
         self.authorDateLayout.setObjectName(u"authorDateLayout")
         self.authorLayout = QVBoxLayout()
         self.authorLayout.setObjectName(u"authorLayout")
-        self.authorLabel = QLabel(EditorPanel)
+        self.authorLabel = QLabel(self.sourceBox)
         self.authorLabel.setObjectName(u"authorLabel")
 
         self.authorLayout.addWidget(self.authorLabel)
 
-        self.authorEdit = QLineEdit(EditorPanel)
+        self.authorEdit = QLineEdit(self.sourceBox)
         self.authorEdit.setObjectName(u"authorEdit")
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.authorEdit.sizePolicy().hasHeightForWidth())
-        self.authorEdit.setSizePolicy(sizePolicy)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.authorEdit.sizePolicy().hasHeightForWidth())
+        self.authorEdit.setSizePolicy(sizePolicy1)
 
         self.authorLayout.addWidget(self.authorEdit)
 
@@ -80,13 +124,13 @@ class Ui_EditorPanel(object):
 
         self.dateLayout = QVBoxLayout()
         self.dateLayout.setObjectName(u"dateLayout")
-        self.dateLabel = QLabel(EditorPanel)
+        self.dateLabel = QLabel(self.sourceBox)
         self.dateLabel.setObjectName(u"dateLabel")
         self.dateLabel.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
 
         self.dateLayout.addWidget(self.dateLabel)
 
-        self.dateTimeEdit = QDateTimeEdit(EditorPanel)
+        self.dateTimeEdit = QDateTimeEdit(self.sourceBox)
         self.dateTimeEdit.setObjectName(u"dateTimeEdit")
         self.dateTimeEdit.setMinimumSize(QSize(140, 22))
         self.dateTimeEdit.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
@@ -99,47 +143,63 @@ class Ui_EditorPanel(object):
         self.authorDateLayout.addLayout(self.dateLayout)
 
 
-        self.leftColumn.addLayout(self.authorDateLayout)
+        self.verticalLayout_3.addLayout(self.authorDateLayout)
 
-        self.licenseLabel = QLabel(EditorPanel)
-        self.licenseLabel.setObjectName(u"licenseLabel")
-
-        self.leftColumn.addWidget(self.licenseLabel)
-
-        self.licenseEdit = QLineEdit(EditorPanel)
-        self.licenseEdit.setObjectName(u"licenseEdit")
-
-        self.leftColumn.addWidget(self.licenseEdit)
-
-        self.usageHintLabel = QLabel(EditorPanel)
-        self.usageHintLabel.setObjectName(u"usageHintLabel")
-
-        self.leftColumn.addWidget(self.usageHintLabel)
-
-        self.usageHintEdit = QLineEdit(EditorPanel)
-        self.usageHintEdit.setObjectName(u"usageHintEdit")
-
-        self.leftColumn.addWidget(self.usageHintEdit)
-
-        self.tagsLabel = QLabel(EditorPanel)
-        self.tagsLabel.setObjectName(u"tagsLabel")
-
-        self.leftColumn.addWidget(self.tagsLabel)
-
-        self.tagsEdit = QLineEdit(EditorPanel)
-        self.tagsEdit.setObjectName(u"tagsEdit")
-
-        self.leftColumn.addWidget(self.tagsEdit)
-
-        self.mergedFromLabel = QLabel(EditorPanel)
+        self.mergeGroup = QVBoxLayout()
+        self.mergeGroup.setObjectName(u"mergeGroup")
+        self.mergedFromLabel = QLabel(self.sourceBox)
         self.mergedFromLabel.setObjectName(u"mergedFromLabel")
 
-        self.leftColumn.addWidget(self.mergedFromLabel)
+        self.mergeGroup.addWidget(self.mergedFromLabel)
 
-        self.mergedFromEdit = QLineEdit(EditorPanel)
+        self.mergedFromEdit = QLineEdit(self.sourceBox)
         self.mergedFromEdit.setObjectName(u"mergedFromEdit")
 
-        self.leftColumn.addWidget(self.mergedFromEdit)
+        self.mergeGroup.addWidget(self.mergedFromEdit)
+
+
+        self.verticalLayout_3.addLayout(self.mergeGroup)
+
+
+        self.leftColumn.addWidget(self.sourceBox)
+
+        self.usageBox = QGroupBox(EditorPanel)
+        self.usageBox.setObjectName(u"usageBox")
+        self.verticalLayout_4 = QVBoxLayout(self.usageBox)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.usageGroup = QVBoxLayout()
+        self.usageGroup.setObjectName(u"usageGroup")
+        self.usageHintLabel = QLabel(self.usageBox)
+        self.usageHintLabel.setObjectName(u"usageHintLabel")
+
+        self.usageGroup.addWidget(self.usageHintLabel)
+
+        self.usageHintEdit = QTextEdit(self.usageBox)
+        self.usageHintEdit.setObjectName(u"usageHintEdit")
+        self.usageHintEdit.setMaximumSize(QSize(16777215, 100))
+
+        self.usageGroup.addWidget(self.usageHintEdit)
+
+
+        self.verticalLayout_4.addLayout(self.usageGroup)
+
+        self.licenseGroup = QVBoxLayout()
+        self.licenseGroup.setObjectName(u"licenseGroup")
+        self.licenseLabel = QLabel(self.usageBox)
+        self.licenseLabel.setObjectName(u"licenseLabel")
+
+        self.licenseGroup.addWidget(self.licenseLabel)
+
+        self.licenseEdit = QLineEdit(self.usageBox)
+        self.licenseEdit.setObjectName(u"licenseEdit")
+
+        self.licenseGroup.addWidget(self.licenseEdit)
+
+
+        self.verticalLayout_4.addLayout(self.licenseGroup)
+
+
+        self.leftColumn.addWidget(self.usageBox)
 
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -157,11 +217,11 @@ class Ui_EditorPanel(object):
 
         self.thumbnailDisplay = ImageWidget(EditorPanel)
         self.thumbnailDisplay.setObjectName(u"thumbnailDisplay")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(1)
-        sizePolicy1.setHeightForWidth(self.thumbnailDisplay.sizePolicy().hasHeightForWidth())
-        self.thumbnailDisplay.setSizePolicy(sizePolicy1)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(1)
+        sizePolicy2.setHeightForWidth(self.thumbnailDisplay.sizePolicy().hasHeightForWidth())
+        self.thumbnailDisplay.setSizePolicy(sizePolicy2)
 
         self.thumbnailColumn.addWidget(self.thumbnailDisplay)
 
@@ -217,22 +277,25 @@ class Ui_EditorPanel(object):
 
     def retranslateUi(self, EditorPanel):
         EditorPanel.setWindowTitle(QCoreApplication.translate("EditorPanel", u"Metadata Editor", None))
+        self.generalBox.setTitle(QCoreApplication.translate("EditorPanel", u"General", None))
         self.titleLabel.setText(QCoreApplication.translate("EditorPanel", u"Title:", None))
         self.titleEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Enter model title...", None))
         self.descriptionLabel.setText(QCoreApplication.translate("EditorPanel", u"Description:", None))
         self.descriptionEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Describe your model...", None))
+        self.tagsLabel.setText(QCoreApplication.translate("EditorPanel", u"Tags:", None))
+        self.tagsEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"comma, separated, tags", None))
+        self.sourceBox.setTitle(QCoreApplication.translate("EditorPanel", u"Source", None))
         self.authorLabel.setText(QCoreApplication.translate("EditorPanel", u"Author:", None))
         self.authorEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Author name...", None))
         self.dateLabel.setText(QCoreApplication.translate("EditorPanel", u"Date:", None))
         self.dateTimeEdit.setDisplayFormat(QCoreApplication.translate("EditorPanel", u"MM/dd/yyyy h:mm AP", None))
-        self.licenseLabel.setText(QCoreApplication.translate("EditorPanel", u"License:", None))
-        self.licenseEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"e.g. MIT, Apache 2.0, Custom...", None))
-        self.usageHintLabel.setText(QCoreApplication.translate("EditorPanel", u"Usage Hint:", None))
-        self.usageHintEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Usage instructions or hints...", None))
-        self.tagsLabel.setText(QCoreApplication.translate("EditorPanel", u"Tags:", None))
-        self.tagsEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"comma, separated, tags", None))
         self.mergedFromLabel.setText(QCoreApplication.translate("EditorPanel", u"Merged From:", None))
         self.mergedFromEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Source models if merged...", None))
+        self.usageBox.setTitle(QCoreApplication.translate("EditorPanel", u"Usage", None))
+        self.usageHintLabel.setText(QCoreApplication.translate("EditorPanel", u"Usage Hint:", None))
+        self.usageHintEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Usage instructions or hints...", None))
+        self.licenseLabel.setText(QCoreApplication.translate("EditorPanel", u"License:", None))
+        self.licenseEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"e.g. MIT, Apache 2.0, Custom...", None))
         self.thumbnailLabel.setText(QCoreApplication.translate("EditorPanel", u"Thumbnail:", None))
         self.setThumbnailBtn.setText(QCoreApplication.translate("EditorPanel", u"Set", None))
         self.viewThumbnailBtn.setText(QCoreApplication.translate("EditorPanel", u"View", None))
