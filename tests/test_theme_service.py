@@ -225,8 +225,12 @@ qss_order:
         theme_service = ThemeService(self.__class__.app)  # type: ignore
 
         # Verify themes are loaded before testing signals
-        self.assertTrue(theme_service.has_theme("dark"), "Dark theme should be available")
-        self.assertTrue(theme_service.has_theme("light"), "Light theme should be available")
+        self.assertTrue(
+            theme_service.has_theme("dark"), "Dark theme should be available"
+        )
+        self.assertTrue(
+            theme_service.has_theme("light"), "Light theme should be available"
+        )
 
         # Connect to signal and track emissions
         signal_received = []

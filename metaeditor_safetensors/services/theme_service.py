@@ -195,7 +195,7 @@ class ThemeService(QObject):
                 resolved_theme_id = self._resolve_auto_theme()
                 logger.debug(f"Auto theme resolved to: {resolved_theme_id}")
                 if not resolved_theme_id:
-                    logger.error(f"Auto theme resolution failed - no themes available")
+                    logger.error("Auto theme resolution failed - no themes available")
                     return False
                 theme = self._available_themes.get(resolved_theme_id)
             else:
