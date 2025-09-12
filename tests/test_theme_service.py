@@ -8,10 +8,10 @@ system detection, auto resolution, and theme application.
 
 import logging
 import tempfile
-import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from PySide6.QtWidgets import QApplication
 
 from metaeditor_safetensors.services.theme_service import (  # type: ignore
@@ -20,34 +20,39 @@ from metaeditor_safetensors.services.theme_service import (  # type: ignore
 )
 
 
-class TestThemeService(unittest.TestCase):
-    """Test cases for ThemeService functionality."""
+@pytest.fixture(scope="class")
+def qapp():
+    """Create a QApplication for all tests."""
+    # Ensure QApplication instance exists
+    if not QApplication.instance():
+        app = QApplication([])
+    else:
+        app = QApplication.instance()
 
-    @classmethod
-    def setUpClass(cls):
-        """Create a QApplication for all tests."""
-        # Ensure QApplication instance exists
-        if not QApplication.instance():
-            cls.app = QApplication([])
-        else:
-            cls.app = QApplication.instance()
+    # Verify we have a QApplication
+    assert app is not None
+    assert isinstance(app, QApplication)
+    yield app
 
-        # Verify we have a QApplication
-        assert cls.app is not None
-        assert isinstance(cls.app, QApplication)
 
-    def setUp(self):
-        """Set up test fixtures before each test method."""
-        # Suppress debug/info logging during tests for cleaner output
-        logging.getLogger().setLevel(logging.ERROR)
+@pytest.fixture
+def temp_dir():
+    """Set up test fixtures before each test method."""
+    temp_dir = Path(tempfile.mkdtemp())
+    yield temp_dir
+    # Clean up after each test
+    import shutil
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
-        # Create temporary directory structure for themes
-        self.temp_dir = Path(tempfile.mkdtemp())
-        self.themes_dir = self.temp_dir / "metaeditor_safetensors" / "themes"
-        self.themes_dir.mkdir(parents=True)
 
-        # Create mock dark theme
-        dark_theme_dir = self.themes_dir / "dark"
+@pytest.fixture
+def themes_dir(temp_dir):
+    """Create temporary directory structure for themes."""
+    themes_dir = temp_dir / "metaeditor_safetensors" / "themes"
+    themes_dir.mkdir(parents=True)
+    
+    # Create mock dark theme
+    dark_theme_dir = themes_dir / "dark"
         dark_theme_dir.mkdir()
         (dark_theme_dir / "dark.yaml").write_text(
             """

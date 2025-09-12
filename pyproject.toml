@@ -25,6 +25,8 @@ dev = [
     "numpy<2",
     "safetensors>=0.6.2",
     "setuptools>=80.9.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -72,4 +74,44 @@ skips = [
     "B101",  # assert_used - asserts are okay in applications
     "B603",  # subprocess_without_shell_equals_true - we use subprocess safely
     "B607",  # start_process_with_partial_path - acceptable for our use case
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["metaeditor_safetensors"]
+omit = [
+    "*/tests/*",
+    "*/*_ui.py",
+    "*/resources_rc.py",
+    "*/venv/*",
+    "*/legacy/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]

@@ -8,34 +8,36 @@ and QSS file handling in the Theme model.
 
 import logging
 import tempfile
-import unittest
 from pathlib import Path
+
+import pytest
 
 from metaeditor_safetensors.models.theme import Theme
 
 
-class TestThemeModel(unittest.TestCase):
+@pytest.fixture
+def temp_dir():
+    """Set up a temporary directory for testing."""
+    temp_dir = Path(tempfile.mkdtemp())
+    yield temp_dir
+    # Clean up temporary directory
+    import shutil
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@pytest.fixture(autouse=True)
+def suppress_logging():
+    """Suppress debug/info logging during tests for cleaner output."""
+    logging.getLogger().setLevel(logging.ERROR)
+
+
+class TestThemeModel:
     """Test cases for Theme model functionality."""
 
-    def setUp(self):
-        """Set up test fixtures before each test method."""
-        # Suppress debug/info logging during tests for cleaner output
-        logging.getLogger().setLevel(logging.ERROR)
-
-        # Create a temporary directory for testing
-        self.temp_dir = Path(tempfile.mkdtemp())
-
-    def tearDown(self):
-        """Clean up after each test."""
-        # Clean up temporary directory
-        import shutil
-
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_valid_theme_directory_with_yaml(self):
+    def test_valid_theme_directory_with_yaml(self, temp_dir):
         """Test loading a theme from a valid directory with YAML config."""
         # Create a valid theme directory
-        theme_dir = self.temp_dir / "valid_theme"
+        theme_dir = temp_dir / "valid_theme"
         theme_dir.mkdir()
 
         # Create a valid YAML config
@@ -45,9 +47,6 @@ name: "Test Theme"
 description: "A test theme for validation"
 category: "dark"
 version: "1.0.0"
-qss_order:
-  - "main.qss"
-  - "widgets.qss"
 settings:
   some_setting: "value"
 """
@@ -61,34 +60,34 @@ settings:
         # Load theme and validate
         theme = Theme.from_directory(theme_dir)
 
-        self.assertEqual(theme.theme_id, "test_theme")
-        self.assertEqual(theme.name, "Test Theme")
-        self.assertEqual(theme.description, "A test theme for validation")
-        self.assertEqual(theme.category, "dark")
-        self.assertEqual(theme.version, "1.0.0")
-        self.assertEqual(theme.qss_order, ["main.qss", "widgets.qss"])
-        self.assertEqual(theme.settings, {"some_setting": "value"})
-        self.assertEqual(theme.theme_directory, theme_dir)
+        assert theme.theme_id == "test_theme"
+        assert theme.name == "Test Theme"
+        assert theme.description == "A test theme for validation"
+        assert theme.category == "dark"
+        assert theme.version == "1.0.0"
+        assert theme.qss_order == ["main.qss", "widgets.qss"]
+        assert theme.settings == {"some_setting": "value"}
+        assert theme.theme_directory == theme_dir
 
-    def test_theme_directory_without_yaml_fails(self):
+    def test_theme_directory_without_yaml_fails(self, temp_dir):
         """Test that a directory without YAML file raises ValueError."""
         # Create a directory without YAML file
-        theme_dir = self.temp_dir / "no_yaml_theme"
+        theme_dir = temp_dir / "no_yaml_theme"
         theme_dir.mkdir()
 
         # Create some QSS files but no YAML
         (theme_dir / "main.qss").write_text("/* Main styles */", encoding="utf-8")
 
         # Should raise ValueError
-        with self.assertRaises(ValueError) as cm:
+        with pytest.raises(ValueError) as exc_info:
             Theme.from_directory(theme_dir)
 
-        self.assertIn("No YAML file found", str(cm.exception))
+        assert "No YAML file found" in str(exc_info.value)
 
-    def test_theme_directory_with_invalid_yaml_fails(self):
+    def test_theme_directory_with_invalid_yaml_fails(self, temp_dir):
         """Test that a directory with invalid YAML raises ValueError."""
         # Create a theme directory
-        theme_dir = self.temp_dir / "invalid_yaml_theme"
+        theme_dir = temp_dir / "invalid_yaml_theme"
         theme_dir.mkdir()
 
         # Create an invalid YAML file
@@ -96,15 +95,15 @@ settings:
         yaml_file.write_text("invalid: yaml: content: [unclosed", encoding="utf-8")
 
         # Should raise ValueError when YAML parsing fails
-        with self.assertRaises(ValueError) as cm:
+        with pytest.raises(ValueError) as exc_info:
             Theme.from_directory(theme_dir)
 
-        self.assertIn("Invalid YAML syntax", str(cm.exception))
+        assert "Invalid YAML syntax" in str(exc_info.value)
 
-    def test_theme_directory_with_empty_yaml_uses_defaults(self):
+    def test_theme_directory_with_empty_yaml_uses_defaults(self, temp_dir):
         """Test that empty YAML file uses reasonable defaults."""
         # Create a theme directory
-        theme_dir = self.temp_dir / "empty_yaml_theme"
+        theme_dir = temp_dir / "empty_yaml_theme"
         theme_dir.mkdir()
 
         # Create an empty YAML file
@@ -117,17 +116,17 @@ settings:
         # Load theme and check defaults
         theme = Theme.from_directory(theme_dir)
 
-        self.assertEqual(theme.theme_id, "empty_yaml_theme")  # Uses directory name
-        self.assertEqual(theme.name, "Unknown Theme")
-        self.assertEqual(theme.category, "empty_yaml_theme")  # Uses theme_id as default
-        self.assertEqual(theme.version, "1.0.0")
-        self.assertEqual(theme.qss_order, ["style.qss"])  # Auto-discovered
-        self.assertEqual(theme.settings, {})
+        assert theme.theme_id == "empty_yaml_theme"  # Uses directory name
+        assert theme.name == "Unknown Theme"
+        assert theme.category == "empty_yaml_theme"  # Uses theme_id as default
+        assert theme.version == "1.0.0"
+        assert theme.qss_order == ["style.qss"]  # Auto-discovered
+        assert theme.settings == {}
 
-    def test_theme_directory_with_minimal_yaml(self):
+    def test_theme_directory_with_minimal_yaml(self, temp_dir):
         """Test loading theme with minimal YAML configuration."""
         # Create a theme directory
-        theme_dir = self.temp_dir / "minimal_theme"
+        theme_dir = temp_dir / "minimal_theme"
         theme_dir.mkdir()
 
         # Create minimal YAML config
@@ -147,17 +146,17 @@ name: "Minimal Theme"
         theme = Theme.from_directory(theme_dir)
 
         # Check that defaults are applied
-        self.assertEqual(theme.theme_id, "minimal_theme")
-        self.assertEqual(theme.name, "Minimal Theme")
-        self.assertEqual(theme.category, "minimal_theme")
-        self.assertEqual(theme.version, "1.0.0")
+        assert theme.theme_id == "minimal_theme"
+        assert theme.name == "Minimal Theme"
+        assert theme.category == "minimal_theme"
+        assert theme.version == "1.0.0"
         # QSS files should be auto-discovered alphabetically
-        self.assertEqual(theme.qss_order, ["advanced.qss", "base.qss"])
+        assert theme.qss_order == ["advanced.qss", "base.qss"]
 
-    def test_theme_qss_order_with_extra_files(self):
+    def test_theme_qss_order_with_extra_files(self, temp_dir):
         """Test that extra QSS files not in qss_order are appended."""
         # Create a theme directory
-        theme_dir = self.temp_dir / "ordered_theme"
+        theme_dir = temp_dir / "ordered_theme"
         theme_dir.mkdir()
 
         # Create YAML with partial qss_order
@@ -181,12 +180,12 @@ qss_order:
 
         # Check that specified order is maintained and extras are appended
         expected_order = ["main.qss", "buttons.qss", "extra1.qss", "extra2.qss"]
-        self.assertEqual(theme.qss_order, expected_order)
+        assert theme.qss_order == expected_order
 
-    def test_get_qss_file_paths(self):
+    def test_get_qss_file_paths(self, temp_dir):
         """Test getting QSS file paths for file watching."""
         # Create a theme directory
-        theme_dir = self.temp_dir / "paths_theme"
+        theme_dir = temp_dir / "paths_theme"
         theme_dir.mkdir()
 
         # Create YAML config
@@ -208,12 +207,12 @@ qss_order:
         paths = theme.get_qss_file_paths()
 
         expected_paths = [theme_dir / "first.qss", theme_dir / "second.qss"]
-        self.assertEqual(paths, expected_paths)
+        assert paths == expected_paths
 
-    def test_qss_content_loading_and_caching(self):
+    def test_qss_content_loading_and_caching(self, temp_dir):
         """Test QSS content loading and caching behavior."""
         # Create a theme directory
-        theme_dir = self.temp_dir / "qss_test_theme"
+        theme_dir = temp_dir / "qss_test_theme"
         theme_dir.mkdir()
 
         # Create YAML config
@@ -241,26 +240,22 @@ qss_order:
         qss_content = theme.get_qss()
 
         # Verify content includes both files
-        self.assertIn("/* From: first.qss */", qss_content)
-        self.assertIn("/* First file content */", qss_content)
-        self.assertIn("/* From: second.qss */", qss_content)
-        self.assertIn("/* Second file content */", qss_content)
+        assert "/* From: first.qss */" in qss_content
+        assert "/* First file content */" in qss_content
+        assert "/* From: second.qss */" in qss_content
+        assert "/* Second file content */" in qss_content
 
         # Get QSS content again (should use cache)
         qss_content_cached = theme.get_qss()
-        self.assertEqual(qss_content, qss_content_cached)
+        assert qss_content == qss_content_cached
 
         # Clear cache and get content again
         theme.clear_cache()
         qss_content_after_clear = theme.get_qss()
-        self.assertEqual(qss_content, qss_content_after_clear)
+        assert qss_content == qss_content_after_clear
 
     def test_theme_without_directory_returns_empty_qss(self):
         """Test that theme without directory returns empty QSS."""
         theme = Theme("test", "Test Theme", "test", None)
-        self.assertEqual(theme.get_qss(), "")
-        self.assertEqual(theme.get_qss_file_paths(), [])
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert theme.get_qss() == ""
+        assert theme.get_qss_file_paths() == []

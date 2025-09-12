@@ -50,8 +50,13 @@ bandit:
 
 # Run unit tests
 test:
-    @echo "Running unit tests..."
-    @{{ python }} -m coverage run -m unittest discover tests -v
+    @echo "Running unit tests with pytest..."
+    @{{ python }} -m pytest -v --tb=short
+
+# Run tests with coverage
+test-cov:
+    @echo "Running unit tests with coverage..."
+    @{{ python }} -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v
 
 # Run the MetaEditor application
 run: compile
