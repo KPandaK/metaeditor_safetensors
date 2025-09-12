@@ -44,8 +44,7 @@ QSpinBox:disabled {
     color: #999999;
 }
 
-/* ComboBox styling - matches VS Code dropdown */
-QComboBox {
+/* QComboBox {
     min-height: 24px;
     padding: 4px 8px 4px 8px;
     border: 1px solid #454545;
@@ -53,10 +52,6 @@ QComboBox {
     background-color: #3c3c3c;
     color: #cccccc;
     font-size: 13px;
-}
-
-QComboBox:hover {
-    border-color: #007acc;
 }
 
 QComboBox:focus {
@@ -94,11 +89,6 @@ QComboBox::down-arrow {
     border-top: 4px solid #cccccc;
 }
 
-QComboBox::down-arrow:hover {
-    border-top-color: #ffffff;
-}
-
-/* ComboBox dropdown list */
 QComboBox QAbstractItemView {
     background-color: #252526;
     border: 1px solid #454545;
@@ -122,7 +112,7 @@ QComboBox QAbstractItemView::item:hover {
 
 QComboBox QAbstractItemView::item:selected {
     background-color: #094771;
-}
+} */
 
 /* Text areas */
 QTextEdit {
@@ -131,7 +121,6 @@ QTextEdit {
     line-height: 19px;
 }
 
-/* Checkboxes and Radio Buttons - VS Code style */
 QCheckBox,
 QRadioButton {
     spacing: 8px;
@@ -150,12 +139,6 @@ QRadioButton::indicator {
 
 QRadioButton::indicator {
     border-radius: 9px;
-}
-
-QCheckBox::indicator:hover,
-QRadioButton::indicator:hover {
-    border-color: #007acc;
-    background-color: #094771;
 }
 
 QCheckBox::indicator:checked,
@@ -195,11 +178,6 @@ QSpinBox::down-button {
     border: none;
 }
 
-QSpinBox::up-button:hover,
-QSpinBox::down-button:hover {
-    background-color: #007acc;
-}
-
 QSpinBox::up-arrow {
     width: 0;
     height: 0;
@@ -214,10 +192,4 @@ QSpinBox::down-arrow {
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
     border-top: 4px solid #cccccc;
-}
-
-QSpinBox::up-arrow:hover,
-QSpinBox::down-arrow:hover {
-    border-bottom-color: #ffffff;
-    border-top-color: #ffffff;
 }
