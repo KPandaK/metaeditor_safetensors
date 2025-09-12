@@ -404,10 +404,11 @@ class TestConfigService:
 
         # Verify the ConfigService has the mocked settings directory
         assert config_service._settings_dir == mock_settings_path
+
     def test_get_theme_preference_default(self, config_service_factory):
         """Test getting default theme preference."""
         config_service = config_service_factory()
-        
+
         # Should return default "auto" theme preference
         theme_preference = config_service.get_theme_preference()
         assert theme_preference == "auto"
@@ -415,23 +416,25 @@ class TestConfigService:
     def test_set_and_get_theme_preference(self, config_service_factory):
         """Test setting and getting theme preference."""
         config_service = config_service_factory()
-        
+
         # Set a custom theme preference
         test_theme = "dark"
         config_service.set_theme_preference(test_theme)
-        
+
         # Verify it was set correctly
         theme_preference = config_service.get_theme_preference()
         assert theme_preference == test_theme
 
-    def test_theme_preference_persistence(self, config_service_factory, mocker, temp_dir):
+    def test_theme_preference_persistence(
+        self, config_service_factory, mocker, temp_dir
+    ):
         """Test that theme preference persists across service instances."""
         config_service = config_service_factory()
-        
+
         # Set a theme preference
         test_theme = "light"
         config_service.set_theme_preference(test_theme)
-        
+
         # Verify persistence by creating new service instance
         mocker.patch.object(
             ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
@@ -446,19 +449,19 @@ class TestConfigService:
         incomplete_data = {
             "config_version": "1.0",
             "app_version": "1.0.0",
-            "recent_files": []
+            "recent_files": [],
             # Missing theme_preference
         }
-        
+
         settings_file = Path(temp_dir) / "settings.json"
         with open(settings_file, "w") as f:
             json.dump(incomplete_data, f)
-        
+
         mocker.patch.object(
             ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
         )
         config_service = ConfigService()
-        
+
         # Should return default "auto" when key is missing
         theme_preference = config_service.get_theme_preference()
         assert theme_preference == "auto"
@@ -466,23 +469,25 @@ class TestConfigService:
     def test_set_theme_preference_with_save_error(self, config_service_factory, mocker):
         """Test setting theme preference handles save errors gracefully."""
         config_service = config_service_factory()
-        
+
         # Mock open to raise IOError during write operations
         original_open = open
-        
+
         def mock_open_func(*args, **kwargs):
             mode = kwargs.get("mode", args[1] if len(args) > 1 else "r")
             if "w" in mode:
                 raise IOError("Disk full")
             return original_open(*args, **kwargs)
-        
+
         mocker.patch("builtins.open", side_effect=mock_open_func)
-        
+
         # This should not raise an exception
         try:
             config_service.set_theme_preference("dark")
             success = True
         except IOError:
             success = False
-        
-        assert success, "IOError during theme preference save should be handled gracefully"
+
+        assert success, (
+            "IOError during theme preference save should be handled gracefully"
+        )

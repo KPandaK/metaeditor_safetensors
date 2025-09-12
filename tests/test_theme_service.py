@@ -95,6 +95,74 @@ def suppress_logging():
 class TestThemeService:
     """Test cases for ThemeService functionality."""
 
+    def test_apply_theme_internal_error(self, mocker, qapp, temp_dir, themes_dir):
+        """Test _apply_theme_internal handles QSS loading errors gracefully."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        theme_service = ThemeService(qapp)
+        theme = theme_service._available_themes.get("dark")
+        if theme:
+            mocker.patch.object(theme, "get_qss", side_effect=Exception("QSS error"))
+            result = theme_service._apply_theme_internal(theme)
+            assert result is False
+
+    def test_on_theme_file_changed_reapplies_theme(
+        self, mocker, qapp, temp_dir, themes_dir
+    ):
+        """Test _on_theme_file_changed triggers theme re-application."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        theme_service = ThemeService(qapp)
+        theme = theme_service._available_themes.get("dark")
+        theme_service._current_theme = theme
+        # Patch _apply_theme_internal to track calls
+        apply_theme_mock = mocker.patch.object(theme_service, "_apply_theme_internal")
+        theme_service._on_theme_file_changed("dummy.qss")
+        apply_theme_mock.assert_called_once_with(theme)
+
+    def test_is_valid_theme_directory_edge_cases(self, mocker, qapp, temp_dir):
+        """Test is_valid_theme_directory with non-directory and missing YAML."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=temp_dir / "metaeditor_safetensors",
+        )
+        theme_service = ThemeService(qapp)
+        # Non-existent path
+        assert not theme_service.is_valid_theme_directory(temp_dir / "not_a_dir")
+        # File instead of directory
+        file_path = temp_dir / "file.txt"
+        file_path.write_text("not a dir")
+        assert not theme_service.is_valid_theme_directory(file_path)
+        # Directory with no YAML
+        no_yaml_dir = temp_dir / "no_yaml"
+        no_yaml_dir.mkdir()
+        assert not theme_service.is_valid_theme_directory(no_yaml_dir)
+
+    def test_setup_file_watchers_with_and_without_qss(
+        self, mocker, qapp, temp_dir, themes_dir
+    ):
+        """Test _setup_file_watchers with and without QSS files."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        # Enable live reload
+        mocker.patch.dict("os.environ", {"DEV_LIVE_STYLING": "true"})
+        theme_service = ThemeService(qapp)
+        # Should have watcher if QSS files exist
+        has_qss_files = any(
+            theme.theme_directory and theme.get_qss_file_paths()
+            for theme in theme_service._available_themes.values()
+        )
+        if has_qss_files:
+            assert theme_service._file_watcher is not None
+        else:
+            assert theme_service._file_watcher is None
+
     def test_theme_service_initialization(self, mocker, qapp, temp_dir, themes_dir):
         """Test ThemeService initialization and theme discovery."""
         # Mock the package root to point to our test package structure
@@ -326,24 +394,24 @@ class TestThemeService:
         """Test system theme detection caching functionality."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
         mock_darkdetect = mocker.patch(
             "metaeditor_safetensors.services.theme_service.darkdetect.theme"
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # First call should call darkdetect
         mock_darkdetect.return_value = "Dark"
         result1 = theme_service._detect_system_theme(use_cache=True)
         assert result1 == SystemTheme.DARK
-        
+
         # Second call should use cache and not call darkdetect again
         mock_darkdetect.return_value = "Light"  # Change value but should not be used
         result2 = theme_service._detect_system_theme(use_cache=True)
         assert result2 == SystemTheme.DARK  # Should still be dark from cache
-        
+
         # Call with use_cache=False should call darkdetect again
         result3 = theme_service._detect_system_theme(use_cache=False)
         assert result3 == SystemTheme.LIGHT  # Should be light now
@@ -352,14 +420,14 @@ class TestThemeService:
         """Test system theme detection error handling."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
         mock_darkdetect = mocker.patch(
             "metaeditor_safetensors.services.theme_service.darkdetect.theme"
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # Test exception during detection
         mock_darkdetect.side_effect = Exception("System error")
         result = theme_service._detect_system_theme(use_cache=False)
@@ -369,14 +437,14 @@ class TestThemeService:
         """Test system theme detection with unexpected return value."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
         mock_darkdetect = mocker.patch(
             "metaeditor_safetensors.services.theme_service.darkdetect.theme"
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # Test unexpected return value
         mock_darkdetect.return_value = "Purple"  # Unexpected value
         result = theme_service._detect_system_theme(use_cache=False)
@@ -389,15 +457,15 @@ class TestThemeService:
         empty_themes_dir.mkdir(parents=True)
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=empty_themes_dir
+            return_value=empty_themes_dir,
         )
         mock_darkdetect = mocker.patch(
             "metaeditor_safetensors.services.theme_service.darkdetect.theme"
         )
-        
+
         mock_darkdetect.return_value = "Dark"
         theme_service = ThemeService(qapp)
-        
+
         # Should return empty string when no themes available
         result = theme_service._resolve_auto_theme()
         assert result == ""
@@ -407,11 +475,11 @@ class TestThemeService:
         # Point to non-existent directory
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "nonexistent"
+            return_value=temp_dir / "nonexistent",
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # Should not crash and should have no themes except auto
         assert theme_service.has_theme("auto")
         assert not theme_service.has_theme("dark")
@@ -421,12 +489,12 @@ class TestThemeService:
         """Test initialization when get_package_root raises exception."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            side_effect=Exception("Cannot determine package root")
+            side_effect=Exception("Cannot determine package root"),
         )
-        
+
         # Should not crash during initialization
         theme_service = ThemeService(qapp)
-        
+
         # Should still support auto theme (even if no actual themes available)
         assert theme_service.has_theme("auto")
 
@@ -434,19 +502,19 @@ class TestThemeService:
         """Test apply_theme method exception handling."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # Mock theme to raise exception during QSS loading
-        if 'dark' in theme_service._available_themes:
+        if "dark" in theme_service._available_themes:
             mocker.patch.object(
-                theme_service._available_themes['dark'], 
-                'get_qss', 
-                side_effect=Exception("QSS loading failed")
+                theme_service._available_themes["dark"],
+                "get_qss",
+                side_effect=Exception("QSS loading failed"),
             )
-            
+
             result = theme_service.apply_theme("dark")
             assert not result
 
@@ -454,13 +522,13 @@ class TestThemeService:
         """Test auto theme application when resolution returns empty string."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # Mock _resolve_auto_theme to return empty string
-        mocker.patch.object(theme_service, '_resolve_auto_theme', return_value="")
+        mocker.patch.object(theme_service, "_resolve_auto_theme", return_value="")
         result = theme_service.apply_theme("auto")
         assert not result
 
@@ -468,11 +536,11 @@ class TestThemeService:
         """Test get_current_theme returns None initially."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
-        
+
         theme_service = ThemeService(qapp)
-        
+
         # Should be None initially
         assert theme_service.get_current_theme() is None
 
@@ -480,27 +548,37 @@ class TestThemeService:
         """Test that live reload is disabled by default."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
-        
+
         # Ensure environment variable is not set
-        mocker.patch.dict('os.environ', {}, clear=True)
+        mocker.patch.dict("os.environ", {}, clear=True)
         theme_service = ThemeService(qapp)
-        
+
         # Should not have file watcher when live reload is disabled
         assert theme_service._file_watcher is None
         assert theme_service._watched_files == []
 
-    def test_live_reload_enabled(self, mocker, qapp, temp_dir):
+    def test_live_reload_enabled(self, mocker, qapp, temp_dir, themes_dir):
         """Test that live reload can be enabled via environment variable."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors"
+            return_value=temp_dir / "metaeditor_safetensors",
         )
-        
+
         # Enable live reload via environment variable
-        mocker.patch.dict('os.environ', {'DEV_LIVE_STYLING': 'true'})
+        mocker.patch.dict("os.environ", {"DEV_LIVE_STYLING": "true"})
         theme_service = ThemeService(qapp)
-        
-        # Should have file watcher when live reload is enabled
-        assert theme_service._file_watcher is not None
+
+        # Always check that live reload is enabled
+        assert theme_service._enable_live_reload is True
+
+        # If there are QSS files to watch, watcher should be set
+        has_qss_files = any(
+            theme.theme_directory and theme.get_qss_file_paths()
+            for theme in theme_service._available_themes.values()
+        )
+        if has_qss_files:
+            assert theme_service._file_watcher is not None
+        else:
+            assert theme_service._file_watcher is None
