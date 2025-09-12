@@ -33,10 +33,10 @@ def config_service_factory(mocker, temp_dir):
     """Factory to create ConfigService instances with mocked settings directory."""
 
     def _create_config_service():
-        mocker.patch.object(
+        with mocker.patch.object(
             ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        return ConfigService()
+        ):
+            return ConfigService()
 
     return _create_config_service
 
@@ -146,7 +146,10 @@ class TestConfigService:
         test_file = "/path/to/test.safetensors"
         config_service.add_recent_file(test_file)
 
-        # Create a new service instance (should load from disk)
+        # Re-patch before creating the new service instance
+        mocker.patch.object(
+            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
+        )
         config_service2 = ConfigService()
 
         # Verify the settings were loaded
