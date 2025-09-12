@@ -37,14 +37,14 @@ QMenu {
     background-color: #252526;
     border: 1px solid #454545;
     border-radius: 3px;
-    padding: 4px 0px;
-    min-width: 180px;
+    padding: 4px;
+    min-width: 220px;
     color: #cccccc;
     font-size: 13px;
 }
 
 QMenu::item {
-    padding: 6px 32px 6px 12px;
+    padding: 6px 12px 6px 12px;
     margin: 0px 2px;
     border-radius: 2px;
     color: #cccccc;
@@ -63,7 +63,7 @@ QMenu::item:disabled {
 QMenu::separator {
     height: 1px;
     background-color: #454545;
-    margin: 4px 8px;
+    margin: 6px 0px 6px 0px;
 }
 
 /* Menu item indicators (for checkable items) */
@@ -86,22 +86,6 @@ QMenu::indicator:unchecked {
     border-radius: 2px;
 }
 
-/* Right arrow for submenus */
-QMenu::right-arrow {
-    width: 8px;
-    height: 8px;
-    margin-right: 8px;
-    image: none;
-    border-top: 4px solid transparent;
-    border-bottom: 4px solid transparent;
-    border-left: 4px solid #cccccc;
-}
-
-QMenu::right-arrow:selected {
-    border-left-color: #ffffff;
-}
-
-/* Tab Bar - VS Code tab interface */
 QTabBar {
     background-color: #252526;
     border-bottom: 1px solid #454545;

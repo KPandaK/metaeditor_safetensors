@@ -143,21 +143,24 @@ class MainView(QMainWindow):
         file_menu = menu_bar.addMenu("&File")
 
         open_action = QAction("&Open...", self)
+        open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.open_file_requested)
         file_menu.addAction(open_action)
 
         # Open Recent submenu
         self.recent_files_menu = file_menu.addMenu("Open &Recent")
-        self._update_recent_files_menu([])  # Initialize with empty list
+        self._update_recent_files_menu([])
 
         save_action = QAction("&Save", self)
+        save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save_requested)
         file_menu.addAction(save_action)
 
         file_menu.addSeparator()
 
         # Settings action in File menu
-        settings_action = QAction("&Settings...", self)
+        settings_action = QAction("S&ettings...", self)
+        settings_action.setShortcut("Ctrl+,")
         settings_action.triggered.connect(self.settings_requested)
         file_menu.addAction(settings_action)
 
@@ -171,11 +174,12 @@ class MainView(QMainWindow):
         view_menu = menu_bar.addMenu("&View")
 
         raw_view_action = QAction("View &Raw Metadata", self)
+        raw_view_action.setShortcut("Ctrl+Shift+R")
         raw_view_action.setEnabled(False)  # Not implemented yet
-        view_menu.addAction(raw_view_action)
         view_menu.addAction(raw_view_action)
 
         tensors_view_action = QAction("View &Tensors", self)
+        tensors_view_action.setShortcut("Ctrl+Shift+T")
         tensors_view_action.setEnabled(False)  # Not implemented yet
         view_menu.addAction(tensors_view_action)
 
