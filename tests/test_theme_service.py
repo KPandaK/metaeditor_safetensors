@@ -42,6 +42,7 @@ def temp_dir():
     yield temp_dir
     # Clean up after each test
     import shutil
+
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
@@ -50,7 +51,7 @@ def themes_dir(temp_dir):
     """Create temporary directory structure for themes."""
     themes_dir = temp_dir / "metaeditor_safetensors" / "themes"
     themes_dir.mkdir(parents=True)
-    
+
     # Create mock dark theme
     dark_theme_dir = themes_dir / "dark"
     dark_theme_dir.mkdir()
@@ -82,7 +83,7 @@ qss_order:
     (light_theme_dir / "base.qss").write_text(
         "/* Light theme styles */", encoding="utf-8"
     )
-    
+
     return themes_dir
 
 
@@ -96,7 +97,9 @@ class TestThemeService:
     """Test cases for ThemeService functionality."""
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
-    def test_theme_service_initialization(self, mock_get_package_root, qapp, temp_dir, themes_dir):
+    def test_theme_service_initialization(
+        self, mock_get_package_root, qapp, temp_dir, themes_dir
+    ):
         """Test ThemeService initialization and theme discovery."""
         # Mock the package root to point to our test package structure
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
@@ -110,7 +113,9 @@ class TestThemeService:
         assert theme_service.has_theme("auto")  # Auto should always be available
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
-    def test_theme_validation_during_discovery(self, mock_get_package_root, qapp, temp_dir, themes_dir):
+    def test_theme_validation_during_discovery(
+        self, mock_get_package_root, qapp, temp_dir, themes_dir
+    ):
         """Test that only valid theme directories are loaded."""
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
 
@@ -131,7 +136,9 @@ class TestThemeService:
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
     @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
-    def test_system_theme_detection(self, mock_darkdetect, mock_get_package_root, qapp, temp_dir):
+    def test_system_theme_detection(
+        self, mock_darkdetect, mock_get_package_root, qapp, temp_dir
+    ):
         """Test system theme detection functionality."""
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
 
@@ -154,7 +161,9 @@ class TestThemeService:
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
     @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
-    def test_auto_theme_resolution(self, mock_darkdetect, mock_get_package_root, qapp, temp_dir):
+    def test_auto_theme_resolution(
+        self, mock_darkdetect, mock_get_package_root, qapp, temp_dir
+    ):
         """Test auto theme resolution based on system detection."""
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
 
@@ -198,7 +207,9 @@ class TestThemeService:
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
     @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
-    def test_auto_theme_application(self, mock_darkdetect, mock_get_package_root, qapp, temp_dir):
+    def test_auto_theme_application(
+        self, mock_darkdetect, mock_get_package_root, qapp, temp_dir
+    ):
         """Test applying auto theme resolves to correct system theme."""
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
         mock_darkdetect.return_value = "Dark"
@@ -227,7 +238,9 @@ class TestThemeService:
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
     @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
-    def test_theme_changed_signal(self, mock_darkdetect, mock_get_package_root, qapp, temp_dir, themes_dir):
+    def test_theme_changed_signal(
+        self, mock_darkdetect, mock_get_package_root, qapp, temp_dir, themes_dir
+    ):
         """Test that theme_changed signal is emitted when theme is applied."""
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
         # Mock darkdetect to return "dark" so auto theme resolution works predictably
@@ -259,7 +272,9 @@ class TestThemeService:
         assert signal_received[0] == "auto"
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
-    def test_theme_directory_validation(self, mock_get_package_root, qapp, temp_dir, themes_dir):
+    def test_theme_directory_validation(
+        self, mock_get_package_root, qapp, temp_dir, themes_dir
+    ):
         """Test is_valid_theme_directory validation method."""
         mock_get_package_root.return_value = temp_dir / "metaeditor_safetensors"
 

@@ -57,7 +57,9 @@ class TestSafetensorsService:
     compatible with the official safetensors library.
     """
 
-    def test_read_compatibility(self, service, dummy_tensors, dummy_metadata, test_filepath):
+    def test_read_compatibility(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
         """
         Verify metadata reader is compatible with the safetensors file format.
         """
@@ -68,9 +70,9 @@ class TestSafetensorsService:
         read_metadata = service.read_metadata(test_filepath)
 
         # Assert that the metadata is identical
-        assert (
-            read_metadata == dummy_metadata
-        ), "READ FAILED: The metadata read does not match the safetensors file format."
+        assert read_metadata == dummy_metadata, (
+            "READ FAILED: The metadata read does not match the safetensors file format."
+        )
 
     def test_write_equivalency(self, service, dummy_tensors, dummy_metadata, test_dir):
         """
@@ -102,19 +104,19 @@ class TestSafetensorsService:
             metadata_ours = f.metadata()
 
         # 5. Assert that metadata is identical
-        assert (
-            metadata_theirs == metadata_ours
-        ), "WRITE FAILED: The metadata does not match the numpy library's output."
+        assert metadata_theirs == metadata_ours, (
+            "WRITE FAILED: The metadata does not match the numpy library's output."
+        )
 
         # 6. Assert that tensor data is identical
-        assert len(tensors_theirs) == len(
-            tensors_ours
-        ), "WRITE FAILED: The number of tensors changed between numpy's save and our save."
-        
+        assert len(tensors_theirs) == len(tensors_ours), (
+            "WRITE FAILED: The number of tensors changed between numpy's save and our save."
+        )
+
         for key, their_tensor in tensors_theirs.items():
-            assert (
-                key in tensors_ours
-            ), f"WRITE FAILED: Tensor '{key}' is missing from our service's output."
+            assert key in tensors_ours, (
+                f"WRITE FAILED: Tensor '{key}' is missing from our service's output."
+            )
             our_tensor = tensors_ours[key]
             np.testing.assert_array_equal(
                 their_tensor,
@@ -151,9 +153,7 @@ class TestSafetensorsService:
 
     def test_write_metadata_invalid_header_length(self, service, test_dir):
         """Test write_metadata when header length field doesn't equal 8 bytes during write operation."""
-        invalid_header_file = os.path.join(
-            test_dir, "invalid_header_write.safetensors"
-        )
+        invalid_header_file = os.path.join(test_dir, "invalid_header_write.safetensors")
         with open(invalid_header_file, "wb") as f:
             # Write only 6 bytes instead of 8 for the header length
             f.write(b"123456")
@@ -191,7 +191,9 @@ class TestSafetensorsService:
             service.read_metadata(invalid_json_file)
         assert "Failed to parse JSON" in str(exc_info.value)
 
-    def test_write_metadata_with_progress_callback(self, service, dummy_tensors, dummy_metadata, test_filepath):
+    def test_write_metadata_with_progress_callback(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
         """Test progress callback functionality."""
         # Create initial file
         save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
@@ -211,7 +213,9 @@ class TestSafetensorsService:
         assert progress_calls[-1] == 100
         assert result == test_filepath
 
-    def test_write_metadata_cleanup_on_error(self, service, dummy_tensors, dummy_metadata, test_filepath):
+    def test_write_metadata_cleanup_on_error(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
         """Test temp file cleanup when write fails."""
         # Create initial file
         save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
@@ -226,7 +230,9 @@ class TestSafetensorsService:
         # Verify temp file was cleaned up
         assert not os.path.exists(temp_file)
 
-    def test_read_metadata_unexpected_error(self, service, dummy_tensors, dummy_metadata, test_filepath):
+    def test_read_metadata_unexpected_error(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
         """Test general exception handling in read_metadata."""
         # Create valid file first
         save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)

@@ -22,6 +22,7 @@ def temp_dir():
     yield temp_dir
     # Clean up temporary directory
     import shutil
+
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 

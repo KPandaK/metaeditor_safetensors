@@ -49,12 +49,12 @@ bandit:
     @echo "Running bandit security checks..."
     @{{ python }} -m bandit -r metaeditor_safetensors/ -ll
 
-# Run unit tests
+# Run unit tests with coverage
 test:
-    @echo "Running unit tests with pytest..."
-    @{{ python }} -m pytest -v --tb=short
+    @echo "Running unit tests with pytest and coverage..."
+    @{{ python }} -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v --tb=short
 
-# Run tests with coverage
+# Run tests with coverage (alias for test)
 test-cov:
     @echo "Running unit tests with coverage..."
     @{{ python }} -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v
