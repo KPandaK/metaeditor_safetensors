@@ -260,3 +260,268 @@ qss_order:
         theme = Theme("test", "Test Theme", "test", None)
         assert theme.get_qss() == ""
         assert theme.get_qss_file_paths() == []
+
+    def test_infer_category_light_themes(self):
+        """Test that _infer_category correctly identifies light themes."""
+        light_ids = ["light_theme", "bright_ui", "white_background", "LIGHT-MODE"]
+        for theme_id in light_ids:
+            category = Theme._infer_category(theme_id)
+            assert category == "light", (
+                f"Theme ID '{theme_id}' should be categorized as light"
+            )
+
+    def test_infer_category_dark_themes(self):
+        """Test that _infer_category correctly identifies dark themes."""
+        dark_ids = ["dark_theme", "night_mode", "black_ui", "DARK-THEME"]
+        for theme_id in dark_ids:
+            category = Theme._infer_category(theme_id)
+            assert category == "dark", (
+                f"Theme ID '{theme_id}' should be categorized as dark"
+            )
+
+    def test_infer_category_defaults_to_dark(self):
+        """Test that _infer_category defaults to dark for ambiguous names."""
+        ambiguous_ids = ["my_theme", "custom", "beautiful", "theme123", ""]
+        for theme_id in ambiguous_ids:
+            category = Theme._infer_category(theme_id)
+            assert category == "dark", f"Theme ID '{theme_id}' should default to dark"
+
+    def test_theme_str_and_repr(self):
+        """Test Theme string representations."""
+        theme = Theme("test_id", "Test Theme", "dark", description="A test theme")
+
+        # Test __str__
+        str_repr = str(theme)
+        assert str_repr == "Test Theme (test_id)"
+
+        # Test __repr__
+        repr_str = repr(theme)
+        assert repr_str == "Theme('test_id', 'Test Theme', 'dark')"
+
+    def test_theme_initialization_with_all_parameters(self, temp_dir):
+        """Test Theme initialization with all parameters."""
+        theme_dir = temp_dir / "full_theme"
+        theme_dir.mkdir()
+
+        settings = {"color": "blue", "font_size": 12}
+        qss_order = ["main.qss", "widgets.qss"]
+
+        theme = Theme(
+            theme_id="full_theme",
+            name="Full Theme",
+            category="light",
+            theme_directory=theme_dir,
+            description="A complete theme",
+            version="2.0.0",
+            qss_order=qss_order,
+            settings=settings,
+        )
+
+        assert theme.theme_id == "full_theme"
+        assert theme.name == "Full Theme"
+        assert theme.category == "light"
+        assert theme.theme_directory == theme_dir
+        assert theme.description == "A complete theme"
+        assert theme.version == "2.0.0"
+        assert theme.qss_order == qss_order
+        assert theme.settings == settings
+
+    def test_theme_initialization_with_defaults(self):
+        """Test Theme initialization with minimal parameters and defaults."""
+        theme = Theme("minimal", "Minimal Theme", "dark")
+
+        assert theme.theme_id == "minimal"
+        assert theme.name == "Minimal Theme"
+        assert theme.category == "dark"
+        assert theme.theme_directory is None
+        assert theme.description == "Theme: Minimal Theme"  # Default description
+        assert theme.version == "1.0.0"  # Default version
+        assert theme.qss_order == []  # Default empty list
+        assert theme.settings == {}  # Default empty dict
+
+    def test_get_qss_with_missing_files(self, temp_dir):
+        """Test QSS loading when some files in qss_order don't exist."""
+        theme_dir = temp_dir / "missing_files_theme"
+        theme_dir.mkdir()
+
+        # Create YAML with files that don't exist
+        yaml_content = """
+name: "Missing Files Theme"
+qss_order:
+  - "existing.qss"
+  - "missing.qss"
+  - "another_existing.qss"
+"""
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text(yaml_content.strip(), encoding="utf-8")
+
+        # Create only some of the QSS files
+        (theme_dir / "existing.qss").write_text("/* Existing file */", encoding="utf-8")
+        (theme_dir / "another_existing.qss").write_text(
+            "/* Another existing file */", encoding="utf-8"
+        )
+        # missing.qss intentionally not created
+
+        theme = Theme.from_directory(theme_dir)
+        qss_content = theme.get_qss()
+
+        # Should contain content from existing files but not fail
+        assert "/* From: existing.qss */" in qss_content
+        assert "/* Existing file */" in qss_content
+        assert "/* From: another_existing.qss */" in qss_content
+        assert "/* Another existing file */" in qss_content
+
+        # Should not contain content from missing file
+        assert "missing.qss" not in qss_content
+
+    def test_get_qss_with_empty_files(self, temp_dir):
+        """Test QSS loading with empty files."""
+        theme_dir = temp_dir / "empty_files_theme"
+        theme_dir.mkdir()
+
+        yaml_content = """
+name: "Empty Files Theme"
+qss_order:
+  - "empty.qss"
+  - "whitespace.qss"
+  - "content.qss"
+"""
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text(yaml_content.strip(), encoding="utf-8")
+
+        # Create files with different emptiness patterns
+        (theme_dir / "empty.qss").write_text("", encoding="utf-8")
+        (theme_dir / "whitespace.qss").write_text("   \n\t  \n", encoding="utf-8")
+        (theme_dir / "content.qss").write_text("/* Has content */", encoding="utf-8")
+
+        theme = Theme.from_directory(theme_dir)
+        qss_content = theme.get_qss()
+
+        # Only files with actual content should be included
+        assert "/* From: empty.qss */" not in qss_content
+        assert "/* From: whitespace.qss */" not in qss_content
+        assert "/* From: content.qss */" in qss_content
+        assert "/* Has content */" in qss_content
+
+    def test_get_qss_read_error_handling(self, temp_dir, mocker):
+        """Test QSS loading when file read fails."""
+        theme_dir = temp_dir / "read_error_theme"
+        theme_dir.mkdir()
+
+        yaml_content = """
+name: "Read Error Theme"
+qss_order:
+  - "good.qss"
+  - "problematic.qss"
+"""
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text(yaml_content.strip(), encoding="utf-8")
+
+        # Create a good file
+        (theme_dir / "good.qss").write_text("/* Good file */", encoding="utf-8")
+
+        # Create a file with restricted permissions (if on Unix-like system)
+        problematic_file = theme_dir / "problematic.qss"
+        problematic_file.write_text("/* Problematic file */", encoding="utf-8")
+
+        theme = Theme.from_directory(theme_dir)
+
+        # Patch open to simulate read error for problematic file
+        original_open = open
+
+        def mock_open(*args, **kwargs):
+            if "problematic.qss" in str(args[0]):
+                raise IOError("Simulated read error")
+            return original_open(*args, **kwargs)
+
+        mocker.patch("builtins.open", side_effect=mock_open)
+        qss_content = theme.get_qss()
+
+        # Should contain good file content but skip problematic file
+        assert "/* From: good.qss */" in qss_content
+        assert "/* Good file */" in qss_content
+        assert "problematic.qss" not in qss_content
+
+    def test_load_theme_config_io_error(self, temp_dir, mocker):
+        """Test _load_theme_config error handling for IO errors."""
+        theme_dir = temp_dir / "io_error_theme"
+        theme_dir.mkdir()
+
+        # Create a YAML file
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text("name: Test", encoding="utf-8")
+
+        # Patch open to simulate IO error
+        mocker.patch("builtins.open", side_effect=IOError("Simulated IO error"))
+
+        with pytest.raises(ValueError) as exc_info:
+            Theme._load_theme_config(yaml_file)
+
+        assert "Error reading theme config" in str(exc_info.value)
+        assert "Simulated IO error" in str(exc_info.value)
+
+    def test_load_theme_config_non_dict_yaml(self, temp_dir):
+        """Test _load_theme_config handling of non-dictionary YAML content."""
+        theme_dir = temp_dir / "non_dict_theme"
+        theme_dir.mkdir()
+
+        # Create YAML file with non-dictionary content
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text(
+            "- item1\n- item2\n", encoding="utf-8"
+        )  # YAML list instead of dict
+
+        config = Theme._load_theme_config(yaml_file)
+        assert config == {}  # Should return empty dict for non-dict YAML
+
+    def test_theme_directory_with_no_qss_files(self, temp_dir):
+        """Test theme directory that has YAML but no QSS files."""
+        theme_dir = temp_dir / "no_qss_theme"
+        theme_dir.mkdir()
+
+        # Create YAML config
+        yaml_content = """
+name: "No QSS Theme"
+description: "Theme with no QSS files"
+"""
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text(yaml_content.strip(), encoding="utf-8")
+
+        theme = Theme.from_directory(theme_dir)
+
+        assert theme.name == "No QSS Theme"
+        assert theme.description == "Theme with no QSS files"
+        assert theme.qss_order == []  # No QSS files found
+        assert theme.get_qss() == ""  # Empty QSS content
+        assert theme.get_qss_file_paths() == []  # No file paths
+
+    def test_theme_cache_clearing(self, temp_dir):
+        """Test that cache clearing works correctly."""
+        theme_dir = temp_dir / "cache_theme"
+        theme_dir.mkdir()
+
+        yaml_file = theme_dir / "theme.yaml"
+        yaml_file.write_text("name: Cache Theme", encoding="utf-8")
+
+        qss_file = theme_dir / "style.qss"
+        qss_file.write_text("/* Original content */", encoding="utf-8")
+
+        theme = Theme.from_directory(theme_dir)
+
+        # Load QSS content (creates cache)
+        original_content = theme.get_qss()
+        assert "/* Original content */" in original_content
+
+        # Verify cache is being used by checking internal state
+        assert theme._qss_cache is not None
+
+        # Clear cache
+        theme.clear_cache()
+        assert theme._qss_cache is None
+
+        # Modify the file (simulating external change)
+        qss_file.write_text("/* Modified content */", encoding="utf-8")
+
+        # Get QSS content again (should re-read from file)
+        new_content = theme.get_qss()
+        assert "/* Modified content */" in new_content
