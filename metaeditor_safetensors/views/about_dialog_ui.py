@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel,
-    QPushButton, QScrollArea, QSizePolicy, QSpacerItem,
-    QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout,
+    QLabel, QPushButton, QScrollArea, QSizePolicy,
+    QSpacerItem, QTabWidget, QVBoxLayout, QWidget)
 
 from metaeditor_safetensors.widgets.svg_widget import SvgWidget
 from . import resources_rc
@@ -71,11 +71,11 @@ class Ui_AboutDialog(object):
         self.rightColumnLayout.addWidget(self.aboutTitle)
 
         self.versionHLayout = QHBoxLayout()
-        self.versionHLayout.setSpacing(0)
+        self.versionHLayout.setSpacing(6)
         self.versionHLayout.setObjectName(u"versionHLayout")
         self.aboutVersion = QLabel(self.aboutTab)
         self.aboutVersion.setObjectName(u"aboutVersion")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.aboutVersion.sizePolicy().hasHeightForWidth())
@@ -96,7 +96,7 @@ class Ui_AboutDialog(object):
         self.copyVersion.setIcon(icon)
         self.copyVersion.setIconSize(QSize(16, 16))
 
-        self.versionHLayout.addWidget(self.copyVersion, 0, Qt.AlignmentFlag.AlignLeft)
+        self.versionHLayout.addWidget(self.copyVersion, 0, Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignVCenter)
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -112,14 +112,23 @@ class Ui_AboutDialog(object):
 
         self.rightColumnLayout.addWidget(self.aboutAuthor)
 
-        self.aboutDescription = QLabel(self.aboutTab)
+        self.frame = QFrame(self.aboutTab)
+        self.frame.setObjectName(u"frame")
+        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Shadow.Raised)
+        self.verticalLayout_4 = QVBoxLayout(self.frame)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.aboutDescription = QLabel(self.frame)
         self.aboutDescription.setObjectName(u"aboutDescription")
         sizePolicy.setHeightForWidth(self.aboutDescription.sizePolicy().hasHeightForWidth())
         self.aboutDescription.setSizePolicy(sizePolicy)
         self.aboutDescription.setWordWrap(True)
         self.aboutDescription.setOpenExternalLinks(True)
 
-        self.rightColumnLayout.addWidget(self.aboutDescription)
+        self.verticalLayout_4.addWidget(self.aboutDescription)
+
+
+        self.rightColumnLayout.addWidget(self.frame)
 
         self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
 
@@ -133,6 +142,7 @@ class Ui_AboutDialog(object):
         sizePolicy2.setHeightForWidth(self.kofiLink.sizePolicy().hasHeightForWidth())
         self.kofiLink.setSizePolicy(sizePolicy2)
         self.kofiLink.setMaximumSize(QSize(100, 56))
+        self.kofiLink.setFrameShadow(QFrame.Shadow.Sunken)
         self.kofiLink.setPixmap(QPixmap(u":/assets/support_me.png"))
         self.kofiLink.setScaledContents(True)
 
@@ -180,6 +190,7 @@ class Ui_AboutDialog(object):
         self.topLayout_2.addWidget(self.logoLabel_2)
 
         self.textLayout_2 = QVBoxLayout()
+        self.textLayout_2.setSpacing(12)
         self.textLayout_2.setObjectName(u"textLayout_2")
         self.textLayout_2.setContentsMargins(0, -1, -1, -1)
         self.creditsTitle = QLabel(self.creditsTab)
@@ -228,12 +239,14 @@ class Ui_AboutDialog(object):
         self.topLayout_3.addWidget(self.logoLabel_3)
 
         self.textLayout_3 = QVBoxLayout()
+        self.textLayout_3.setSpacing(12)
         self.textLayout_3.setObjectName(u"textLayout_3")
         self.textLayout_3.setContentsMargins(0, -1, -1, -1)
         self.licenseTitle = QLabel(self.licenseTab)
         self.licenseTitle.setObjectName(u"licenseTitle")
         sizePolicy.setHeightForWidth(self.licenseTitle.sizePolicy().hasHeightForWidth())
         self.licenseTitle.setSizePolicy(sizePolicy)
+        self.licenseTitle.setFont(font)
 
         self.textLayout_3.addWidget(self.licenseTitle)
 
@@ -247,7 +260,7 @@ class Ui_AboutDialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 359, 358))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 374, 358))
         self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.creditsText_2 = QLabel(self.scrollAreaWidgetContents)
@@ -284,20 +297,28 @@ class Ui_AboutDialog(object):
 
     def retranslateUi(self, AboutDialog):
         self.aboutTitle.setText(QCoreApplication.translate("AboutDialog", u"Safetensors Metadata Editor", None))
+        self.aboutTitle.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"title", None))
         self.aboutVersion.setText(QCoreApplication.translate("AboutDialog", u"v1.0.0", None))
+        self.aboutVersion.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"description", None))
 #if QT_CONFIG(tooltip)
         self.copyVersion.setToolTip(QCoreApplication.translate("AboutDialog", u"Copy version to clipboard.", None))
 #endif // QT_CONFIG(tooltip)
         self.copyVersion.setText("")
+        self.copyVersion.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"icon-small", None))
         self.aboutAuthor.setText(QCoreApplication.translate("AboutDialog", u"Created by: KPandaK", None))
+        self.aboutAuthor.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"note", None))
         self.aboutDescription.setText(QCoreApplication.translate("AboutDialog", u"<html><head/><body><p>This is a free and open source app for viewing and editing metadata in safetensors model files. </p><p>It implements v1.01 of Stability.AI's model metadata standard <a href=\"https://github.com/Stability-AI/ModelSpec\"><span style=\" text-decoration: underline; color:#92ebff;\">specification</span></a>.</p><p>If you enjoy this app, feel free to tip me for a coffee!</p></body></html>", None))
         self.kofiLink.setText("")
+        self.kofiLink.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"clickable-image", None))
         self.githubLink.setText("")
+        self.githubLink.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"clickable-image", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.aboutTab), QCoreApplication.translate("AboutDialog", u"About", None))
         self.creditsTitle.setText(QCoreApplication.translate("AboutDialog", u"Credits", None))
+        self.creditsTitle.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"title", None))
         self.creditsText.setText(QCoreApplication.translate("AboutDialog", u"<html><head/><body><p>Original Safetensors Icon by <a href=\"https://github.com/SHADOW-LIGHTS\"><span style=\" text-decoration: underline; color:#92ebff;\">SHADOW-LIGHTS</span></a></p></body></html>", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.creditsTab), QCoreApplication.translate("AboutDialog", u"Credits", None))
         self.licenseTitle.setText(QCoreApplication.translate("AboutDialog", u"The MIT License (MIT)", None))
+        self.licenseTitle.setProperty(u"class", QCoreApplication.translate("AboutDialog", u"title", None))
         self.creditsText_2.setText(QCoreApplication.translate("AboutDialog", u"<html><head/><body><p>Copyright \u00a9 2025 KPandaK</p><p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \u201cSoftware\u201d), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p><p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p><p>THE SOFTWARE IS PROVIDED \u201cAS IS\u201d, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OU"
                         "T OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p></body></html>", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.licenseTab), QCoreApplication.translate("AboutDialog", u"License", None))

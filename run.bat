@@ -48,15 +48,15 @@ if not exist venv (
         pause
         exit /b 1
     )
-    
-    echo Installing dependencies...
-    venv\Scripts\pip install --upgrade pip
-    venv\Scripts\pip install -e .
-    if errorlevel 1 (
-        echo ERROR: Failed to install dependencies
-        pause
-        exit /b 1
-    )
+)
+
+echo Checking dependencies...
+venv\Scripts\pip install --upgrade pip
+venv\Scripts\pip install -e .
+if errorlevel 1 (
+    echo ERROR: Failed to install dependencies
+    pause
+    exit /b 1
 )
 
 REM Activate virtual environment and run

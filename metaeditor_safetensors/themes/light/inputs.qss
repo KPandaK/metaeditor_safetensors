@@ -1,0 +1,110 @@
+/* 
+Light Theme - Input Controls
+=============================
+
+Styling for input widgets like line edits, text edits, combo boxes, etc.
+*/
+
+QLineEdit,
+QTextEdit,
+QSpinBox {
+    min-height: 26px;
+    padding: 4px 8px;
+    border: 1px solid rgb(204, 204, 204);
+    border-radius: 2px;
+    background-color: rgb(255, 255, 255);
+    color: rgb(51, 51, 51);
+}
+
+QDateTimeEdit {
+    min-height: 26px;
+    padding: 3px 8px;
+    border: 1px solid rgb(204, 204, 204);
+    border-radius: 2px;
+    background-color: rgb(255, 255, 255);
+    color: rgb(51, 51, 51);
+}
+
+QLineEdit:focus,
+QTextEdit:focus,
+QDateTimeEdit:focus,
+QSpinBox:focus {
+    outline: 1px solid rgb(0, 120, 212);
+    outline-offset: 0px;
+    border-color: rgb(0, 120, 212);
+}
+
+QLineEdit:hover,
+QTextEdit:hover,
+QDateTimeEdit:hover,
+QSpinBox:hover {
+    background-color: rgb(248, 248, 248);
+}
+
+QComboBox {
+    min-height: 26px;
+    padding: 4px 8px;
+    border: 1px solid rgb(204, 204, 204);
+    border-radius: 2px;
+    background-color: rgb(255, 255, 255);
+    color: rgb(51, 51, 51);
+}
+
+QComboBox:hover {
+    background-color: rgb(248, 248, 248);
+}
+
+QComboBox:focus {
+    outline: 1px solid rgb(0, 120, 212);
+    outline-offset: 0px;
+    border-color: rgb(0, 120, 212);
+}
+
+QComboBox::drop-down {
+    border: none;
+    padding-right: 8px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: rgb(255, 255, 255);
+    border: 1px solid rgb(204, 204, 204);
+    selection-background-color: rgba(0, 120, 212, 0.8);
+    color: rgb(51, 51, 51);
+}
+
+QTextEdit {
+    min-height: 80px;
+    padding: 8px;
+}
+
+QCheckBox,
+QRadioButton {
+    spacing: 8px;
+    font-size: 13px;
+    color: rgb(51, 51, 51);
+}
+
+QCheckBox::indicator,
+QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgb(153, 153, 153);
+    border-radius: 2px;
+    background-color: rgb(255, 255, 255);
+}
+
+QRadioButton::indicator {
+    border-radius: 8px;
+}
+
+QCheckBox::indicator:hover,
+QRadioButton::indicator:hover {
+    border-color: rgb(0, 120, 212);
+    background-color: rgba(0, 120, 212, 0.1);
+}
+
+QCheckBox::indicator:checked,
+QRadioButton::indicator:checked {
+    background-color: rgb(0, 120, 212);
+    border-color: rgb(0, 120, 212);
+}
