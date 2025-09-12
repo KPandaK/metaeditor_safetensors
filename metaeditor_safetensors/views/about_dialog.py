@@ -5,8 +5,8 @@ from PySide6.QtCore import QFile, QIODevice, Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
 from PySide6.QtWidgets import QApplication, QDialog
 
-from ..widgets.svg_widget import SvgWidget
 from ..services.css_service import refresh_style_recursive
+from ..widgets.svg_widget import SvgWidget
 from .about_dialog_ui import Ui_AboutDialog
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,6 @@ class AboutDialog(QDialog):
         self._setup_clickable_links()
 
         self.ui.copyVersion.clicked.connect(self._copy_version_to_clipboard)
-
 
     def _setup_clickable_links(self):
         """Set up clickable functionality for GitHub and Ko-fi links."""

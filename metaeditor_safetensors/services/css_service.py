@@ -31,7 +31,8 @@ def set_css_class(widget: QWidget, class_name: str) -> None:
 
 def has_css_class(widget: QWidget, class_name: str) -> bool:
     """Check if a widget has a specific CSS class."""
-    return widget.property("class") == class_name
+    current_class = widget.property("class")
+    return bool(current_class == class_name)
 
 
 def refresh_style_recursive(widget: QWidget) -> None:
