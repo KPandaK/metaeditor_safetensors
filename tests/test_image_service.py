@@ -9,7 +9,6 @@ import base64
 import os
 import shutil
 import tempfile
-from unittest.mock import MagicMock, patch
 
 import pytest
 from PySide6.QtCore import Qt
@@ -209,14 +208,16 @@ class TestImageService:
         assert len(jpeg_bytes) > 1000
         assert len(jpeg_bytes) < 100000  # Less than 100KB for a simple test image
 
-    @patch("metaeditor_safetensors.services.image_service.QPixmap")
-    def test_pixmap_save_failure(self, mock_qpixmap_class, image_service, temp_dir):
+    def test_pixmap_save_failure(self, mocker, image_service, temp_dir):
         """Test error handling when QPixmap.save() fails."""
         # Create a mock pixmap that fails to save
-        mock_pixmap = MagicMock()
+        mock_pixmap = mocker.MagicMock()
         mock_pixmap.isNull.return_value = False
         mock_pixmap.save.return_value = False  # Simulate save failure
-        mock_qpixmap_class.return_value = mock_pixmap
+        mocker.patch(
+            "metaeditor_safetensors.services.image_service.QPixmap",
+            return_value=mock_pixmap,
+        )
 
         # Create a test file (content doesn't matter since we're mocking)
         test_file = os.path.join(temp_dir, "test.png")

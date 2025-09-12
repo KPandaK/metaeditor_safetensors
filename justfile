@@ -54,11 +54,6 @@ test:
     @echo "Running unit tests with pytest and coverage..."
     @{{ python }} -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v --tb=short
 
-# Run tests with coverage (alias for test)
-test-cov:
-    @echo "Running unit tests with coverage..."
-    @{{ python }} -m pytest --cov=metaeditor_safetensors --cov-report=term-missing -v
-
 # Run the MetaEditor application
 run: compile
     {{ python }} main.py

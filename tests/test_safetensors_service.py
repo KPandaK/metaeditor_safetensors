@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-from unittest.mock import mock_open, patch
 
 import numpy as np
 import pytest
@@ -214,7 +213,7 @@ class TestSafetensorsService:
         assert result == test_filepath
 
     def test_write_metadata_cleanup_on_error(
-        self, service, dummy_tensors, dummy_metadata, test_filepath
+        self, mocker, service, dummy_tensors, dummy_metadata, test_filepath
     ):
         """Test temp file cleanup when write fails."""
         # Create initial file
@@ -222,26 +221,26 @@ class TestSafetensorsService:
         temp_file = test_filepath + ".tmp"
 
         # Mock to cause an error during file operations
-        with patch("builtins.open", side_effect=IOError("Simulated write error")):
-            with pytest.raises(IOError) as exc_info:
-                service.write_metadata(test_filepath, {"new": "data"})
-            assert "Failed to save file" in str(exc_info.value)
+        mocker.patch("builtins.open", side_effect=IOError("Simulated write error"))
+        with pytest.raises(IOError) as exc_info:
+            service.write_metadata(test_filepath, {"new": "data"})
+        assert "Failed to save file" in str(exc_info.value)
 
         # Verify temp file was cleaned up
         assert not os.path.exists(temp_file)
 
     def test_read_metadata_unexpected_error(
-        self, service, dummy_tensors, dummy_metadata, test_filepath
+        self, mocker, service, dummy_tensors, dummy_metadata, test_filepath
     ):
         """Test general exception handling in read_metadata."""
         # Create valid file first
         save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
 
         # Mock struct.unpack to raise an unexpected error
-        with patch(
+        mocker.patch(
             "metaeditor_safetensors.services.safetensors_service.struct.unpack",
             side_effect=RuntimeError("Unexpected error"),
-        ):
-            with pytest.raises(ValueError) as exc_info:
-                service.read_metadata(test_filepath)
-            assert "unexpected error occurred" in str(exc_info.value)
+        )
+        with pytest.raises(ValueError) as exc_info:
+            service.read_metadata(test_filepath)
+        assert "unexpected error occurred" in str(exc_info.value)
