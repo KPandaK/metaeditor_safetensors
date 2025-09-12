@@ -3,7 +3,7 @@
 
 theme_id: "dark"
 name: "Dark"
-description: "A modern dark theme with VS Code-inspired styling"
+description: "A modern dark theme"
 category: "dark"
 version: "1.0.0"
 

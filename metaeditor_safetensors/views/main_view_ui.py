@@ -210,12 +210,14 @@ class Ui_EditorPanel(object):
 
         self.thumbnailColumn = QVBoxLayout()
         self.thumbnailColumn.setObjectName(u"thumbnailColumn")
-        self.thumbnailLabel = QLabel(EditorPanel)
-        self.thumbnailLabel.setObjectName(u"thumbnailLabel")
-
-        self.thumbnailColumn.addWidget(self.thumbnailLabel)
-
-        self.thumbnailDisplay = ImageWidget(EditorPanel)
+        self.groupBox = QGroupBox(EditorPanel)
+        self.groupBox.setObjectName(u"groupBox")
+        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy)
+        self.verticalLayout_5 = QVBoxLayout(self.groupBox)
+        self.verticalLayout_5.setSpacing(6)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.thumbnailDisplay = ImageWidget(self.groupBox)
         self.thumbnailDisplay.setObjectName(u"thumbnailDisplay")
         sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy2.setHorizontalStretch(0)
@@ -223,30 +225,34 @@ class Ui_EditorPanel(object):
         sizePolicy2.setHeightForWidth(self.thumbnailDisplay.sizePolicy().hasHeightForWidth())
         self.thumbnailDisplay.setSizePolicy(sizePolicy2)
 
-        self.thumbnailColumn.addWidget(self.thumbnailDisplay)
+        self.verticalLayout_5.addWidget(self.thumbnailDisplay)
 
         self.thumbnailButtonsLayout = QHBoxLayout()
         self.thumbnailButtonsLayout.setObjectName(u"thumbnailButtonsLayout")
-        self.setThumbnailBtn = QPushButton(EditorPanel)
+        self.setThumbnailBtn = QPushButton(self.groupBox)
         self.setThumbnailBtn.setObjectName(u"setThumbnailBtn")
         self.setThumbnailBtn.setMaximumSize(QSize(16777215, 24))
 
         self.thumbnailButtonsLayout.addWidget(self.setThumbnailBtn)
 
-        self.viewThumbnailBtn = QPushButton(EditorPanel)
+        self.viewThumbnailBtn = QPushButton(self.groupBox)
         self.viewThumbnailBtn.setObjectName(u"viewThumbnailBtn")
         self.viewThumbnailBtn.setMaximumSize(QSize(16777215, 24))
 
         self.thumbnailButtonsLayout.addWidget(self.viewThumbnailBtn)
 
-        self.clearThumbnailBtn = QPushButton(EditorPanel)
+        self.clearThumbnailBtn = QPushButton(self.groupBox)
         self.clearThumbnailBtn.setObjectName(u"clearThumbnailBtn")
         self.clearThumbnailBtn.setMaximumSize(QSize(16777215, 24))
 
         self.thumbnailButtonsLayout.addWidget(self.clearThumbnailBtn)
 
 
-        self.thumbnailColumn.addLayout(self.thumbnailButtonsLayout)
+        self.verticalLayout_5.addLayout(self.thumbnailButtonsLayout)
+
+        self.verticalLayout_5.setStretch(0, 1)
+
+        self.thumbnailColumn.addWidget(self.groupBox)
 
         self.thumbnailSpacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -296,7 +302,7 @@ class Ui_EditorPanel(object):
         self.usageHintEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"Usage instructions or hints...", None))
         self.licenseLabel.setText(QCoreApplication.translate("EditorPanel", u"License:", None))
         self.licenseEdit.setPlaceholderText(QCoreApplication.translate("EditorPanel", u"e.g. MIT, Apache 2.0, Custom...", None))
-        self.thumbnailLabel.setText(QCoreApplication.translate("EditorPanel", u"Thumbnail:", None))
+        self.groupBox.setTitle(QCoreApplication.translate("EditorPanel", u"Thumbnail", None))
         self.setThumbnailBtn.setText(QCoreApplication.translate("EditorPanel", u"Set", None))
         self.viewThumbnailBtn.setText(QCoreApplication.translate("EditorPanel", u"View", None))
         self.clearThumbnailBtn.setText(QCoreApplication.translate("EditorPanel", u"Clear", None))

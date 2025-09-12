@@ -70,14 +70,27 @@ QLabel[class="title"] {
     font-weight: 600;
 }
 
-QLabel[class="success"] {
-    color: #4ec9b0;
+/* Error/warning/info message styling */
+QWidget[messageType="error"] {
+    background-color: #5a1d1d;
+    border-left: 3px solid #f14c4c;
+    color: #ffffff;
 }
 
-QLabel[class="warning"] {
-    color: #ffcc02;
+QWidget[messageType="warning"] {
+    background-color: #5d4e1a;
+    border-left: 3px solid #ffcc02;
+    color: #ffffff;
 }
 
-QLabel[class="error"] {
-    color: #f44747;
+QWidget[messageType="info"] {
+    background-color: #1e3a5f;
+    border-left: 3px solid #007acc;
+    color: #ffffff;
+}
+
+QWidget[messageType="success"] {
+    background-color: #1e5f2e;
+    border-left: 3px solid #89d185;
+    color: #ffffff;
 }
