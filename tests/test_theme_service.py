@@ -218,9 +218,12 @@ qss_order:
         self.assertFalse(success)
 
     @patch("metaeditor_safetensors.services.theme_service.get_package_root")
-    def test_theme_changed_signal(self, mock_get_package_root):
+    @patch("metaeditor_safetensors.services.theme_service.darkdetect.theme")
+    def test_theme_changed_signal(self, mock_darkdetect, mock_get_package_root):
         """Test that theme_changed signal is emitted when theme is applied."""
         mock_get_package_root.return_value = self.temp_dir / "metaeditor_safetensors"
+        # Mock darkdetect to return "dark" so auto theme resolution works predictably
+        mock_darkdetect.return_value = "dark"
 
         theme_service = ThemeService(self.__class__.app)  # type: ignore
 
