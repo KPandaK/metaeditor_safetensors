@@ -39,6 +39,7 @@ MetaEditor SafeTensors is a Python GUI application for viewing and editing metad
 4. Write unit tests for new features and bug fixes
 5. Do not manually edit generated files (`views/*_ui.py` or `resources_rc.py`)
 
-### Test Issues
+### Additional Notes
 - **PySide6 tests fail on headless systems**: Use `QT_QPA_PLATFORM=offscreen`
 - **Some tests require GUI**: CI uses `xvfb-run` on Linux for virtual display
+- **virtual environments**: You do not need a virtual environment, all dependencies should be pre-installed before you get to work.
