@@ -108,21 +108,35 @@ class ThemeService(QObject):
         if not self._enable_live_reload:
             return
 
-        # Watch all QSS files in all theme directories
-        watch_files = []
+        # Initialize file watcher but don't watch any files yet
+        # Files will be watched when a theme is applied
+        self._file_watcher = QFileSystemWatcher()
+        self._file_watcher.fileChanged.connect(self._on_theme_file_changed)
+        self._watched_files = []
 
-        for theme in self._available_themes.values():
-            if theme.theme_directory:
-                qss_file_paths = theme.get_qss_file_paths()
-                watch_files.extend([str(p) for p in qss_file_paths])
+        logger.info("Live theme reloading enabled")
 
-        if watch_files:
-            self._file_watcher = QFileSystemWatcher(watch_files)
-            self._file_watcher.fileChanged.connect(self._on_theme_file_changed)
-            self._watched_files = watch_files
-            logger.info(
-                f"Live theme reloading enabled, watching {len(watch_files)} files"
-            )
+    def _update_file_watchers(self):
+        """Update file watcher to monitor only the current theme's files."""
+        if not self._enable_live_reload or not self._file_watcher:
+            return
+
+        # Remove all currently watched files
+        if self._watched_files:
+            self._file_watcher.removePaths(self._watched_files)
+            self._watched_files.clear()
+
+        # Add files from the current theme
+        if self._current_theme and self._current_theme.theme_directory:
+            qss_file_paths = self._current_theme.get_qss_file_paths()
+            watch_files = [str(p) for p in qss_file_paths]
+
+            if watch_files:
+                self._file_watcher.addPaths(watch_files)
+                self._watched_files = watch_files
+                logger.debug(
+                    f"Now watching {len(watch_files)} files for theme '{self._current_theme.name}'"
+                )
 
     def _on_theme_file_changed(self, file_path: str):
         """Handle theme file changes for live reloading."""
@@ -227,6 +241,9 @@ class ThemeService(QObject):
             self._app.setStyleSheet(qss_content)
 
             self._current_theme = theme
+
+            # Update file watchers to monitor the new theme's files
+            self._update_file_watchers()
 
             # Emit signal with original preference (so UI knows "auto" is selected)
             signal_theme_id = original_preference or theme.theme_id

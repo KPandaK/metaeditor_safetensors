@@ -18,6 +18,7 @@ __pycache__/
 # Cache folders
 .ruff_cache/
 .mypy_cache/
+.pytest_cache/
 
 # OS generated files
 .DS_Store

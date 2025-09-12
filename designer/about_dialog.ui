@@ -200,34 +200,35 @@
             </widget>
            </item>
            <item>
-            <widget class="QFrame" name="frame">
-             <property name="frameShape">
-              <enum>QFrame::Shape::StyledPanel</enum>
+            <spacer name="verticalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
-             <property name="frameShadow">
-              <enum>QFrame::Shadow::Raised</enum>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>10</height>
+              </size>
              </property>
-             <layout class="QVBoxLayout" name="verticalLayout_4">
-              <item>
-               <widget class="QLabel" name="aboutDescription">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is a free and open source app for viewing and editing metadata in safetensors model files. &lt;/p&gt;&lt;p&gt;It implements v1.01 of Stability.AI's model metadata standard &lt;a href=&quot;https://github.com/Stability-AI/ModelSpec&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#92ebff;&quot;&gt;specification&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If you enjoy this app, feel free to tip me for a coffee!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-                <property name="openExternalLinks">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="aboutDescription">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is a free and open source app for viewing and editing metadata in safetensors model files. &lt;/p&gt;&lt;p&gt;It implements v1.01 of Stability.AI's model metadata standard &lt;a href=&quot;https://github.com/Stability-AI/ModelSpec&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#92ebff;&quot;&gt;specification&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If you enjoy this app, feel free to tip me for a coffee!&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+             <property name="openExternalLinks">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
            <item>
@@ -507,8 +508,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>374</width>
-                <height>358</height>
+                <width>132</width>
+                <height>1046</height>
                </rect>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_2">

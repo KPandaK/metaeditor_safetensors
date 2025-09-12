@@ -9,10 +9,5 @@ version: "1.0.0"
 
 # QSS file loading order (files will be loaded in this order)
 # If a file is not listed here, it will be loaded alphabetically after these
-qss_files:
-  - "base.qss"
-  - "buttons.qss"
-  - "inputs.qss"
-  - "menus.qss"
-  - "misc.qss"
-  - "tables.qss"
+qss_order:
+  - "dark.qss"

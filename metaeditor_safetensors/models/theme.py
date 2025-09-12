@@ -160,7 +160,13 @@ class Theme:
                     with open(qss_file, "r", encoding="utf-8") as f:
                         content = f.read().strip()
                         if content:
-                            combined_qss.append(f"/* From: {filename} */\n{content}")
+                            # Only add file origin comment if there are multiple QSS files
+                            if len(self.qss_order) > 1:
+                                combined_qss.append(
+                                    f"/* From: {filename} */\n{content}"
+                                )
+                            else:
+                                combined_qss.append(content)
                             logger.debug(f"Loaded QSS: {qss_file}")
                 except Exception as e:
                     logger.error(f"Error loading QSS file {qss_file}: {e}")
@@ -169,9 +175,14 @@ class Theme:
 
         # Combine and cache
         self._qss_cache = "\n\n".join(combined_qss)
-        logger.debug(
-            f"Combined {len(self.qss_order)} QSS files into {len(self._qss_cache):,} characters"
-        )
+        if len(self.qss_order) == 1:
+            logger.debug(
+                f"Loaded single QSS file with {len(self._qss_cache):,} characters"
+            )
+        else:
+            logger.debug(
+                f"Combined {len(self.qss_order)} QSS files into {len(self._qss_cache):,} characters"
+            )
 
         return self._qss_cache
 
