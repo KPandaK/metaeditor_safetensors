@@ -34,7 +34,6 @@ QPushButton:disabled {
     opacity: 0.4;
 }
 
-/* Icon-only buttons - like VS Code toolbar buttons */
 QPushButton[class="icon"] {
     min-width: 26px;
     min-height: 26px;
