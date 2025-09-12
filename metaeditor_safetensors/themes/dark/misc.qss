@@ -2,11 +2,8 @@
 Dark Theme - Miscellaneous Elements
 ====================================
 
-VS Code inspired styling for tooltips, splitters, progress bars, status bars,
-and other miscellaneous UI elements.
 */
 
-/* Status bar - VS Code status bar style */
 QStatusBar {
     min-height: 22px;
     background-color: #007acc;
@@ -24,30 +21,6 @@ QStatusBar::item {
     margin: 0px;
 }
 
-QStatusBar QLabel {
-    color: #ffffff;
-    background-color: transparent;
-    padding: 4px 8px;
-    font-size: 12px;
-}
-
-QStatusBar QPushButton {
-    background-color: transparent;
-    color: #ffffff;
-    border: none;
-    padding: 4px 8px;
-    font-size: 12px;
-}
-
-QStatusBar QPushButton:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-QStatusBar QPushButton:pressed {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Tooltips - VS Code tooltip style */
 QToolTip {
     background-color: #252526;
     color: #cccccc;
@@ -55,12 +28,10 @@ QToolTip {
     padding: 8px 12px;
     border-radius: 3px;
     font-size: 13px;
-    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     max-width: 400px;
-    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.32);
 }
 
-/* Progress bars - VS Code loading indicators */
 QProgressBar {
     background-color: #3c3c3c;
     border: 1px solid #454545;
@@ -88,7 +59,6 @@ QProgressBar::chunk:disabled {
     background-color: #5a5a5a;
 }
 
-/* Splitters - VS Code panel separators */
 QSplitter::handle {
     background-color: #454545;
     border: none;
@@ -112,38 +82,6 @@ QSplitter::handle:pressed {
     background-color: #0e639c;
 }
 
-/* Dialog button boxes - VS Code dialog style */
-QDialogButtonBox {
-    padding: 16px;
-    background-color: #2d2d30;
-    border-top: 1px solid #454545;
-}
-
-QDialogButtonBox QPushButton {
-    min-width: 80px;
-    margin: 0px 6px;
-    padding: 6px 16px;
-    font-size: 13px;
-}
-
-/* Frames - VS Code panel styling */
-QFrame {
-    border: none;
-    background-color: transparent;
-}
-
-QFrame[frameShape="1"], /* Box */
-QFrame[frameShape="2"] { /* Panel */
-    border: 1px solid #454545;
-    background-color: #252526;
-}
-
-QFrame[frameShape="4"], /* HLine */
-QFrame[frameShape="5"] { /* VLine */
-    background-color: #454545;
-    border: none;
-}
-
 /* Size grip - resize handle */
 QSizeGrip {
     width: 16px;
@@ -152,7 +90,7 @@ QSizeGrip {
     background-image: none;
 }
 
-/* Dockwidgets - VS Code panel docking */
+/* Dockwidgets */
 QDockWidget {
     background-color: #252526;
     border: 1px solid #454545;
@@ -191,12 +129,6 @@ QDockWidget::float-button:pressed {
     background-color: #094771;
 }
 
-/* Rubber band selection */
-QRubberBand {
-    background-color: rgba(0, 122, 204, 0.3);
-    border: 1px solid #007acc;
-}
-
 /* Abstract scroll area */
 QAbstractScrollArea {
     background-color: #1e1e1e;
@@ -208,7 +140,6 @@ QAbstractScrollArea::corner {
     border: none;
 }
 
-/* Slider - VS Code style sliders */
 QSlider {
     background-color: transparent;
 }
@@ -262,7 +193,6 @@ QSlider::handle:vertical:pressed {
 }
 
 /* Text browser and text edit areas */
-QTextBrowser,
 QPlainTextEdit {
     background-color: #1e1e1e;
     border: 1px solid #454545;
@@ -274,7 +204,6 @@ QPlainTextEdit {
     line-height: 1.4;
 }
 
-QTextBrowser:focus,
 QPlainTextEdit:focus {
     border-color: #007acc;
     outline: none;
@@ -303,38 +232,6 @@ QCalendarWidget QToolButton:pressed {
     background-color: #094771;
 }
 
-/* LCD Number display */
-QLCDNumber {
-    background-color: #1e1e1e;
-    border: 1px solid #454545;
-    color: #007acc;
-}
-
-/* Error/warning/info message styling */
-QWidget[messageType="error"] {
-    background-color: #5a1d1d;
-    border-left: 3px solid #f14c4c;
-    color: #ffffff;
-}
-
-QWidget[messageType="warning"] {
-    background-color: #5d4e1a;
-    border-left: 3px solid #ffcc02;
-    color: #ffffff;
-}
-
-QWidget[messageType="info"] {
-    background-color: #1e3a5f;
-    border-left: 3px solid #007acc;
-    color: #ffffff;
-}
-
-QWidget[messageType="success"] {
-    background-color: #1e5f2e;
-    border-left: 3px solid #89d185;
-    color: #ffffff;
-}
-
 /* Custom widgets */
 ImageWidget {
     background-color: #1e1e1e;
@@ -344,7 +241,7 @@ ImageWidget {
 }
 
 ImageWidget[hasImage="false"] {
-    border: 1px dotted #454545;
+    border: 2px dashed #454545;
     border-radius: 3px;
     background-color: #252526;
 }

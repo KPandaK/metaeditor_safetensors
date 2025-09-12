@@ -153,7 +153,6 @@ QTabWidget::tab-bar {
     alignment: left;
 }
 
-/* Tool Bar - VS Code toolbar style */
 QToolBar {
     background-color: #252526;
     border: 1px solid #454545;

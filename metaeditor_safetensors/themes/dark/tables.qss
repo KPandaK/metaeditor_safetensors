@@ -2,11 +2,8 @@
 Dark Theme - Data Views
 ========================
 
-VS Code inspired styling for tables, lists, trees, and scrollbars.
-Based on VS Code's monaco-list and table components.
 */
 
-/* Table Widgets - VS Code table/list style */
 QTableWidget,
 QTreeWidget,
 QListWidget {
@@ -32,19 +29,11 @@ QListWidget::item {
     background-color: transparent;
 }
 
-/* Selected items - VS Code selection blue */
 QTableWidget::item:selected,
 QTreeWidget::item:selected,
 QListWidget::item:selected {
     background-color: #264f78;
     color: #ffffff;
-}
-
-/* Hover effect */
-QTableWidget::item:hover,
-QTreeWidget::item:hover,
-QListWidget::item:hover {
-    background-color: #2a2a2a;
 }
 
 /* Focus indicator */
@@ -62,7 +51,6 @@ QListWidget::item:alternate {
     background-color: #252526;
 }
 
-/* Header styling - VS Code header look */
 QHeaderView::section {
     background-color: #252526;
     border: none;
@@ -138,7 +126,6 @@ QTreeWidget::branch:open:has-children:has-siblings {
     border-image: none;
 }
 
-/* VS Code style scrollbars */
 QScrollBar:vertical {
     background-color: #1e1e1e;
     width: 14px;
@@ -184,7 +171,6 @@ QScrollBar::handle:horizontal:pressed {
     background-color: #6c6c6c;
 }
 
-/* Remove scrollbar arrows - VS Code style */
 QScrollBar::add-line:vertical,
 QScrollBar::sub-line:vertical,
 QScrollBar::add-line:horizontal,
