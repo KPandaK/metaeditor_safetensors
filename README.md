@@ -4,14 +4,17 @@
 
 | Name                                                     |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| metaeditor\_safetensors/services/config\_service.py      |       73 |       11 |     85% |23-24, 48-52, 69, 75, 79-81 |
+| metaeditor\_safetensors/models/theme.py                  |       96 |       14 |     85% |120-121, 125-126, 131-137, 165-168, 193 |
+| metaeditor\_safetensors/services/config\_service.py      |       79 |       15 |     81% |23-24, 48-52, 69, 75, 79-81, 146, 155-157 |
+| metaeditor\_safetensors/services/file\_service.py        |       21 |       15 |     29% |24-37, 50-57 |
 | metaeditor\_safetensors/services/image\_service.py       |       32 |        1 |     97% |        58 |
 | metaeditor\_safetensors/services/safetensors\_service.py |       69 |        5 |     93% |142, 161-164 |
-| metaeditor\_safetensors/services/stylesheet\_service.py  |       49 |        0 |    100% |           |
-| metaeditor\_safetensors/views/about\_dialog.py           |       54 |       54 |      0% |      1-93 |
-| metaeditor\_safetensors/views/main\_view.py              |      188 |      188 |      0% |    13-384 |
+| metaeditor\_safetensors/services/theme\_service.py       |      141 |       40 |     72% |58-60, 74, 82-83, 91-92, 108-123, 129-133, 137, 151-156, 178-179, 198-199, 212-214, 238-240 |
+| metaeditor\_safetensors/views/about\_dialog.py           |       58 |       58 |      0% |      1-98 |
+| metaeditor\_safetensors/views/main\_view.py              |      193 |      193 |      0% |    13-394 |
+| metaeditor\_safetensors/views/settings\_dialog.py        |      121 |      121 |      0% |     9-223 |
 | metaeditor\_safetensors/views/thumbnail\_dialog.py       |       18 |       18 |      0% |      1-31 |
-|                                                **TOTAL** |  **483** |  **277** | **43%** |           |
+|                                                **TOTAL** |  **828** |  **480** | **42%** |           |
 
 
 ## Setup coverage badge
