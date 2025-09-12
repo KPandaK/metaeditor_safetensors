@@ -7,30 +7,33 @@ and package root resolution.
 """
 
 import tempfile
-import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
 
 from metaeditor_safetensors.services.file_service import get_package_root, get_project_root
 
 
-class TestFileService(unittest.TestCase):
-    """Test cases for file service functionality."""
+@pytest.fixture
+def temp_structure_factory():
+    """Factory to create temporary directory structures for testing."""
+    created_dirs = []
 
-    def setUp(self):
-        """Set up test fixtures before each test method."""
-        self.temp_dir = None
-
-    def tearDown(self):
-        """Clean up after each test method."""
-        if self.temp_dir and Path(self.temp_dir).exists():
-            import shutil
-            shutil.rmtree(self.temp_dir)
-
-    def _create_temp_structure(self, files_and_dirs):
-        """Helper to create temporary directory structure for testing."""
-        self.temp_dir = tempfile.mkdtemp()
-        temp_path = Path(self.temp_dir)
+    def _create_temp_structure(files_and_dirs):
+        """Create a temporary directory structure with specified files and directories.
+        
+        Args:
+            files_and_dirs: List where items are either:
+                - str ending with '/' for directories
+                - str for files
+        
+        Returns:
+            Path to the root of the created structure
+        """
+        import shutil
+        temp_dir = tempfile.mkdtemp()
+        created_dirs.append(temp_dir)
+        temp_path = Path(temp_dir)
         
         for item in files_and_dirs:
             if item.endswith('/'):
@@ -44,10 +47,22 @@ class TestFileService(unittest.TestCase):
         
         return temp_path
 
-    def test_get_project_root_with_pyproject_toml(self):
+    yield _create_temp_structure
+    
+    # Cleanup
+    import shutil
+    for temp_dir in created_dirs:
+        if Path(temp_dir).exists():
+            shutil.rmtree(temp_dir)
+
+
+class TestFileService:
+    """Test cases for file service functionality."""
+
+    def test_get_project_root_with_pyproject_toml(self, temp_structure_factory):
         """Test get_project_root finds project root with pyproject.toml marker."""
         # Create temporary structure with pyproject.toml
-        root_path = self._create_temp_structure([
+        root_path = temp_structure_factory([
             'pyproject.toml',
             'src/',
             'src/subdir/',
@@ -59,12 +74,12 @@ class TestFileService(unittest.TestCase):
         result = get_project_root(start_path)
         
         # Should find the root with pyproject.toml
-        self.assertEqual(result, root_path)
+        assert result == root_path
 
-    def test_get_project_root_with_git_marker(self):
+    def test_get_project_root_with_git_marker(self, temp_structure_factory):
         """Test get_project_root finds project root with .git marker."""
         # Create temporary structure with .git
-        root_path = self._create_temp_structure([
+        root_path = temp_structure_factory([
             '.git/',
             'src/',
             'src/subdir/',
@@ -76,12 +91,12 @@ class TestFileService(unittest.TestCase):
         result = get_project_root(start_path)
         
         # Should find the root with .git
-        self.assertEqual(result, root_path)
+        assert result == root_path
 
-    def test_get_project_root_with_justfile_marker(self):
+    def test_get_project_root_with_justfile_marker(self, temp_structure_factory):
         """Test get_project_root finds project root with justfile marker."""
         # Create temporary structure with justfile
-        root_path = self._create_temp_structure([
+        root_path = temp_structure_factory([
             'justfile',
             'src/',
             'src/subdir/',
@@ -93,12 +108,12 @@ class TestFileService(unittest.TestCase):
         result = get_project_root(start_path)
         
         # Should find the root with justfile
-        self.assertEqual(result, root_path)
+        assert result == root_path
 
-    def test_get_project_root_no_markers_found(self):
+    def test_get_project_root_no_markers_found(self, temp_structure_factory):
         """Test get_project_root fallback when no markers are found."""
         # Create temporary structure without any markers
-        root_path = self._create_temp_structure([
+        root_path = temp_structure_factory([
             'src/',
             'src/subdir/',
             'src/subdir/file.py'
@@ -109,12 +124,12 @@ class TestFileService(unittest.TestCase):
         result = get_project_root(start_path)
         
         # Should return the start path as fallback
-        self.assertEqual(result, start_path)
+        assert result == start_path
 
-    def test_get_project_root_multiple_markers(self):
+    def test_get_project_root_multiple_markers(self, temp_structure_factory):
         """Test get_project_root with multiple markers (finds first one)."""
         # Create temporary structure with multiple markers
-        root_path = self._create_temp_structure([
+        root_path = temp_structure_factory([
             'pyproject.toml',
             '.git/',
             'justfile',
@@ -128,27 +143,27 @@ class TestFileService(unittest.TestCase):
         result = get_project_root(start_path)
         
         # Should find the root (order in markers list determines which is found first)
-        self.assertEqual(result, root_path)
+        assert result == root_path
 
-    def test_get_project_root_default_cwd(self):
+    def test_get_project_root_default_cwd(self, mocker):
         """Test get_project_root uses current working directory when start_path is None."""
-        with patch('pathlib.Path.cwd') as mock_cwd:
-            mock_cwd.return_value = Path('/test/current/dir')
-            
-            with patch.object(Path, 'exists') as mock_exists:
-                # Mock no markers found
-                mock_exists.return_value = False
-                
-                result = get_project_root(None)
-                
-                # Should use cwd as fallback when no markers found
-                self.assertEqual(result, Path('/test/current/dir'))
-                mock_cwd.assert_called_once()
+        mock_cwd = mocker.patch('pathlib.Path.cwd')
+        mock_cwd.return_value = Path('/test/current/dir')
+        
+        mock_exists = mocker.patch.object(Path, 'exists')
+        # Mock no markers found
+        mock_exists.return_value = False
+        
+        result = get_project_root(None)
+        
+        # Should use cwd as fallback when no markers found
+        assert result == Path('/test/current/dir')
+        mock_cwd.assert_called_once()
 
-    def test_get_project_root_nested_markers(self):
+    def test_get_project_root_nested_markers(self, temp_structure_factory):
         """Test get_project_root finds the closest marker going up the tree."""
         # Create structure with nested markers
-        root_path = self._create_temp_structure([
+        root_path = temp_structure_factory([
             'pyproject.toml',
             'src/',
             'src/nested/',
@@ -163,93 +178,89 @@ class TestFileService(unittest.TestCase):
         
         # Should find the closest .git directory first (in src/nested/)
         expected_path = root_path / 'src' / 'nested'
-        self.assertEqual(result, expected_path)
+        assert result == expected_path
 
-    def test_get_package_root_success(self):
+    def test_get_package_root_success(self, mocker):
         """Test get_package_root with successful importlib.resources call."""
-        with patch('metaeditor_safetensors.services.file_service.resources.files') as mock_files:
-            # Mock successful package resolution
-            mock_package_files = MagicMock()
-            mock_files.return_value = mock_package_files
-            
-            # Mock the string conversion to return a valid path string
-            expected_path = '/path/to/package'
-            mock_package_files.__str__ = MagicMock(return_value=expected_path)
-            
-            result = get_package_root('test_package')
-            
-            # Should return the converted path
-            self.assertEqual(result, Path(expected_path))
-            mock_files.assert_called_once_with('test_package')
+        mock_files = mocker.patch('metaeditor_safetensors.services.file_service.resources.files')
+        # Mock successful package resolution
+        mock_package_files = mocker.MagicMock()
+        mock_files.return_value = mock_package_files
+        
+        # Mock the string conversion to return a valid path string
+        expected_path = '/path/to/package'
+        mock_package_files.__str__ = mocker.MagicMock(return_value=expected_path)
+        
+        result = get_package_root('test_package')
+        
+        # Should return the converted path
+        assert result == Path(expected_path)
+        mock_files.assert_called_once_with('test_package')
 
-    def test_get_package_root_exception_fallback(self):
+    def test_get_package_root_exception_fallback(self, mocker):
         """Test get_package_root fallback when importlib.resources fails."""
-        with patch('metaeditor_safetensors.services.file_service.resources.files') as mock_files:
-            # Mock exception during package resolution
-            mock_files.side_effect = Exception("Package not found")
-            
-            with patch('metaeditor_safetensors.services.file_service.get_project_root') as mock_get_project_root:
-                mock_project_root = Path('/project/root')
-                mock_get_project_root.return_value = mock_project_root
-                
-                result = get_package_root('test_package')
-                
-                # Should fallback to project_root / package_name
-                expected_path = mock_project_root / 'test_package'
-                self.assertEqual(result, expected_path)
-                mock_get_project_root.assert_called_once()
+        mock_files = mocker.patch('metaeditor_safetensors.services.file_service.resources.files')
+        # Mock exception during package resolution
+        mock_files.side_effect = Exception("Package not found")
+        
+        mock_get_project_root = mocker.patch('metaeditor_safetensors.services.file_service.get_project_root')
+        mock_project_root = Path('/project/root')
+        mock_get_project_root.return_value = mock_project_root
+        
+        result = get_package_root('test_package')
+        
+        # Should fallback to project_root / package_name
+        expected_path = mock_project_root / 'test_package'
+        assert result == expected_path
+        mock_get_project_root.assert_called_once()
 
-    def test_get_package_root_default_package_name(self):
+    def test_get_package_root_default_package_name(self, mocker):
         """Test get_package_root with default package name."""
-        with patch('metaeditor_safetensors.services.file_service.resources.files') as mock_files:
-            # Mock successful package resolution
-            mock_package_files = MagicMock()
-            mock_files.return_value = mock_package_files
-            
-            # Mock the string conversion to return a valid path string
-            expected_path = '/path/to/metaeditor_safetensors'
-            mock_package_files.__str__ = MagicMock(return_value=expected_path)
-            
-            result = get_package_root()  # Use default package name
-            
-            # Should use default package name
-            self.assertEqual(result, Path(expected_path))
-            mock_files.assert_called_once_with('metaeditor_safetensors')
+        mock_files = mocker.patch('metaeditor_safetensors.services.file_service.resources.files')
+        # Mock successful package resolution
+        mock_package_files = mocker.MagicMock()
+        mock_files.return_value = mock_package_files
+        
+        # Mock the string conversion to return a valid path string
+        expected_path = '/path/to/metaeditor_safetensors'
+        mock_package_files.__str__ = mocker.MagicMock(return_value=expected_path)
+        
+        result = get_package_root()  # Use default package name
+        
+        # Should use default package name
+        assert result == Path(expected_path)
+        mock_files.assert_called_once_with('metaeditor_safetensors')
 
-    def test_get_package_root_importerror_fallback(self):
+    def test_get_package_root_importerror_fallback(self, mocker):
         """Test get_package_root fallback when importlib raises ImportError."""
-        with patch('metaeditor_safetensors.services.file_service.resources.files') as mock_files:
-            # Mock ImportError during package resolution
-            mock_files.side_effect = ImportError("No module named 'test_package'")
-            
-            with patch('metaeditor_safetensors.services.file_service.get_project_root') as mock_get_project_root:
-                mock_project_root = Path('/project/root')
-                mock_get_project_root.return_value = mock_project_root
-                
-                result = get_package_root('test_package')
-                
-                # Should fallback to project_root / package_name
-                expected_path = mock_project_root / 'test_package'
-                self.assertEqual(result, expected_path)
-                mock_get_project_root.assert_called_once()
+        mock_files = mocker.patch('metaeditor_safetensors.services.file_service.resources.files')
+        # Mock ImportError during package resolution
+        mock_files.side_effect = ImportError("No module named 'test_package'")
+        
+        mock_get_project_root = mocker.patch('metaeditor_safetensors.services.file_service.get_project_root')
+        mock_project_root = Path('/project/root')
+        mock_get_project_root.return_value = mock_project_root
+        
+        result = get_package_root('test_package')
+        
+        # Should fallback to project_root / package_name
+        expected_path = mock_project_root / 'test_package'
+        assert result == expected_path
+        mock_get_project_root.assert_called_once()
 
-    def test_get_package_root_modulenotfounderror_fallback(self):
+    def test_get_package_root_modulenotfounderror_fallback(self, mocker):
         """Test get_package_root fallback when importlib raises ModuleNotFoundError."""
-        with patch('metaeditor_safetensors.services.file_service.resources.files') as mock_files:
-            # Mock ModuleNotFoundError during package resolution
-            mock_files.side_effect = ModuleNotFoundError("No module named 'test_package'")
-            
-            with patch('metaeditor_safetensors.services.file_service.get_project_root') as mock_get_project_root:
-                mock_project_root = Path('/project/root')
-                mock_get_project_root.return_value = mock_project_root
-                
-                result = get_package_root('test_package')
-                
-                # Should fallback to project_root / package_name
-                expected_path = mock_project_root / 'test_package'
-                self.assertEqual(result, expected_path)
-                mock_get_project_root.assert_called_once()
-
-
-if __name__ == "__main__":
-    unittest.main()
+        mock_files = mocker.patch('metaeditor_safetensors.services.file_service.resources.files')
+        # Mock ModuleNotFoundError during package resolution
+        mock_files.side_effect = ModuleNotFoundError("No module named 'test_package'")
+        
+        mock_get_project_root = mocker.patch('metaeditor_safetensors.services.file_service.get_project_root')
+        mock_project_root = Path('/project/root')
+        mock_get_project_root.return_value = mock_project_root
+        
+        result = get_package_root('test_package')
+        
+        # Should fallback to project_root / package_name
+        expected_path = mock_project_root / 'test_package'
+        assert result == expected_path
+        mock_get_project_root.assert_called_once()

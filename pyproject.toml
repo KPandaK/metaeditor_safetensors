@@ -25,6 +25,9 @@ dev = [
     "numpy<2",
     "safetensors>=0.6.2",
     "setuptools>=80.9.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
 ]
 
 [tool.setuptools.packages.find]
