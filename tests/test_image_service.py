@@ -45,7 +45,9 @@ def temp_dir():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def create_test_image(temp_dir: str, filename: str, format: str = "PNG", size: tuple = (100, 100)) -> str:
+def create_test_image(
+    temp_dir: str, filename: str, format: str = "PNG", size: tuple = (100, 100)
+) -> str:
     """
     Create a test image file for testing.
 

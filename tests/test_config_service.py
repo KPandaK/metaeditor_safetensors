@@ -431,4 +431,3 @@ class TestConfigService:
 
             # Verify the ConfigService has the mocked settings directory
             assert config_service._settings_dir == mock_settings_path
-
