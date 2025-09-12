@@ -44,7 +44,6 @@ def temp_dir():
 
     shutil.rmtree(temp_dir, ignore_errors=True)
 
-
 @pytest.fixture
 def themes_dir(temp_dir):
     """Create temporary directory structure for themes."""
@@ -84,7 +83,6 @@ qss_order:
     )
 
     return themes_dir
-
 
 @pytest.fixture(autouse=True)
 def suppress_logging():
@@ -162,6 +160,7 @@ class TestThemeService:
             assert theme_service._file_watcher is not None
         else:
             assert theme_service._file_watcher is None
+
 
     def test_theme_service_initialization(self, mocker, qapp, temp_dir, themes_dir):
         """Test ThemeService initialization and theme discovery."""
