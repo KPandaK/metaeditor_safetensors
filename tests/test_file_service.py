@@ -76,7 +76,7 @@ class TestFileService:
         result = get_project_root(start_path)
 
         # Should find the root with pyproject.toml
-        assert result == root_path
+        assert result.resolve() == root_path.resolve()
 
     def test_get_project_root_with_git_marker(self, temp_structure_factory):
         """Test get_project_root finds project root with .git marker."""
@@ -90,7 +90,7 @@ class TestFileService:
         result = get_project_root(start_path)
 
         # Should find the root with .git
-        assert result == root_path
+        assert result.resolve() == root_path.resolve()
 
     def test_get_project_root_with_justfile_marker(self, temp_structure_factory):
         """Test get_project_root finds project root with justfile marker."""
@@ -104,7 +104,7 @@ class TestFileService:
         result = get_project_root(start_path)
 
         # Should find the root with justfile
-        assert result == root_path
+        assert result.resolve() == root_path.resolve()
 
     def test_get_project_root_no_markers_found(self, temp_structure_factory):
         """Test get_project_root fallback when no markers are found."""
@@ -118,7 +118,7 @@ class TestFileService:
         result = get_project_root(start_path)
 
         # Should return the start path as fallback
-        assert result == start_path
+        assert result.resolve() == start_path.resolve()
 
     def test_get_project_root_multiple_markers(self, temp_structure_factory):
         """Test get_project_root with multiple markers (finds first one)."""
@@ -139,7 +139,7 @@ class TestFileService:
         result = get_project_root(start_path)
 
         # Should find the root (order in markers list determines which is found first)
-        assert result == root_path
+        assert result.resolve() == root_path.resolve()
 
     def test_get_project_root_default_cwd(self, mocker):
         """Test get_project_root uses current working directory when start_path is None."""
@@ -176,7 +176,7 @@ class TestFileService:
 
         # Should find the closest .git directory first (in src/nested/)
         expected_path = root_path / "src" / "nested"
-        assert result == expected_path
+        assert result.resolve() == expected_path.resolve()
 
     def test_get_package_root_success(self, mocker):
         """Test get_package_root with successful importlib.resources call."""
