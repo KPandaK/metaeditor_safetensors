@@ -26,6 +26,12 @@ class AboutDialog(QDialog):
         self.ui = Ui_AboutDialog()
         self.ui.setupUi(self)
 
+        # Ensure the dialog uses the current application stylesheet
+        # This fixes hover effects not applying until after a stylesheet refresh
+        app = QApplication.instance()
+        if app:
+            self.setStyleSheet(app.styleSheet())
+
         self.setWindowTitle("About")
         self.setFixedSize(690, 425)
         self.ui.tabWidget.tabBar().setExpanding(True)
@@ -52,12 +58,6 @@ class AboutDialog(QDialog):
 
         # Make GitHub and Ko-fi links clickable
         self._setup_clickable_links()
-
-        # Ensure the dialog uses the current application stylesheet
-        # This fixes hover effects not applying until after a stylesheet refresh
-        app = QApplication.instance()
-        if app:
-            self.setStyleSheet(app.styleSheet())
 
         self.ui.copyVersion.clicked.connect(self._copy_version_to_clipboard)
 
