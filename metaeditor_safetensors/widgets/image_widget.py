@@ -120,15 +120,14 @@ class ImageWidget(QGraphicsView):
             if self.hasPixmap():
                 # Image state: maintain aspect ratio from pixmap
                 pixmap = self._original_pixmap
-                if pixmap is not None:
-                    image_width = pixmap.width()
-                    image_height = pixmap.height()
+                image_width = pixmap.width()
+                image_height = pixmap.height()
 
-                    # Calculate aspect ratio, avoid division by zero
-                    if image_width > 0:
-                        aspect_ratio = image_height / image_width
-                    else:
-                        aspect_ratio = 1.0
+                # Calculate aspect ratio, avoid division by zero
+                if image_width > 0:
+                    aspect_ratio = image_height / image_width
+                else:
+                    aspect_ratio = 1.0
             else:
                 # No pixmap state: use square aspect ratio (1.0)
                 aspect_ratio = 1.0
@@ -165,14 +164,11 @@ class ImageWidget(QGraphicsView):
         if self.hasPixmap():
             # Image state: calculate size based on image aspect ratio
             pixmap = self._original_pixmap
-            if pixmap is not None:
-                image_width = pixmap.width()
-                image_height = pixmap.height()
+            image_width = pixmap.width()
+            image_height = pixmap.height()
 
-                if image_width > 0:
-                    aspect_ratio = image_height / image_width
-                else:
-                    aspect_ratio = 1.0
+            if image_width > 0:
+                aspect_ratio = image_height / image_width
             else:
                 aspect_ratio = 1.0
         else:

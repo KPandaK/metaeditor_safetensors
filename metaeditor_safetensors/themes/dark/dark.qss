@@ -865,21 +865,6 @@ QAbstractItemView::item:hover {
     background-color: #2a2a2a;
 }
 
-/* Progress bar in lists/tables */
-QProgressBar {
-    background-color: #3c3c3c;
-    border: 1px solid #454545;
-    border-radius: 2px;
-    text-align: center;
-    font-size: 11px;
-    color: #cccccc;
-}
-
-QProgressBar::chunk {
-    background-color: #007acc;
-    border-radius: 1px;
-}
-
 /* 
 Miscellaneous Elements
 */
