@@ -253,7 +253,7 @@
               <number>10</number>
              </property>
              <item>
-              <widget class="QLabel" name="kofiLink">
+              <widget class="ClickableImage" name="kofiLink">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -284,7 +284,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="githubLink">
+              <widget class="ClickableImage" name="githubLink">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -548,6 +548,11 @@
    <class>SvgWidget</class>
    <extends>QWidget</extends>
    <header>metaeditor_safetensors.widgets.svg_widget</header>
+  </customwidget>
+  <customwidget>
+   <class>ClickableImage</class>
+   <extends>QLabel</extends>
+   <header>metaeditor_safetensors.widgets.clickable_image</header>
   </customwidget>
  </customwidgets>
  <resources>

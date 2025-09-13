@@ -19,6 +19,7 @@ from ..services.image_service import ImageService
 from ..services.safetensors_service import SafetensorsService
 from ..services.save_worker import SaveWorker
 from ..services.theme_service import ThemeService
+from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
 from ..views.thumbnail_dialog import ThumbnailDialog
@@ -69,6 +70,7 @@ class MainController(QObject):
         self._view.file_dropped.connect(self.on_file_dropped)
         self._view.save_requested.connect(self.on_save_requested)
         self._view.settings_requested.connect(self.on_settings_requested)
+        self._view.about_requested.connect(self.on_about_requested)
         self._view.exit_requested.connect(self.on_exit_requested)
 
         # Connect recent files signals
@@ -220,6 +222,18 @@ class MainController(QObject):
 
         if result == QDialog.DialogCode.Accepted:
             self._view.set_status_message("Settings saved successfully", 2000)
+
+    def on_about_requested(self):
+        """Handle about dialog request from the Help menu."""
+        if not self._theme_service:
+            self._view.set_status_message("Theme service not available", 3000)
+            return
+
+        # Create and configure about dialog
+        about_dialog = AboutDialog(self._theme_service, self._view)
+
+        # Show dialog
+        about_dialog.exec()
 
     def _on_settings_theme_changed(self, theme_identifier: str):
         """Handle theme changes from the settings dialog."""

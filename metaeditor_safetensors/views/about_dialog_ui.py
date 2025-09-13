@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout,
     QLabel, QPushButton, QScrollArea, QSizePolicy,
     QSpacerItem, QTabWidget, QVBoxLayout, QWidget)
 
+from metaeditor_safetensors.widgets.clickable_image import ClickableImage
 from metaeditor_safetensors.widgets.svg_widget import SvgWidget
 from . import resources_rc
 
@@ -132,7 +133,7 @@ class Ui_AboutDialog(object):
         self.linksHLayout = QHBoxLayout()
         self.linksHLayout.setSpacing(10)
         self.linksHLayout.setObjectName(u"linksHLayout")
-        self.kofiLink = QLabel(self.aboutTab)
+        self.kofiLink = ClickableImage(self.aboutTab)
         self.kofiLink.setObjectName(u"kofiLink")
         sizePolicy2.setHeightForWidth(self.kofiLink.sizePolicy().hasHeightForWidth())
         self.kofiLink.setSizePolicy(sizePolicy2)
@@ -143,7 +144,7 @@ class Ui_AboutDialog(object):
 
         self.linksHLayout.addWidget(self.kofiLink)
 
-        self.githubLink = QLabel(self.aboutTab)
+        self.githubLink = ClickableImage(self.aboutTab)
         self.githubLink.setObjectName(u"githubLink")
         sizePolicy2.setHeightForWidth(self.githubLink.sizePolicy().hasHeightForWidth())
         self.githubLink.setSizePolicy(sizePolicy2)

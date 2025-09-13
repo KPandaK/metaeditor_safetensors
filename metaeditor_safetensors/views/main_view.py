@@ -52,6 +52,7 @@ class MainView(QMainWindow):
     open_file_requested = Signal()
     save_requested = Signal()
     settings_requested = Signal()
+    about_requested = Signal()
     exit_requested = Signal()
     file_dropped = Signal(str)
     recent_file_triggered = Signal(str)
@@ -186,13 +187,8 @@ class MainView(QMainWindow):
         # Help Menu
         help_menu = menu_bar.addMenu("&Help")
         about_action = QAction("&About", self)
-        about_action.triggered.connect(self.show_about_window)
+        about_action.triggered.connect(self.about_requested)
         help_menu.addAction(about_action)
-
-    def show_about_window(self):
-        """Shows the about window."""
-        about_dialog = AboutDialog(self)
-        about_dialog.exec()
 
     def update_recent_files_menu(self, recent_files: list[str]):
         """
