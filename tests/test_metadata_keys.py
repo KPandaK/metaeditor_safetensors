@@ -61,9 +61,9 @@ class TestMetadataKeys:
         ]
 
         for key in keys:
-            assert key.startswith("modelspec."), (
-                f"Key {key} should start with 'modelspec.'"
-            )
+            assert key.startswith(
+                "modelspec."
+            ), f"Key {key} should start with 'modelspec.'"
 
     def test_key_uniqueness(self):
         """Test that all metadata keys are unique."""
@@ -114,6 +114,6 @@ class TestMetadataKeys:
         ]
 
         for attr in expected_attributes:
-            assert hasattr(MetadataKeys, attr), (
-                f"MetadataKeys should have attribute {attr}"
-            )
+            assert hasattr(
+                MetadataKeys, attr
+            ), f"MetadataKeys should have attribute {attr}"

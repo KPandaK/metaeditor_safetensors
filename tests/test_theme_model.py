@@ -266,18 +266,18 @@ qss_order:
         light_ids = ["light_theme", "bright_ui", "white_background", "LIGHT-MODE"]
         for theme_id in light_ids:
             category = Theme._infer_category(theme_id)
-            assert category == "light", (
-                f"Theme ID '{theme_id}' should be categorized as light"
-            )
+            assert (
+                category == "light"
+            ), f"Theme ID '{theme_id}' should be categorized as light"
 
     def test_infer_category_dark_themes(self):
         """Test that _infer_category correctly identifies dark themes."""
         dark_ids = ["dark_theme", "night_mode", "black_ui", "DARK-THEME"]
         for theme_id in dark_ids:
             category = Theme._infer_category(theme_id)
-            assert category == "dark", (
-                f"Theme ID '{theme_id}' should be categorized as dark"
-            )
+            assert (
+                category == "dark"
+            ), f"Theme ID '{theme_id}' should be categorized as dark"
 
     def test_infer_category_defaults_to_dark(self):
         """Test that _infer_category defaults to dark for ambiguous names."""
