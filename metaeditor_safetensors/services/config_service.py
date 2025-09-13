@@ -13,6 +13,8 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import List
 
+from ..models.settings import AppSettings, ValidationError
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,7 +30,8 @@ class ConfigService:
     """
     Service for managing application configuration and persistent settings.
 
-    This service handles loading and saving application settings to a JSON file
+    This service handles loading and saving application settings using Pydantic
+    models for validation and type safety. Settings are persisted to a JSON file
     in the appropriate user data directory.
     """
 
@@ -57,48 +60,48 @@ class ConfigService:
         settings_dir.mkdir(parents=True, exist_ok=True)
         return settings_dir
 
-    def _load_settings(self) -> dict:
-        """Load settings from the JSON file."""
+    def _load_settings(self) -> AppSettings:
+        """Load settings from the JSON file with Pydantic validation."""
         if self._settings_file.exists():
             try:
                 with open(self._settings_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
 
-                # Ensure we have the required structure
+                # Ensure we have the required structure for backward compatibility
                 if not isinstance(data, dict):
+                    logger.warning("Settings file is not a dictionary, using defaults")
                     return self._get_default_settings()
 
-                # Ensure we have recent_files array
-                if "recent_files" not in data or not isinstance(
-                    data["recent_files"], list
-                ):
-                    data["recent_files"] = []
-
-                return data
+                # Try to load with Pydantic validation
+                try:
+                    return AppSettings.from_dict(data)
+                except ValidationError as e:
+                    logger.warning(f"Settings validation failed: {e}, using defaults")
+                    return self._get_default_settings()
 
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Could not load settings file: {e}")
                 return self._get_default_settings()
         return self._get_default_settings()
 
-    def _get_default_settings(self) -> dict:
-        """Get default settings structure."""
-        return {
-            "config_version": self.CONFIG_VERSION,
-            "app_version": get_app_version(),
-            "recent_files": [],
-            "theme_preference": "auto",
-        }
+    def _get_default_settings(self) -> AppSettings:
+        """Get default settings structure with current version info."""
+        return AppSettings(
+            config_version=self.CONFIG_VERSION,
+            app_version=get_app_version(),
+            recent_files=[],
+            theme_preference="auto"
+        )
 
     def _save_settings(self) -> None:
         """Save settings to the JSON file."""
         try:
-            # Ensure version info is always saved
-            self._settings["config_version"] = self.CONFIG_VERSION
-            self._settings["app_version"] = get_app_version()
+            # Ensure version info is always current
+            self._settings.config_version = self.CONFIG_VERSION
+            self._settings.app_version = get_app_version()
 
             with open(self._settings_file, "w", encoding="utf-8") as f:
-                json.dump(self._settings, f, indent=2, ensure_ascii=False)
+                json.dump(self._settings.to_dict(), f, indent=2, ensure_ascii=False)
         except IOError as e:
             logger.warning(f"Could not save settings file: {e}")
 
@@ -109,8 +112,7 @@ class ConfigService:
         Returns:
             List of file paths in most recent first order
         """
-        recent_files = self._settings.get("recent_files", [])
-        return list(recent_files)
+        return list(self._settings.recent_files)
 
     def add_recent_file(self, file_path: str) -> None:
         """
@@ -133,7 +135,7 @@ class ConfigService:
             recent_files = recent_files[: self._max_recent_files]
 
         # Update settings and save
-        self._settings["recent_files"] = recent_files
+        self._settings.recent_files = recent_files
         self._save_settings()
 
     def get_theme_preference(self) -> str:
@@ -143,7 +145,7 @@ class ConfigService:
         Returns:
             Theme preference string ('auto', theme filename, etc.)
         """
-        return str(self._settings.get("theme_preference", "auto"))
+        return self._settings.theme_preference
 
     def set_theme_preference(self, theme_preference: str) -> None:
         """
@@ -152,13 +154,13 @@ class ConfigService:
         Args:
             theme_preference: Theme preference string
         """
-        self._settings["theme_preference"] = theme_preference
+        self._settings.theme_preference = theme_preference
         self._save_settings()
         logger.debug(f"Theme preference saved: {theme_preference}")
 
     def clear_recent_files(self) -> None:
         """Clear the recent files list."""
-        self._settings["recent_files"] = []
+        self._settings.recent_files = []
         self._save_settings()
 
     def remove_recent_file(self, file_path: str) -> None:
@@ -171,5 +173,5 @@ class ConfigService:
         recent_files = self.get_recent_files()
         if file_path in recent_files:
             recent_files.remove(file_path)
-            self._settings["recent_files"] = recent_files
+            self._settings.recent_files = recent_files
             self._save_settings()
