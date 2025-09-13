@@ -94,6 +94,7 @@ markers = [
 ]
 
 [tool.coverage.run]
+relative_files = true
 source = ["metaeditor_safetensors"]
 omit = [
     "*/tests/*",
@@ -101,6 +102,10 @@ omit = [
     "*/resources_rc.py",
     "*/venv/*",
     "*/legacy/*",
+    "__init__.py",
+    "__main__.py",
+    "main.py",
+    "app.py",
 ]
 
 [tool.coverage.report]
