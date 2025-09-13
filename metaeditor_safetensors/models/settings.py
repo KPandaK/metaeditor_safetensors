@@ -19,15 +19,15 @@ class BaseModel:
         self.recent_files = data.get("recent_files", [])
         self.theme_preference = data.get("theme_preference", "auto")
         
-        # Validate types - but be more lenient for testing
+        # Validate types - but raise ValidationError for consistency with Pydantic
         if self.config_version is not None and not isinstance(self.config_version, str):
-            raise ValueError("config_version must be a string")
+            raise ValidationError("config_version must be a string")
         if self.app_version is not None and not isinstance(self.app_version, str):
-            raise ValueError("app_version must be a string")
+            raise ValidationError("app_version must be a string")
         if self.recent_files is not None and not isinstance(self.recent_files, list):
-            raise ValueError("recent_files must be a list")
+            raise ValidationError("recent_files must be a list")
         if self.theme_preference is not None and not isinstance(self.theme_preference, str):
-            raise ValueError("theme_preference must be a string")
+            raise ValidationError("theme_preference must be a string")
     
     def model_dump(self) -> Dict[str, Any]:
         """Convert to dictionary."""
