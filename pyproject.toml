@@ -94,6 +94,7 @@ markers = [
 ]
 
 [tool.coverage.run]
+relative_files = true
 source = ["metaeditor_safetensors"]
 omit = [
     "*/tests/*",
