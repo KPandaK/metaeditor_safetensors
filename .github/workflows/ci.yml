@@ -118,10 +118,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
       
       - *install-poetry
-      - *cache-dependencies
-      - *install-dependencies
+      
+      # Explicitly define the cache step to avoid linter warnings with YAML anchors.
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+      
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        shell: bash
+        run: poetry install --no-interaction --with dev
       
       - name: Run tests
+        shell: bash
         run: poetry run pytest -v --tb=short
         env:
           QT_QPA_PLATFORM: offscreen
