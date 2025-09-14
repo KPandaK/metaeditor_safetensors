@@ -1,10 +1,3 @@
-"""
-Application Entry Point
-=======================
-
-This module contains the main application logic for the Safetensors Metadata Editor.
-"""
-
 import logging
 import os
 import sys
@@ -22,7 +15,6 @@ from .views.main_view import MainView
 
 
 def get_app_version():
-    """Get the application version from package metadata."""
     try:
         return version("metaeditor-safetensors")
     except PackageNotFoundError:
@@ -30,9 +22,6 @@ def get_app_version():
 
 
 def main():
-    """
-    The main function that sets up and runs the application.
-    """
     # Set logging level from environment variable
     log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
     logging.basicConfig(level=log_level)
@@ -49,20 +38,14 @@ def main():
     image_service = ImageService()
 
     # Initialize theme service
-    theme_service = ThemeService(app)
-
-    # Apply user's theme preference (app coordinates between config and theme services)
-    preferred_theme = config_service.get_theme_preference()
-    if preferred_theme and theme_service.has_theme(preferred_theme):
-        theme_service.apply_theme(preferred_theme)
-    else:
-        # Default to auto theme
-        theme_service.apply_theme("auto")
-        config_service.set_theme_preference("auto")
+    theme_service = ThemeService()
+    theme_service.add_theme_changed_observer(
+        lambda theme: app.setStyleSheet(theme.get_qss())
+    )
 
     # 3. Instantiate the MVC components.
     model = MetadataModel()
-    view = MainView()
+    view = MainView(config_service)
     controller = MainController(
         model, view, config_service, safetensors_service, image_service, theme_service
     )

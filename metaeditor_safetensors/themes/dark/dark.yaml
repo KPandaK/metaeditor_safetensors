@@ -1,8 +1,8 @@
 # Dark Theme Configuration
 # =========================
 
-theme_id: "dark"
-name: "Dark"
+theme_id: "dark-modern"
+name: "Dark Modern"
 description: "A modern dark theme"
 category: "dark"
 version: "1.0.0"
