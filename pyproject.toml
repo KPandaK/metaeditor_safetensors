@@ -10,6 +10,9 @@ authors = ["KPandaK"]
 readme = "readme.md"
 packages = [{include = "metaeditor_safetensors"}]
 
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
+
 [tool.poetry.dependencies]
 python = ">=3.10,<3.13"
 PySide6 = "^6.6.1"
