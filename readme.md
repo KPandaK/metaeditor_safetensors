@@ -1,8 +1,9 @@
 <div align="left">
 
+[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![CI](https://github.com/KPandaK/metaeditor_safetensors/actions/workflows/ci.yml/badge.svg)](https://github.com/KPandaK/metaeditor_safetensors/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/KPandaK/metaeditor_safetensors/python-coverage-comment-action-data/endpoint.json)](https://github.com/KPandaK/metaeditor_safetensors/tree/python-coverage-comment-action-data)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10 | 3.11 | 3.12](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12-blue.svg)](https://github.com/KPandaK/metaeditor_safetensors)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 </div>
@@ -23,21 +24,25 @@ A lightweight Python tool and GUI for inspecting and editing `.safetensors` file
   cd metaeditor_safetensors
   ```
 
-2. **(Optional) Create a virtual environment:**
-  ```sh
-  python -m venv venv
-  venv\Scripts\activate  # Windows
-  ```
+2. **Install Poetry:**
+  - **Windows:**
+    ```powershell
+    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+    ```
+  - **macOS/Linux:**
+    ```sh
+    curl -sSL https://install.python-poetry.org | python3 -
+    ```
 
-3. **Install dependencies:**
+3. **Install dependencies with Poetry:**
   ```sh
-  pip install -r requirements.txt
+  poetry install
   ```
 
 ## Usage
 Run the main application:
 ```sh
-python main.py
+poetry run python main.py
 ```
 
 ## Development Setup
@@ -66,7 +71,7 @@ Follow these steps to set up MetaEditor SafeTensors for development:
     ```powershell
     just install
     ```
-  - This will create a virtual environment and install all required packages.
+  - This will create a Poetry-managed virtual environment and install all required development packages.
 
 You’re now ready to build, test, and run the application!
 
