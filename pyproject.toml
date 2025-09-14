@@ -1,37 +1,42 @@
 [build-system]
-requires = ["setuptools>=80.9.0", "setuptools_scm[simple]>=9.2.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
-[project]
+[tool.poetry]
 name = "metaeditor_safetensors"
-dynamic = ["version"]
+version = "0.0.0"
 description = "A metadata editor for safetensors files"
-authors = [{name = "KPandK"}]
-requires-python = ">=3.10"
-dependencies = [
-    "PySide6>=6.6.1",
-    "darkdetect>=0.8.0",
-    "PyYAML>=6.0.0",
-]
+authors = ["KPandaK"]
+readme = "readme.md"
+packages = [{include = "metaeditor_safetensors"}]
 
-[project.optional-dependencies]
-dev = [
-    "coverage>=7.0.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
-    "bandit>=1.7.0",
-    "pip-audit>=2.0.0",
-    "types-PyYAML>=6.0.12",
-    "numpy<2",
-    "safetensors>=0.6.2",
-    "setuptools>=80.9.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-]
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
 
-[tool.setuptools.packages.find]
-where = ["."]
+[tool.poetry.dependencies]
+python = ">=3.10,<3.13"
+PySide6 = "^6.6.1"
+darkdetect = "^0.8.0"
+PyYAML = "^6.0.0"
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.0.0"
+mypy = "^1.0.0"
+ruff = "^0.1.0"
+bandit = "^1.7.0"
+pip-audit = "^2.0.0"
+types-PyYAML = "^6.0.12"
+numpy = "<2"
+safetensors = "^0.6.2"
+setuptools = "^80.9.0"
+pytest = "^7.0.0"
+pytest-cov = "^4.0.0"
+pytest-mock = "^3.10.0"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
 
 [tool.mypy]
 python_version = "3.10"
@@ -49,7 +54,6 @@ exclude = [
 line-length = 88
 target-version = "py310"
 exclude = [
-    "venv", 
     "legacy", 
     "**/*_ui.py", 
     "**/resources_rc.py",
@@ -70,7 +74,7 @@ ignore = [
 unfixable = ["T201"]
 
 [tool.bandit]
-exclude_dirs = ["tests", "venv", "legacy"]
+exclude_dirs = ["tests", "legacy"]
 skips = [
     "B101",  # assert_used - asserts are okay in applications
     "B603",  # subprocess_without_shell_equals_true - we use subprocess safely
@@ -100,8 +104,10 @@ omit = [
     "*/tests/*",
     "*/*_ui.py",
     "*/resources_rc.py",
-    "*/venv/*",
     "*/legacy/*",
+    "*/shibokensupport/*",
+    "*pyscript*",
+    "*signature_bootstrap*",
     "__init__.py",
     "__main__.py",
     "main.py",

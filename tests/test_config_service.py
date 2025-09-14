@@ -491,6 +491,6 @@ class TestConfigService:
         except IOError:
             success = False
 
-        assert success, (
-            "IOError during theme preference save should be handled gracefully"
-        )
+        assert (
+            success
+        ), "IOError during theme preference save should be handled gracefully"

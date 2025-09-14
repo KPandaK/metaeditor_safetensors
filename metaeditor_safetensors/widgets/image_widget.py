@@ -102,6 +102,20 @@ class ImageWidget(QGraphicsView):
         # Update size hint when pixmap changes
         self.updateGeometry()
 
+    def _calculate_aspect_ratio(self):
+        """Calculate the aspect ratio of the current pixmap."""
+        if self._original_pixmap is not None and not self._original_pixmap.isNull():
+            pixmap = self._original_pixmap
+            image_width = pixmap.width()
+            image_height = pixmap.height()
+
+            if image_width > 0:
+                return image_height / image_width
+            else:
+                return 1.0
+        else:
+            return 1.0
+
     def _update_size(self):
         """Update widget size based on primary dimension."""
         # Prevent infinite recursion
@@ -115,22 +129,7 @@ class ImageWidget(QGraphicsView):
             current_width = self.width()
             current_height = self.height()
 
-            aspect_ratio = 1.0
-
-            if self.hasPixmap():
-                # Image state: maintain aspect ratio from pixmap
-                pixmap = self._original_pixmap
-                image_width = pixmap.width()
-                image_height = pixmap.height()
-
-                # Calculate aspect ratio, avoid division by zero
-                if image_width > 0:
-                    aspect_ratio = image_height / image_width
-                else:
-                    aspect_ratio = 1.0
-            else:
-                # No pixmap state: use square aspect ratio (1.0)
-                aspect_ratio = 1.0
+            aspect_ratio = self._calculate_aspect_ratio()
 
             # Apply size constraints based on primary dimension and aspect ratio
             # This lets the widget grow within available space but not force window resizing
@@ -159,21 +158,7 @@ class ImageWidget(QGraphicsView):
         Returns:
             QSize: Preferred size for the widget
         """
-        aspect_ratio = 1.0
-
-        if self.hasPixmap():
-            # Image state: calculate size based on image aspect ratio
-            pixmap = self._original_pixmap
-            image_width = pixmap.width()
-            image_height = pixmap.height()
-
-            if image_width > 0:
-                aspect_ratio = image_height / image_width
-            else:
-                aspect_ratio = 1.0
-        else:
-            # No pixmap state: use square aspect ratio (1.0)
-            aspect_ratio = 1.0
+        aspect_ratio = self._calculate_aspect_ratio()
 
         # Get current widget dimensions (or use reasonable defaults)
         current_width = self.width()

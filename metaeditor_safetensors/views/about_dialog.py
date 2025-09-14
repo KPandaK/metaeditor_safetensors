@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def get_app_version():
     """Get the application version from package metadata."""
     try:
-        return version("metaeditor-safetensors")
+        return version("metaeditor_safetensors")
     except PackageNotFoundError:
         return "dev"
 
