@@ -40,7 +40,6 @@ jobs:
           key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies-security.outputs.cache-hit != 'true'
         run: poetry install --with dev
       
       - name: Security Scan
