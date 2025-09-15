@@ -214,6 +214,9 @@ def test_pydantic_validation_in_persistence(temp_config_file):
     assert config_service.get_window_size() == (1100, 800)
 
 
+@pytest.mark.skipif(
+    os.name != "nt", reason="Windows path test only supported on Windows"
+)
 def test_config_service_default_path_windows(mocker):
     """Test default config path creation on Windows."""
     # Mock Windows environment
