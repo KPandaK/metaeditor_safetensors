@@ -96,7 +96,10 @@ class ThemeService:
 
         # Remove all currently watched files
         if self._watched_files:
-            self._file_watcher.removePaths(self._watched_files)
+            try:
+                self._file_watcher.removePaths(self._watched_files)
+            except Exception as e:
+                logger.warning(f"Failed to remove watched theme files: {e}")
             self._watched_files.clear()
 
         # Add files from the current theme

@@ -87,9 +87,6 @@ class Theme:
         if self._qss_cache is not None:
             return self._qss_cache
 
-        if not self.directory:
-            return ""
-
         combined_qss = []
 
         for filename in self.qss_order:
@@ -130,7 +127,4 @@ class Theme:
         self._qss_cache = None
 
     def get_qss_file_paths(self) -> List[Path]:
-        if not self.directory:
-            return []
-
         return [self.directory / filename for filename in self.qss_order]

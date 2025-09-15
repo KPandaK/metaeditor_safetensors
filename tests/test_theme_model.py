@@ -48,8 +48,9 @@ name: "Test Theme"
 description: "A test theme for validation"
 category: "dark"
 version: "1.0.0"
-settings:
-  some_setting: "value"
+qss_order:
+  - "main.qss"
+  - "widgets.qss"
 """
         yaml_file = theme_dir / "theme.yaml"
         yaml_file.write_text(yaml_content.strip(), encoding="utf-8")
@@ -61,14 +62,13 @@ settings:
         # Load theme and validate
         theme = Theme.from_directory(theme_dir)
 
-        assert theme.theme_id == "test_theme"
-        assert theme.name == "Test Theme"
-        assert theme.description == "A test theme for validation"
-        assert theme.category == "dark"
-        assert theme.version == "1.0.0"
+        assert theme.config.theme_id == "test_theme"
+        assert theme.config.name == "Test Theme"
+        assert theme.config.description == "A test theme for validation"
+        assert theme.config.category == "dark"
+        assert theme.config.version == "1.0.0"
         assert theme.qss_order == ["main.qss", "widgets.qss"]
-        assert theme.settings == {"some_setting": "value"}
-        assert theme.theme_directory == theme_dir
+        assert theme.directory == theme_dir
 
     def test_theme_directory_without_yaml_fails(self, temp_dir):
         """Test that a directory without YAML file raises ValueError."""
@@ -99,10 +99,10 @@ settings:
         with pytest.raises(ValueError) as exc_info:
             Theme.from_directory(theme_dir)
 
-        assert "Invalid YAML syntax" in str(exc_info.value)
+        assert "Error reading theme config" in str(exc_info.value)
 
-    def test_theme_directory_with_empty_yaml_uses_defaults(self, temp_dir):
-        """Test that empty YAML file uses reasonable defaults."""
+    def test_theme_directory_with_empty_yaml_fails(self, temp_dir):
+        """Test that empty YAML file fails due to missing required fields."""
         # Create a theme directory
         theme_dir = temp_dir / "empty_yaml_theme"
         theme_dir.mkdir()
@@ -114,15 +114,11 @@ settings:
         # Create a QSS file
         (theme_dir / "style.qss").write_text("/* Some styles */", encoding="utf-8")
 
-        # Load theme and check defaults
-        theme = Theme.from_directory(theme_dir)
+        # Should raise ValueError due to missing required fields
+        with pytest.raises(ValueError) as exc_info:
+            Theme.from_directory(theme_dir)
 
-        assert theme.theme_id == "empty_yaml_theme"  # Uses directory name
-        assert theme.name == "Unknown Theme"
-        assert theme.category == "empty_yaml_theme"  # Uses theme_id as default
-        assert theme.version == "1.0.0"
-        assert theme.qss_order == ["style.qss"]  # Auto-discovered
-        assert theme.settings == {}
+        assert "Error reading theme config" in str(exc_info.value)
 
     def test_theme_directory_with_minimal_yaml(self, temp_dir):
         """Test loading theme with minimal YAML configuration."""
@@ -130,8 +126,9 @@ settings:
         theme_dir = temp_dir / "minimal_theme"
         theme_dir.mkdir()
 
-        # Create minimal YAML config
+        # Create minimal YAML config with required theme_id
         yaml_content = """
+theme_id: "minimal_theme"
 name: "Minimal Theme"
 """
         yaml_file = theme_dir / "theme.yaml"
@@ -147,10 +144,10 @@ name: "Minimal Theme"
         theme = Theme.from_directory(theme_dir)
 
         # Check that defaults are applied
-        assert theme.theme_id == "minimal_theme"
-        assert theme.name == "Minimal Theme"
-        assert theme.category == "minimal_theme"
-        assert theme.version == "1.0.0"
+        assert theme.config.theme_id == "minimal_theme"
+        assert theme.config.name == "Minimal Theme"
+        assert theme.config.category == "light"  # Default value
+        assert theme.config.version == "1.0.0"
         # QSS files should be auto-discovered alphabetically
         assert theme.qss_order == ["advanced.qss", "base.qss"]
 
@@ -162,6 +159,7 @@ name: "Minimal Theme"
 
         # Create YAML with partial qss_order
         yaml_content = """
+theme_id: "ordered_theme"
 name: "Ordered Theme"
 qss_order:
   - "main.qss"
@@ -191,6 +189,7 @@ qss_order:
 
         # Create YAML config
         yaml_content = """
+theme_id: "paths_theme"
 name: "Paths Theme"
 qss_order:
   - "first.qss"
@@ -218,6 +217,7 @@ qss_order:
 
         # Create YAML config
         yaml_content = """
+theme_id: "qss_test_theme"
 name: "QSS Test Theme"
 qss_order:
   - "first.qss"
@@ -255,89 +255,65 @@ qss_order:
         qss_content_after_clear = theme.get_qss()
         assert qss_content == qss_content_after_clear
 
-    def test_theme_without_directory_returns_empty_qss(self):
-        """Test that theme without directory returns empty QSS."""
-        theme = Theme("test", "Test Theme", "test", None)
+    def test_theme_without_directory_returns_empty_qss(self, temp_dir):
+        """Test that theme with empty directory returns empty QSS."""
+        from metaeditor_safetensors.models.theme import ThemeConfig
+
+        # Create an empty directory for testing
+        empty_dir = temp_dir / "empty_theme"
+        empty_dir.mkdir()
+
+        config = ThemeConfig(theme_id="test", name="Test Theme")
+        theme = Theme(config=config, directory=empty_dir, qss_order=[])
         assert theme.get_qss() == ""
         assert theme.get_qss_file_paths() == []
 
-    def test_infer_category_light_themes(self):
-        """Test that _infer_category correctly identifies light themes."""
-        light_ids = ["light_theme", "bright_ui", "white_background", "LIGHT-MODE"]
-        for theme_id in light_ids:
-            category = Theme._infer_category(theme_id)
-            assert (
-                category == "light"
-            ), f"Theme ID '{theme_id}' should be categorized as light"
-
-    def test_infer_category_dark_themes(self):
-        """Test that _infer_category correctly identifies dark themes."""
-        dark_ids = ["dark_theme", "night_mode", "black_ui", "DARK-THEME"]
-        for theme_id in dark_ids:
-            category = Theme._infer_category(theme_id)
-            assert (
-                category == "dark"
-            ), f"Theme ID '{theme_id}' should be categorized as dark"
-
-    def test_infer_category_defaults_to_dark(self):
-        """Test that _infer_category defaults to dark for ambiguous names."""
-        ambiguous_ids = ["my_theme", "custom", "beautiful", "theme123", ""]
-        for theme_id in ambiguous_ids:
-            category = Theme._infer_category(theme_id)
-            assert category == "dark", f"Theme ID '{theme_id}' should default to dark"
-
-    def test_theme_str_and_repr(self):
-        """Test Theme string representations."""
-        theme = Theme("test_id", "Test Theme", "dark", description="A test theme")
-
-        # Test __str__
-        str_repr = str(theme)
-        assert str_repr == "Test Theme (test_id)"
-
-        # Test __repr__
-        repr_str = repr(theme)
-        assert repr_str == "Theme('test_id', 'Test Theme', 'dark')"
-
     def test_theme_initialization_with_all_parameters(self, temp_dir):
-        """Test Theme initialization with all parameters."""
+        """Test Theme initialization with all parameters via config."""
+        from metaeditor_safetensors.models.theme import ThemeConfig, ThemeType
+
         theme_dir = temp_dir / "full_theme"
         theme_dir.mkdir()
 
-        settings = {"color": "blue", "font_size": 12}
-        qss_order = ["main.qss", "widgets.qss"]
-
-        theme = Theme(
+        config = ThemeConfig(
             theme_id="full_theme",
             name="Full Theme",
-            category="light",
-            theme_directory=theme_dir,
+            category=ThemeType.LIGHT,
             description="A complete theme",
             version="2.0.0",
-            qss_order=qss_order,
-            settings=settings,
+            qss_order=["main.qss", "widgets.qss"],
         )
 
-        assert theme.theme_id == "full_theme"
-        assert theme.name == "Full Theme"
-        assert theme.category == "light"
-        assert theme.theme_directory == theme_dir
-        assert theme.description == "A complete theme"
-        assert theme.version == "2.0.0"
-        assert theme.qss_order == qss_order
-        assert theme.settings == settings
+        theme = Theme(
+            config=config, directory=theme_dir, qss_order=["main.qss", "widgets.qss"]
+        )
 
-    def test_theme_initialization_with_defaults(self):
+        assert theme.config.theme_id == "full_theme"
+        assert theme.config.name == "Full Theme"
+        assert theme.config.category == ThemeType.LIGHT
+        assert theme.directory == theme_dir
+        assert theme.config.description == "A complete theme"
+        assert theme.config.version == "2.0.0"
+        assert theme.qss_order == ["main.qss", "widgets.qss"]
+
+    def test_theme_initialization_with_defaults(self, temp_dir):
         """Test Theme initialization with minimal parameters and defaults."""
-        theme = Theme("minimal", "Minimal Theme", "dark")
+        from metaeditor_safetensors.models.theme import ThemeConfig, ThemeType
 
-        assert theme.theme_id == "minimal"
-        assert theme.name == "Minimal Theme"
-        assert theme.category == "dark"
-        assert theme.theme_directory is None
-        assert theme.description == "Theme: Minimal Theme"  # Default description
-        assert theme.version == "1.0.0"  # Default version
-        assert theme.qss_order == []  # Default empty list
-        assert theme.settings == {}  # Default empty dict
+        # Create a directory for the theme
+        theme_dir = temp_dir / "minimal_theme"
+        theme_dir.mkdir()
+
+        config = ThemeConfig(theme_id="minimal", name="Minimal Theme")
+        theme = Theme(config=config, directory=theme_dir, qss_order=[])
+
+        assert theme.config.theme_id == "minimal"
+        assert theme.config.name == "Minimal Theme"
+        assert theme.config.category == ThemeType.LIGHT  # Default category
+        assert theme.directory == theme_dir
+        assert theme.config.description is None  # Default description
+        assert theme.config.version == "1.0.0"  # Default version
+        assert theme.qss_order == []  # Empty qss_order
 
     def test_get_qss_with_missing_files(self, temp_dir):
         """Test QSS loading when some files in qss_order don't exist."""
@@ -346,6 +322,7 @@ qss_order:
 
         # Create YAML with files that don't exist
         yaml_content = """
+theme_id: "missing_files_theme"
 name: "Missing Files Theme"
 qss_order:
   - "existing.qss"
@@ -380,6 +357,7 @@ qss_order:
         theme_dir.mkdir()
 
         yaml_content = """
+theme_id: "empty_files_theme"
 name: "Empty Files Theme"
 qss_order:
   - "empty.qss"
@@ -409,6 +387,7 @@ qss_order:
         theme_dir.mkdir()
 
         yaml_content = """
+theme_id: "read_error_theme"
 name: "Read Error Theme"
 qss_order:
   - "good.qss"
@@ -471,8 +450,11 @@ qss_order:
             "- item1\n- item2\n", encoding="utf-8"
         )  # YAML list instead of dict
 
-        config = Theme._load_theme_config(yaml_file)
-        assert config == {}  # Should return empty dict for non-dict YAML
+        # Should raise ValueError due to Pydantic validation failure
+        with pytest.raises(ValueError) as exc_info:
+            Theme._load_theme_config(yaml_file)
+
+        assert "Error reading theme config" in str(exc_info.value)
 
     def test_theme_directory_with_no_qss_files(self, temp_dir):
         """Test theme directory that has YAML but no QSS files."""
@@ -481,6 +463,7 @@ qss_order:
 
         # Create YAML config
         yaml_content = """
+theme_id: "no_qss_theme"
 name: "No QSS Theme"
 description: "Theme with no QSS files"
 """
@@ -489,8 +472,8 @@ description: "Theme with no QSS files"
 
         theme = Theme.from_directory(theme_dir)
 
-        assert theme.name == "No QSS Theme"
-        assert theme.description == "Theme with no QSS files"
+        assert theme.config.name == "No QSS Theme"
+        assert theme.config.description == "Theme with no QSS files"
         assert theme.qss_order == []  # No QSS files found
         assert theme.get_qss() == ""  # Empty QSS content
         assert theme.get_qss_file_paths() == []  # No file paths
@@ -501,7 +484,13 @@ description: "Theme with no QSS files"
         theme_dir.mkdir()
 
         yaml_file = theme_dir / "theme.yaml"
-        yaml_file.write_text("name: Cache Theme", encoding="utf-8")
+        yaml_file.write_text(
+            """
+theme_id: "cache_theme"
+name: "Cache Theme"
+""",
+            encoding="utf-8",
+        )
 
         qss_file = theme_dir / "style.qss"
         qss_file.write_text("/* Original content */", encoding="utf-8")

@@ -237,44 +237,27 @@ class TestFileService:
         assert result == Path(expected_path)
         mock_files.assert_called_once_with("metaeditor_safetensors")
 
-    def test_get_package_root_importerror_fallback(self, mocker):
-        """Test get_package_root fallback when importlib raises ImportError."""
+    def test_get_package_root_import_error_fallback(self, mocker):
+        """Test get_package_root fallback when importlib raises import-related errors."""
         mock_files = mocker.patch(
             "metaeditor_safetensors.services.file_service.resources.files"
         )
-        # Mock ImportError during package resolution
+
+        mock_get_project_root = mocker.patch(
+            "metaeditor_safetensors.services.file_service.get_project_root"
+        )
+        mock_project_root = Path("/project/root")
+        mock_get_project_root.return_value = mock_project_root
+
+        # Test ImportError
         mock_files.side_effect = ImportError("No module named 'test_package'")
-
-        mock_get_project_root = mocker.patch(
-            "metaeditor_safetensors.services.file_service.get_project_root"
-        )
-        mock_project_root = Path("/project/root")
-        mock_get_project_root.return_value = mock_project_root
-
         result = get_package_root("test_package")
-
-        # Should fallback to project_root / package_name
         expected_path = mock_project_root / "test_package"
         assert result == expected_path
-        mock_get_project_root.assert_called_once()
 
-    def test_get_package_root_modulenotfounderror_fallback(self, mocker):
-        """Test get_package_root fallback when importlib raises ModuleNotFoundError."""
-        mock_files = mocker.patch(
-            "metaeditor_safetensors.services.file_service.resources.files"
-        )
-        # Mock ModuleNotFoundError during package resolution
+        # Test ModuleNotFoundError (subclass of ImportError)
         mock_files.side_effect = ModuleNotFoundError("No module named 'test_package'")
-
-        mock_get_project_root = mocker.patch(
-            "metaeditor_safetensors.services.file_service.get_project_root"
-        )
-        mock_project_root = Path("/project/root")
-        mock_get_project_root.return_value = mock_project_root
-
         result = get_package_root("test_package")
-
-        # Should fallback to project_root / package_name
-        expected_path = mock_project_root / "test_package"
         assert result == expected_path
-        mock_get_project_root.assert_called_once()
+
+        mock_get_project_root.assert_called()
