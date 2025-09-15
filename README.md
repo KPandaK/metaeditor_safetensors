@@ -4,17 +4,22 @@
 
 | Name                                                     |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------------- | -------: | -------: | ------: | --------: |
-| metaeditor\_safetensors/models/theme.py                  |       96 |       14 |     85% |120-121, 125-126, 131-137, 165-168, 193 |
-| metaeditor\_safetensors/services/config\_service.py      |       79 |       15 |     81% |23-24, 48-52, 69, 75, 79-81, 146, 155-157 |
-| metaeditor\_safetensors/services/file\_service.py        |       21 |       15 |     29% |24-37, 50-57 |
+| metaeditor\_safetensors/models/metadata\_keys.py         |       10 |        0 |    100% |           |
+| metaeditor\_safetensors/models/metadata\_model.py        |       42 |        0 |    100% |           |
+| metaeditor\_safetensors/models/settings.py               |       11 |        0 |    100% |           |
+| metaeditor\_safetensors/models/theme.py                  |       75 |        0 |    100% |           |
+| metaeditor\_safetensors/services/config\_service.py      |       74 |        1 |     99% |        22 |
+| metaeditor\_safetensors/services/css\_service.py         |       12 |        0 |    100% |           |
+| metaeditor\_safetensors/services/file\_service.py        |       21 |        0 |    100% |           |
 | metaeditor\_safetensors/services/image\_service.py       |       32 |        1 |     97% |        58 |
 | metaeditor\_safetensors/services/safetensors\_service.py |       69 |        5 |     93% |142, 161-164 |
-| metaeditor\_safetensors/services/theme\_service.py       |      141 |       40 |     72% |58-60, 74, 82-83, 91-92, 108-123, 129-133, 137, 151-156, 178-179, 198-199, 212-214, 238-240 |
-| metaeditor\_safetensors/views/about\_dialog.py           |       58 |       58 |      0% |      1-98 |
-| metaeditor\_safetensors/views/main\_view.py              |      193 |      193 |      0% |    13-394 |
-| metaeditor\_safetensors/views/settings\_dialog.py        |      121 |      121 |      0% |     9-223 |
+| metaeditor\_safetensors/services/save\_worker.py         |       18 |        0 |    100% |           |
+| metaeditor\_safetensors/services/theme\_service.py       |      191 |       78 |     59% |32-34, 48, 67-68, 76, 83-92, 95-99, 106-121, 143-144, 147, 150-151, 155-158, 167-169, 177-179, 185-186, 190-192, 195-206, 221-226, 246-248, 253, 272-282, 290-291, 297-298 |
+| metaeditor\_safetensors/views/about\_dialog.py           |       69 |       69 |      0% |     1-119 |
+| metaeditor\_safetensors/views/main\_view.py              |      200 |      200 |      0% |    13-401 |
+| metaeditor\_safetensors/views/settings\_dialog.py        |      120 |      120 |      0% |     1-205 |
 | metaeditor\_safetensors/views/thumbnail\_dialog.py       |       18 |       18 |      0% |      1-31 |
-|                                                **TOTAL** |  **828** |  **480** | **42%** |           |
+|                                                **TOTAL** |  **962** |  **492** | **49%** |           |
 
 
 ## Setup coverage badge
