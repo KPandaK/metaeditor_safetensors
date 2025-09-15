@@ -16,54 +16,54 @@ logger = logging.getLogger(__name__)
 
 class SystemThemeMonitor(QObject):
     """Monitors system theme changes and emits Qt signals."""
-    
+
     theme_changed = Signal(str)  # Emits the new theme name
-    
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._monitoring = False
         self._monitor_thread = None
-        
+
     def start_monitoring(self):
         """Start monitoring system theme changes."""
         if self._monitoring:
             return
-            
+
         logger.debug("Starting system theme monitoring")
         self._monitoring = True
-        
+
         # Start monitoring in a separate thread
         self._monitor_thread = threading.Thread(
-            target=self._monitor_system_theme, 
-            daemon=True
+            target=self._monitor_system_theme, daemon=True
         )
         self._monitor_thread.start()
-        
+
     def stop_monitoring(self):
         """Stop monitoring system theme changes."""
         if not self._monitoring:
             return
-            
+
         logger.debug("Stopping system theme monitoring")
         self._monitoring = False
-        
+
         if self._monitor_thread and self._monitor_thread.is_alive():
             # Wait for thread to finish, but don't wait too long
             self._monitor_thread.join(timeout=1.0)
-            
+
         self._monitor_thread = None
-            
+
     def _monitor_system_theme(self):
         """Monitor system theme changes using darkdetect listener."""
         try:
+
             def on_theme_change(theme):
                 if self._monitoring:
                     logger.debug(f"System theme changed to: {theme}")
                     self.theme_changed.emit(theme)
-            
+
             # This will block until monitoring is stopped
             darkdetect.listener(on_theme_change)
-            
+
         except Exception as e:
             logger.error(f"Error in system theme monitoring: {e}")
 
@@ -75,7 +75,7 @@ class ThemeService:
         self._available_themes: Dict[str, Theme] = {}
         self._themes_root: Optional[Path] = None
         self._config_service = config_service
-        
+
         # System theme monitoring
         self._system_theme_monitor: Optional[SystemThemeMonitor] = None
         self._is_monitoring_system_theme = False
@@ -101,7 +101,7 @@ class ThemeService:
         # Setup file watching if in development mode
         if self._enable_live_reload:
             self._setup_file_watchers()
-            
+
         # Setup system theme monitoring if config service is available
         if self._config_service:
             self._setup_system_theme_monitoring()
@@ -281,34 +281,39 @@ class ThemeService:
         except Exception as e:
             logger.error(f"Error applying theme {theme}: {e}")
             return False
-            
+
     def _setup_system_theme_monitoring(self):
         """Setup system theme monitoring if user preference is set to 'system'."""
         try:
-            if self._config_service and self._config_service.get_theme_preference() == "system":
+            if (
+                self._config_service
+                and self._config_service.get_theme_preference() == "system"
+            ):
                 self._start_system_theme_monitoring()
         except Exception as e:
             logger.warning(f"Error setting up system theme monitoring: {e}")
-            
+
     def _start_system_theme_monitoring(self):
         """Start monitoring system theme changes."""
         if self._is_monitoring_system_theme:
             return
-            
+
         try:
             self._system_theme_monitor = SystemThemeMonitor()
-            self._system_theme_monitor.theme_changed.connect(self._on_system_theme_changed)
+            self._system_theme_monitor.theme_changed.connect(
+                self._on_system_theme_changed
+            )
             self._system_theme_monitor.start_monitoring()
             self._is_monitoring_system_theme = True
             logger.info("System theme monitoring started")
         except Exception as e:
             logger.error(f"Error starting system theme monitoring: {e}")
-            
+
     def _stop_system_theme_monitoring(self):
         """Stop monitoring system theme changes."""
         if not self._is_monitoring_system_theme or not self._system_theme_monitor:
             return
-            
+
         try:
             self._system_theme_monitor.stop_monitoring()
             self._system_theme_monitor = None
@@ -316,12 +321,15 @@ class ThemeService:
             logger.info("System theme monitoring stopped")
         except Exception as e:
             logger.error(f"Error stopping system theme monitoring: {e}")
-            
+
     def _on_system_theme_changed(self, system_theme: str):
         """Handle system theme change event."""
         try:
             # Only update if user preference is still set to "system"
-            if self._config_service and self._config_service.get_theme_preference() == "system":
+            if (
+                self._config_service
+                and self._config_service.get_theme_preference() == "system"
+            ):
                 logger.info(f"System theme changed to: {system_theme}")
                 # Apply the new system theme
                 self.apply_theme("system")
@@ -330,10 +338,10 @@ class ThemeService:
                 self._stop_system_theme_monitoring()
         except Exception as e:
             logger.error(f"Error handling system theme change: {e}")
-            
+
     def update_system_monitoring_for_preference(self, theme_preference: str):
         """Update system theme monitoring based on theme preference.
-        
+
         Args:
             theme_preference: The new theme preference ("system", "dark", "light", etc.)
         """
@@ -347,8 +355,10 @@ class ThemeService:
                 if self._is_monitoring_system_theme:
                     self._stop_system_theme_monitoring()
         except Exception as e:
-            logger.error(f"Error updating system monitoring for preference {theme_preference}: {e}")
-            
+            logger.error(
+                f"Error updating system monitoring for preference {theme_preference}: {e}"
+            )
+
     def shutdown(self):
         """Cleanup and shutdown the theme service."""
         try:
