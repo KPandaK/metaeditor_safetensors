@@ -145,6 +145,8 @@ class ThemeService:
 
     def add_theme_changed_observer(self, callback: Callable[[Theme], None]):
         self._theme_changed_observers.append(callback)
+
+    def remove_theme_changed_observer(self, callback: Callable[[Theme], None]):
         if callback in self._theme_changed_observers:
             self._theme_changed_observers.remove(callback)
 

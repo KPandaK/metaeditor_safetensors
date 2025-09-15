@@ -209,7 +209,7 @@ class MainController(QObject):
         current_preference = self._config_service.get_theme_preference()
         if current_preference == "system":
             # Apply the system theme
-            success = self._theme_service.apply_theme("system")
+            success = self._theme_service.apply_theme(current_preference)
             if success:
                 self._view.set_status_message(
                     f"System theme changed to: {system_theme}", 2000
