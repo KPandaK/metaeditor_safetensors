@@ -190,6 +190,8 @@ class MainController(QObject):
     def _on_settings_theme_changed(self, theme_id: str):
         success = self._theme_service.apply_theme(theme_id)
         if success:
+            # Update system monitoring based on the new theme preference
+            self._theme_service.update_system_monitoring_for_preference(theme_id)
             self._view.set_status_message(f"Theme changed to: {theme_id}", 2000)
 
     def _on_recent_files_changed(self, recent_files: List[str]):

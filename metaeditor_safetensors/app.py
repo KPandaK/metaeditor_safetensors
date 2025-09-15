@@ -37,8 +37,8 @@ def main():
     safetensors_service = SafetensorsService()
     image_service = ImageService()
 
-    # Initialize theme service
-    theme_service = ThemeService()
+    # Initialize theme service with config service for monitoring
+    theme_service = ThemeService(config_service)
     theme_service.add_theme_changed_observer(
         lambda theme: app.setStyleSheet(theme.get_qss())
     )
@@ -59,5 +59,6 @@ def main():
     finally:
         # Ensure proper cleanup before exit
         controller.shutdown()
+        theme_service.shutdown()
 
     sys.exit(exit_code)

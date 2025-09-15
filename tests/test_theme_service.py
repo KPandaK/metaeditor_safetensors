@@ -1,10 +1,11 @@
 import logging
 import tempfile
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
-from metaeditor_safetensors.services.theme_service import ThemeService
+from metaeditor_safetensors.services.theme_service import ThemeService, SystemThemeMonitor
 
 
 @pytest.fixture
@@ -862,3 +863,419 @@ def test_theme_service_live_reload_env_var_variations(mocker, temp_dir):
     mocker.patch.dict("os.environ", {"DEV_LIVE_STYLING": ""})
     theme_service4 = ThemeService()
     assert theme_service4._enable_live_reload is False
+
+
+class TestSystemThemeMonitor:
+    """Test cases for SystemThemeMonitor functionality."""
+
+    def test_system_theme_monitor_creation(self):
+        """Test SystemThemeMonitor can be created without error."""
+        monitor = SystemThemeMonitor()
+        assert monitor is not None
+        assert not monitor._monitoring
+        assert monitor._monitor_thread is None
+
+    def test_start_monitoring(self, mocker):
+        """Test starting system theme monitoring."""
+        monitor = SystemThemeMonitor()
+        
+        # Mock threading.Thread to prevent actual thread creation
+        mock_thread = Mock()
+        mocker.patch("threading.Thread", return_value=mock_thread)
+        
+        monitor.start_monitoring()
+        
+        assert monitor._monitoring is True
+        assert monitor._monitor_thread is mock_thread
+        mock_thread.start.assert_called_once()
+
+    def test_start_monitoring_already_monitoring(self, mocker):
+        """Test starting monitoring when already monitoring does nothing."""
+        monitor = SystemThemeMonitor()
+        
+        # Mock threading.Thread to prevent actual thread creation
+        mock_thread = Mock()
+        mocker.patch("threading.Thread", return_value=mock_thread)
+        
+        # Start monitoring first time
+        monitor.start_monitoring()
+        mock_thread.start.assert_called_once()
+        
+        # Reset mock and try to start again
+        mock_thread.reset_mock()
+        monitor.start_monitoring()
+        
+        # Should not create new thread or start again
+        mock_thread.start.assert_not_called()
+
+    def test_stop_monitoring(self, mocker):
+        """Test stopping system theme monitoring."""
+        monitor = SystemThemeMonitor()
+        
+        # Mock threading.Thread
+        mock_thread = Mock()
+        mock_thread.is_alive.return_value = True
+        mocker.patch("threading.Thread", return_value=mock_thread)
+        
+        # Start monitoring
+        monitor.start_monitoring()
+        assert monitor._monitoring is True
+        
+        # Stop monitoring
+        monitor.stop_monitoring()
+        
+        assert monitor._monitoring is False
+        assert monitor._monitor_thread is None
+        mock_thread.join.assert_called_once_with(timeout=1.0)
+
+    def test_stop_monitoring_not_monitoring(self):
+        """Test stopping monitoring when not monitoring does nothing."""
+        monitor = SystemThemeMonitor()
+        
+        # Should not raise error
+        monitor.stop_monitoring()
+        
+        assert not monitor._monitoring
+        assert monitor._monitor_thread is None
+
+    def test_monitor_system_theme_callback(self, mocker):
+        """Test that monitor_system_theme calls darkdetect.listener with callback."""
+        monitor = SystemThemeMonitor()
+        
+        # Mock darkdetect.listener
+        mock_listener = mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        )
+        
+        monitor._monitoring = True
+        
+        # Call the monitoring method directly
+        monitor._monitor_system_theme()
+        
+        # Should have called darkdetect.listener with a callback
+        mock_listener.assert_called_once()
+        callback = mock_listener.call_args[0][0]
+        assert callable(callback)
+
+    def test_monitor_system_theme_signal_emission(self, mocker):
+        """Test that theme changes emit signals."""
+        monitor = SystemThemeMonitor()
+        
+        # Track signal emissions
+        signal_emissions = []
+        monitor.theme_changed.connect(lambda theme: signal_emissions.append(theme))
+        
+        # Mock darkdetect.listener to call callback immediately
+        def mock_listener(callback):
+            if monitor._monitoring:
+                callback("Dark")
+        
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener",
+            side_effect=mock_listener
+        )
+        
+        monitor._monitoring = True
+        monitor._monitor_system_theme()
+        
+        # Should have emitted signal
+        assert len(signal_emissions) == 1
+        assert signal_emissions[0] == "Dark"
+
+    def test_monitor_system_theme_exception_handling(self, mocker):
+        """Test monitor_system_theme handles exceptions gracefully."""
+        monitor = SystemThemeMonitor()
+        
+        # Mock darkdetect.listener to raise exception
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener",
+            side_effect=Exception("Listener error")
+        )
+        
+        monitor._monitoring = True
+        
+        # Should not raise exception
+        try:
+            monitor._monitor_system_theme()
+        except Exception:
+            pytest.fail("_monitor_system_theme should handle exceptions gracefully")
+
+
+class TestThemeServiceSystemMonitoring:
+    """Test cases for ThemeService system theme monitoring functionality."""
+
+    def test_theme_service_with_config_service(self, mocker, themes_dir):
+        """Test ThemeService initialization with config service."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        # Mock config service
+        mock_config = Mock()
+        mock_config.get_theme_preference.return_value = "system"
+        
+        # Should not raise error with config service
+        theme_service = ThemeService(mock_config)
+        assert theme_service._config_service is mock_config
+
+    def test_setup_system_theme_monitoring_system_preference(self, mocker, themes_dir):
+        """Test system monitoring is started when preference is 'system'."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        # Mock config service with system preference
+        mock_config = Mock()
+        mock_config.get_theme_preference.return_value = "system"
+        
+        # Mock the start monitoring method
+        start_mock = Mock()
+        mocker.patch.object(ThemeService, "_start_system_theme_monitoring", start_mock)
+        
+        theme_service = ThemeService(mock_config)
+        
+        # Should have attempted to start monitoring
+        start_mock.assert_called_once()
+
+    def test_setup_system_theme_monitoring_non_system_preference(self, mocker, themes_dir):
+        """Test system monitoring is not started when preference is not 'system'."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        # Mock config service with non-system preference
+        mock_config = Mock()
+        mock_config.get_theme_preference.return_value = "dark"
+        
+        # Mock the start monitoring method
+        start_mock = Mock()
+        mocker.patch.object(ThemeService, "_start_system_theme_monitoring", start_mock)
+        
+        theme_service = ThemeService(mock_config)
+        
+        # Should not have started monitoring
+        start_mock.assert_not_called()
+
+    def test_start_system_theme_monitoring(self, mocker, themes_dir):
+        """Test starting system theme monitoring."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        
+        # Mock SystemThemeMonitor
+        mock_monitor = Mock()
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.SystemThemeMonitor",
+            return_value=mock_monitor
+        )
+        
+        theme_service._start_system_theme_monitoring()
+        
+        assert theme_service._is_monitoring_system_theme is True
+        assert theme_service._system_theme_monitor is mock_monitor
+        mock_monitor.theme_changed.connect.assert_called_once()
+        mock_monitor.start_monitoring.assert_called_once()
+
+    def test_start_system_theme_monitoring_already_monitoring(self, mocker, themes_dir):
+        """Test starting monitoring when already monitoring does nothing."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        theme_service._is_monitoring_system_theme = True
+        
+        # Mock SystemThemeMonitor
+        mock_monitor = Mock()
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.SystemThemeMonitor",
+            return_value=mock_monitor
+        )
+        
+        theme_service._start_system_theme_monitoring()
+        
+        # Should not have created new monitor
+        mock_monitor.assert_not_called()
+
+    def test_stop_system_theme_monitoring(self, mocker, themes_dir):
+        """Test stopping system theme monitoring."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        
+        # Set up monitoring state
+        mock_monitor = Mock()
+        theme_service._system_theme_monitor = mock_monitor
+        theme_service._is_monitoring_system_theme = True
+        
+        theme_service._stop_system_theme_monitoring()
+        
+        assert theme_service._is_monitoring_system_theme is False
+        assert theme_service._system_theme_monitor is None
+        mock_monitor.stop_monitoring.assert_called_once()
+
+    def test_stop_system_theme_monitoring_not_monitoring(self, mocker, themes_dir):
+        """Test stopping monitoring when not monitoring does nothing."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        
+        # Should not raise error
+        theme_service._stop_system_theme_monitoring()
+        
+        assert not theme_service._is_monitoring_system_theme
+
+    def test_on_system_theme_changed_with_system_preference(self, mocker, themes_dir):
+        """Test system theme change handling when preference is 'system'."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        # Mock config service
+        mock_config = Mock()
+        mock_config.get_theme_preference.return_value = "system"
+        
+        theme_service = ThemeService(mock_config)
+        
+        # Mock apply_theme
+        apply_mock = Mock(return_value=True)
+        mocker.patch.object(theme_service, "apply_theme", apply_mock)
+        
+        # Simulate system theme change
+        theme_service._on_system_theme_changed("Dark")
+        
+        # Should have applied system theme
+        apply_mock.assert_called_once_with("system")
+
+    def test_on_system_theme_changed_with_non_system_preference(self, mocker, themes_dir):
+        """Test system theme change handling when preference is not 'system'."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        # Mock config service with non-system preference
+        mock_config = Mock()
+        mock_config.get_theme_preference.return_value = "dark"
+        
+        theme_service = ThemeService(mock_config)
+        
+        # Mock methods
+        apply_mock = Mock()
+        stop_mock = Mock()
+        mocker.patch.object(theme_service, "apply_theme", apply_mock)
+        mocker.patch.object(theme_service, "_stop_system_theme_monitoring", stop_mock)
+        
+        # Simulate system theme change
+        theme_service._on_system_theme_changed("Dark")
+        
+        # Should not have applied theme but should stop monitoring
+        apply_mock.assert_not_called()
+        stop_mock.assert_called_once()
+
+    def test_update_system_monitoring_for_preference_system(self, mocker, themes_dir):
+        """Test updating monitoring when preference changes to 'system'."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        
+        # Mock start monitoring
+        start_mock = Mock()
+        mocker.patch.object(theme_service, "_start_system_theme_monitoring", start_mock)
+        
+        theme_service.update_system_monitoring_for_preference("system")
+        
+        start_mock.assert_called_once()
+
+    def test_update_system_monitoring_for_preference_non_system(self, mocker, themes_dir):
+        """Test updating monitoring when preference changes away from 'system'."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        theme_service._is_monitoring_system_theme = True
+        
+        # Mock stop monitoring
+        stop_mock = Mock()
+        mocker.patch.object(theme_service, "_stop_system_theme_monitoring", stop_mock)
+        
+        theme_service.update_system_monitoring_for_preference("dark")
+        
+        stop_mock.assert_called_once()
+
+    def test_shutdown_stops_monitoring(self, mocker, themes_dir):
+        """Test shutdown stops system monitoring."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        
+        # Mock stop monitoring
+        stop_mock = Mock()
+        mocker.patch.object(theme_service, "_stop_system_theme_monitoring", stop_mock)
+        
+        theme_service.shutdown()
+        
+        stop_mock.assert_called_once()
+
+    def test_exception_handling_in_monitoring_methods(self, mocker, themes_dir):
+        """Test exception handling in monitoring methods."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        theme_service = ThemeService()
+        
+        # Mock methods to raise exceptions
+        mocker.patch.object(
+            theme_service, 
+            "_start_system_theme_monitoring", 
+            side_effect=Exception("Start error")
+        )
+        mocker.patch.object(
+            theme_service, 
+            "_stop_system_theme_monitoring", 
+            side_effect=Exception("Stop error")
+        )
+        
+        # Should not raise exceptions
+        try:
+            theme_service.update_system_monitoring_for_preference("system")
+            theme_service.update_system_monitoring_for_preference("dark") 
+            theme_service.shutdown()
+        except Exception:
+            pytest.fail("Exception handling should prevent exceptions from propagating")
+
+    def test_system_theme_monitoring_without_config_service(self, mocker, themes_dir):
+        """Test theme service works without config service."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        
+        # Should not raise error without config service
+        theme_service = ThemeService(None)
+        assert theme_service._config_service is None
+        assert not theme_service._is_monitoring_system_theme
