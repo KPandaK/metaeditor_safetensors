@@ -1,15 +1,5 @@
-"""
-Unit tests for ConfigService
-============================
-
-Tests for configuration management, including settings persistence,
-recent files management, and version migration.
-"""
-
 import json
-import logging
 import os
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -19,478 +9,409 @@ from metaeditor_safetensors.services.config_service import ConfigService
 
 
 @pytest.fixture
-def temp_dir():
-    """Create a temporary directory for testing."""
-    temp_dir = tempfile.mkdtemp()
-    yield temp_dir
-    # Clean up temporary files and directory
-    if Path(temp_dir).exists():
-        shutil.rmtree(temp_dir)
-
-
-@pytest.fixture
-def config_service_factory(mocker, temp_dir):
-    """Factory to create ConfigService instances with mocked settings directory."""
-
-    def _create_config_service():
-        with mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        ):
-            return ConfigService()
-
-    return _create_config_service
-
-
-@pytest.fixture(autouse=True)
-def suppress_logging():
-    """Suppress debug/info logging during tests for cleaner output."""
-    logging.getLogger().setLevel(logging.ERROR)
-
-
-class TestConfigService:
-    """Test cases for ConfigService functionality."""
-
-    def test_initialization_creates_default_settings(self, config_service_factory):
-        """Test that initialization creates default settings when no file exists."""
-        config_service = config_service_factory()
-        # Verify default settings structure
-        assert config_service.get_recent_files() == []
-        assert config_service._settings["config_version"] == "1.0"
-        assert "app_version" in config_service._settings
-        assert "recent_files" in config_service._settings
-
-    def test_add_recent_file(self, config_service_factory):
-        """Test adding files to the recent files list."""
-        config_service = config_service_factory()
-        # Add a file
-        test_file = "/path/to/test.safetensors"
-        config_service.add_recent_file(test_file)
-
-        # Verify it was added
-        recent_files = config_service.get_recent_files()
-        assert len(recent_files) == 1
-        assert recent_files[0] == test_file
-
-    def test_add_recent_file_deduplication(self, config_service_factory):
-        """Test that adding the same file twice moves it to the top."""
-        config_service = config_service_factory()
-        # Add multiple files
-        file1 = "/path/to/file1.safetensors"
-        file2 = "/path/to/file2.safetensors"
-        config_service.add_recent_file(file1)
-        config_service.add_recent_file(file2)
-
-        # Add file1 again
-        config_service.add_recent_file(file1)
-
-        # Verify file1 is at the top and no duplicates
-        recent_files = config_service.get_recent_files()
-        assert len(recent_files) == 2
-        assert recent_files[0] == file1
-        assert recent_files[1] == file2
-
-    def test_recent_files_max_limit(self, config_service_factory):
-        """Test that recent files list respects the maximum limit."""
-        config_service = config_service_factory()
-        # Add more than the maximum number of files
-        for i in range(15):  # More than the default max of 10
-            config_service.add_recent_file(f"/path/to/file{i}.safetensors")
-
-        # Verify only the last 10 files are kept
-        recent_files = config_service.get_recent_files()
-        assert len(recent_files) == 10
-        assert recent_files[0] == "/path/to/file14.safetensors"
-        assert recent_files[-1] == "/path/to/file5.safetensors"
-
-    def test_clear_recent_files(self, config_service_factory):
-        """Test clearing the recent files list."""
-        config_service = config_service_factory()
-        # Add some files
-        config_service.add_recent_file("/path/to/file1.safetensors")
-        config_service.add_recent_file("/path/to/file2.safetensors")
-
-        # Clear them
-        config_service.clear_recent_files()
-
-        # Verify the list is empty
-        assert config_service.get_recent_files() == []
-
-    def test_remove_recent_file(self, config_service_factory):
-        """Test removing a specific file from recent files."""
-        config_service = config_service_factory()
-        # Add files
-        file1 = "/path/to/file1.safetensors"
-        file2 = "/path/to/file2.safetensors"
-        file3 = "/path/to/file3.safetensors"
-        config_service.add_recent_file(file1)
-        config_service.add_recent_file(file2)
-        config_service.add_recent_file(file3)
-
-        # Remove middle file
-        config_service.remove_recent_file(file2)
-
-        # Verify it was removed
-        recent_files = config_service.get_recent_files()
-        assert len(recent_files) == 2
-        assert file1 in recent_files
-        assert file3 in recent_files
-        assert file2 not in recent_files
-
-    def test_settings_persistence(self, mocker, temp_dir):
-        """Test that settings are properly saved and loaded from disk."""
-        # Create and configure a service
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service = ConfigService()
-        test_file = "/path/to/test.safetensors"
-        config_service.add_recent_file(test_file)
-
-        # Re-patch before creating the new service instance
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service2 = ConfigService()
-
-        # Verify the settings were loaded
-        assert config_service2.get_recent_files() == [test_file]
-
-    def test_corrupted_settings_file_handling(self, config_service_factory, temp_dir):
-        """Test handling of corrupted settings file."""
-        temp_settings_file = Path(temp_dir) / "test_settings.json"
-        # Create a corrupted JSON file
-        with open(temp_settings_file, "w") as f:
-            f.write("{ invalid json }")
-
-        # Should not crash and should use defaults
-        config_service = config_service_factory()
-
-        # Verify defaults are used
-        assert config_service.get_recent_files() == []
-        assert config_service._settings["config_version"] == "1.0"
-
-    def test_invalid_settings_file_format(self, config_service_factory, temp_dir):
-        """Test handling of invalid settings file format (non-dict)."""
-        temp_settings_file = Path(temp_dir) / "test_settings.json"
-        # Create a file with a list instead of dict
-        with open(temp_settings_file, "w") as f:
-            json.dump(["/some/file.safetensors"], f)
-
-        # Should use defaults when format is invalid
-        config_service = config_service_factory()
-
-        # Verify defaults are used
-        assert config_service.get_recent_files() == []
-        assert config_service._settings["config_version"] == "1.0"
-
-    def test_missing_recent_files_key(self, config_service_factory, temp_dir):
-        """Test handling when recent_files key is missing."""
-        temp_settings_file = Path(temp_dir) / "test_settings.json"
-        # Create a settings file without recent_files
-        incomplete_data = {
-            "config_version": "1.0",
-            "app_version": "1.0.0",
-            # Missing recent_files
-        }
-
-        with open(temp_settings_file, "w") as f:
-            json.dump(incomplete_data, f)
-
-        # Should add empty recent_files array
-        config_service = config_service_factory()
-
-        # Verify recent_files was added
-        assert config_service.get_recent_files() == []
-        assert config_service._settings["config_version"] == "1.0"
-
-    @pytest.mark.skipif(os.name != "nt", reason="Windows-specific test")
-    def test_windows_settings_directory(self, mocker):
-        """Test that Windows settings directory is correctly determined."""
-        mocker.patch.dict(
-            "metaeditor_safetensors.services.config_service.os.environ",
-            {"APPDATA": "C:\\Users\\Test\\AppData\\Roaming"},
-            clear=True,
-        )
-        mock_path_class = mocker.patch(
-            "metaeditor_safetensors.services.config_service.Path"
-        )
-        # Create mock path objects
-        mock_appdata_path = mocker.MagicMock()
-        mock_settings_path = mocker.MagicMock()
-        mock_settings_file = mocker.MagicMock()
-
-        # Setup the path operations
-        mock_path_class.return_value = mock_appdata_path
-        mock_appdata_path.__truediv__.return_value = mock_settings_path
-        mock_settings_path.__truediv__.return_value = mock_settings_file
-        mock_settings_file.exists.return_value = False  # No existing settings file
-
-        config_service = ConfigService()
-
-        # Verify Path was called with APPDATA value
-        mock_path_class.assert_called_with("C:\\Users\\Test\\AppData\\Roaming")
-        # Verify the settings directory creation
-        mock_appdata_path.__truediv__.assert_called_with("SafetensorsMetadataEditor")
-        mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-
-        # Verify the ConfigService has the mocked settings directory
-        assert config_service._settings_dir == mock_settings_path
-
-    @pytest.mark.skipif(os.name != "nt", reason="Windows-specific test")
-    def test_windows_settings_directory_no_appdata(self, mocker):
-        """Test Windows settings directory when APPDATA is not available."""
-        mocker.patch.dict(
-            "metaeditor_safetensors.services.config_service.os.environ", {}, clear=True
-        )  # No APPDATA
-        mock_path_class = mocker.patch(
-            "metaeditor_safetensors.services.config_service.Path"
-        )
-        # Create mock path objects
-        mock_home_path = mocker.MagicMock()
-        mock_settings_path = mocker.MagicMock()
-        mock_settings_file = mocker.MagicMock()
-
-        # Setup the path operations
-        mock_path_class.home.return_value = mock_home_path
-        mock_home_path.__truediv__.return_value = mock_settings_path
-        mock_settings_path.__truediv__.return_value = mock_settings_file
-        mock_settings_file.exists.return_value = False  # No existing settings file
-
-        config_service = ConfigService()
-
-        # Verify Path.home() was called
-        mock_path_class.home.assert_called_once()
-        # Verify the settings directory creation
-        mock_home_path.__truediv__.assert_called_with(".safetensors_metadata_editor")
-        mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-
-        # Verify the ConfigService has the mocked settings directory
-        assert config_service._settings_dir == mock_settings_path
-
-    def test_json_decode_error_handling(self, config_service_factory, temp_dir):
-        """Test handling of JSON decode errors with specific error message."""
-        temp_settings_file = Path(temp_dir) / "test_settings.json"
-        # Create a file with invalid JSON
-        with open(temp_settings_file, "w") as f:
-            f.write("{invalid json")  # Definitely invalid JSON
-
-        # Instead of testing print output, test that we get expected behavior
-        config_service = config_service_factory()
-
-        # Verify defaults are used (this proves the error handling worked)
-        assert config_service.get_recent_files() == []
-        assert config_service._settings["config_version"] == "1.0"
-
-    def test_io_error_during_load(self, mocker, temp_dir):
-        """Test handling of IO errors during settings load."""
-        temp_settings_file = Path(temp_dir) / "test_settings.json"
-        # Create a valid settings file first
-        with open(temp_settings_file, "w") as f:
-            json.dump({"recent_files": ["/test/file.safetensors"]}, f)
-
-        # Make the file unreadable by changing permissions (Windows approach)
-        import stat
-
-        try:
-            # Remove read permissions
-            os.chmod(temp_settings_file, stat.S_IWRITE)
-
-            mocker.patch.object(
-                ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-            )
-            config_service = ConfigService()
-
-            # Should use defaults when file can't be loaded
-            assert config_service.get_recent_files() == []
-
-        finally:
-            # Restore permissions for cleanup
-            try:
-                os.chmod(temp_settings_file, stat.S_IREAD | stat.S_IWRITE)
-            except OSError:
-                pass  # Ignore file permission restoration errors during cleanup
-
-    def test_io_error_during_save(self, mocker, temp_dir):
-        """Test handling of IO errors during settings save."""
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service = ConfigService()
-
-        # Add a file to trigger save
-        test_file = "/test/file.safetensors"
-
-        # Mock open to raise IOError during write operations
-        mock_open = mocker.patch("builtins.open")
-        mock_open.side_effect = IOError("Disk full")
-
-        # This should not raise an exception, but should handle the error gracefully
-        try:
-            config_service.add_recent_file(test_file)
-            # If we get here without exception, the error handling worked
-            success = True
-        except IOError:
-            # If IOError propagates, error handling failed
-            success = False
-
-        assert success, "IOError during save should be handled gracefully"
-
-    def test_invalid_recent_files_type_in_loaded_data(self, mocker, temp_dir):
-        """Test handling when recent_files is not a list in loaded data."""
-        temp_settings_file = Path(temp_dir) / "test_settings.json"
-        # Create a settings file with recent_files as a string instead of list
-        invalid_data = {
-            "config_version": "1.0",
-            "app_version": "1.0.0",
-            "recent_files": "not_a_list",  # Should be a list
-        }
-
-        with open(temp_settings_file, "w") as f:
-            json.dump(invalid_data, f)
-
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service = ConfigService()
-
-        # Should fix the invalid recent_files and make it an empty list
-        assert config_service.get_recent_files() == []
-        assert isinstance(config_service._settings["recent_files"], list)
-
-    def test_save_settings_version_enforcement(self, mocker, temp_dir):
-        """Test that save always enforces current version info."""
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service = ConfigService()
-
-        # Manually corrupt the internal settings version
-        config_service._settings["config_version"] = "old_version"
-        config_service._settings["app_version"] = "old_app_version"
-
-        # Add a file to trigger save
-        config_service.add_recent_file("/test/file.safetensors")
-
-        # Reload and verify version was enforced during save
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service2 = ConfigService()
-        assert config_service2._settings["config_version"] == "1.0"
-        # App version should be current version from _version module
-        assert "app_version" in config_service2._settings
-
-    @pytest.mark.skipif(os.name == "nt", reason="Unix/Linux/macOS-specific test")
-    def test_unix_settings_directory(self, mocker):
-        """Test that Unix/Linux/macOS settings directory is correctly determined."""
-        mock_path_class = mocker.patch(
-            "metaeditor_safetensors.services.config_service.Path"
-        )
-        # Create mock path objects
-        mock_home_path = mocker.MagicMock()
-        mock_settings_path = mocker.MagicMock()
-        mock_settings_file = mocker.MagicMock()
-
-        # Setup the path operations
-        mock_path_class.home.return_value = mock_home_path
-        mock_home_path.__truediv__.return_value = mock_settings_path
-        mock_settings_path.__truediv__.return_value = mock_settings_file
-        mock_settings_file.exists.return_value = False  # No existing settings file
-
-        config_service = ConfigService()
-
-        # Verify Path.home() was called
-        mock_path_class.home.assert_called_once()
-        # Verify the settings directory creation
-        mock_home_path.__truediv__.assert_called_with(".safetensors_metadata_editor")
-        mock_settings_path.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-
-        # Verify the ConfigService has the mocked settings directory
-        assert config_service._settings_dir == mock_settings_path
-
-    def test_get_theme_preference_default(self, config_service_factory):
-        """Test getting default theme preference."""
-        config_service = config_service_factory()
-
-        # Should return default "auto" theme preference
-        theme_preference = config_service.get_theme_preference()
-        assert theme_preference == "auto"
-
-    def test_set_and_get_theme_preference(self, config_service_factory):
-        """Test setting and getting theme preference."""
-        config_service = config_service_factory()
-
-        # Set a custom theme preference
-        test_theme = "dark"
-        config_service.set_theme_preference(test_theme)
-
-        # Verify it was set correctly
-        theme_preference = config_service.get_theme_preference()
-        assert theme_preference == test_theme
-
-    def test_theme_preference_persistence(
-        self, config_service_factory, mocker, temp_dir
-    ):
-        """Test that theme preference persists across service instances."""
-        config_service = config_service_factory()
-
-        # Set a theme preference
-        test_theme = "light"
-        config_service.set_theme_preference(test_theme)
-
-        # Verify persistence by creating new service instance
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service2 = ConfigService()
-        theme_preference2 = config_service2.get_theme_preference()
-        assert theme_preference2 == test_theme
-
-    def test_get_theme_preference_missing_key(self, temp_dir, mocker):
-        """Test getting theme preference when key is missing from settings."""
-        # Create settings file without theme_preference
-        incomplete_data = {
-            "config_version": "1.0",
-            "app_version": "1.0.0",
-            "recent_files": [],
-            # Missing theme_preference
-        }
-
-        settings_file = Path(temp_dir) / "settings.json"
-        with open(settings_file, "w") as f:
-            json.dump(incomplete_data, f)
-
-        mocker.patch.object(
-            ConfigService, "_get_settings_directory", return_value=Path(temp_dir)
-        )
-        config_service = ConfigService()
-
-        # Should return default "auto" when key is missing
-        theme_preference = config_service.get_theme_preference()
-        assert theme_preference == "auto"
-
-    def test_set_theme_preference_with_save_error(self, config_service_factory, mocker):
-        """Test setting theme preference handles save errors gracefully."""
-        config_service = config_service_factory()
-
-        # Mock open to raise IOError during write operations
-        original_open = open
-
-        def mock_open_func(*args, **kwargs):
-            mode = kwargs.get("mode", args[1] if len(args) > 1 else "r")
-            if "w" in mode:
-                raise IOError("Disk full")
-            return original_open(*args, **kwargs)
-
-        mocker.patch("builtins.open", side_effect=mock_open_func)
-
-        # This should not raise an exception
-        try:
-            config_service.set_theme_preference("dark")
-            success = True
-        except IOError:
-            success = False
-
-        assert (
-            success
-        ), "IOError during theme preference save should be handled gracefully"
+def temp_config_file():
+    """Create a temporary config file for testing."""
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+        temp_path = Path(tmp.name)
+    yield temp_path
+    # Cleanup
+    if temp_path.exists():
+        temp_path.unlink()
+
+
+def test_config_service_creation_with_defaults(temp_config_file):
+    """Test that ConfigService creates with default settings."""
+    config_service = ConfigService(temp_config_file)
+
+    # Test default values
+    assert config_service.get_recent_files() == []
+    assert config_service.get_theme_preference() == "system"
+    assert config_service.get_window_size() == (1100, 800)
+
+
+def test_recent_files_management(temp_config_file):
+    """Test recent files add/remove functionality."""
+    config_service = ConfigService(temp_config_file)
+
+    # Add files
+    config_service.add_recent_file("/path/to/file1.safetensors")
+    config_service.add_recent_file("/path/to/file2.safetensors")
+
+    recent_files = config_service.get_recent_files()
+    assert len(recent_files) == 2
+    assert "/path/to/file2.safetensors" == recent_files[0]  # Most recent first
+    assert "/path/to/file1.safetensors" == recent_files[1]
+
+    # Remove a file
+    config_service.remove_recent_file("/path/to/file1.safetensors")
+    recent_files = config_service.get_recent_files()
+    assert len(recent_files) == 1
+    assert "/path/to/file2.safetensors" == recent_files[0]
+
+    # Clear all
+    config_service.clear_recent_files()
+    assert config_service.get_recent_files() == []
+
+
+def test_theme_preference_management(temp_config_file):
+    """Test theme preference setting and getting."""
+    config_service = ConfigService(temp_config_file)
+
+    # Test setting different themes
+    config_service.set_theme_preference("light")
+    assert config_service.get_theme_preference() == "light"
+
+    config_service.set_theme_preference("dark")
+    assert config_service.get_theme_preference() == "dark"
+
+    config_service.set_theme_preference("system")
+    assert config_service.get_theme_preference() == "system"
+
+
+def test_window_size_management(temp_config_file):
+    """Test window size setting and getting."""
+    config_service = ConfigService(temp_config_file)
+
+    # Test setting custom window size
+    config_service.set_window_size(1200, 900)
+    width, height = config_service.get_window_size()
+    assert width == 1200
+    assert height == 900
+
+
+def test_persistence_across_instances(temp_config_file):
+    """Test that settings persist across ConfigService instances."""
+    # Create first instance and set some values
+    config1 = ConfigService(temp_config_file)
+    config1.add_recent_file("/test/file.safetensors")
+    config1.set_theme_preference("dark")
+    config1.set_window_size(1300, 1000)
+
+    # Create second instance and verify values persist
+    config2 = ConfigService(temp_config_file)
+    assert config2.get_recent_files() == ["/test/file.safetensors"]
+    assert config2.get_theme_preference() == "dark"
+    assert config2.get_window_size() == (1300, 1000)
+
+
+def test_max_recent_files_limit(temp_config_file):
+    """Test that recent files list respects the maximum limit."""
+    config_service = ConfigService(temp_config_file)
+
+    # Add more than the max limit (10)
+    for i in range(15):
+        config_service.add_recent_file(f"/test/file{i}.safetensors")
+
+    recent_files = config_service.get_recent_files()
+    assert len(recent_files) == 10  # Should be limited to MAX_RECENT_FILES
+    assert recent_files[0] == "/test/file14.safetensors"  # Most recent first
+    assert recent_files[-1] == "/test/file5.safetensors"  # Oldest kept
+
+
+def test_recent_files_observer_pattern(temp_config_file):
+    """Test that observers are notified when recent files change."""
+    config_service = ConfigService(temp_config_file)
+
+    # Track observer calls
+    observer_calls = []
+
+    def test_observer(files_list):
+        observer_calls.append(files_list.copy())
+
+    # Register observer
+    config_service.add_recent_files_observer(test_observer)
+
+    # Add a file - should trigger observer
+    config_service.add_recent_file("/test/file1.safetensors")
+    assert len(observer_calls) == 1
+    assert observer_calls[0] == ["/test/file1.safetensors"]
+
+    # Add another file - should trigger observer again
+    config_service.add_recent_file("/test/file2.safetensors")
+    assert len(observer_calls) == 2
+    assert observer_calls[1] == ["/test/file2.safetensors", "/test/file1.safetensors"]
+
+    # Remove a file - should trigger observer
+    config_service.remove_recent_file("/test/file1.safetensors")
+    assert len(observer_calls) == 3
+    assert observer_calls[2] == ["/test/file2.safetensors"]
+
+    # Clear files - should trigger observer
+    config_service.clear_recent_files()
+    assert len(observer_calls) == 4
+    assert observer_calls[3] == []
+
+    # Remove observer and test no more calls
+    config_service.remove_recent_files_observer(test_observer)
+    config_service.add_recent_file("/test/file3.safetensors")
+    assert len(observer_calls) == 4  # Should not increase
+
+
+def test_theme_preference_validation(temp_config_file):
+    """Test that theme preference accepts various string values."""
+    config_service = ConfigService(temp_config_file)
+
+    # Test that any string is accepted (validation happens at theme service level)
+    config_service.set_theme_preference("custom-theme-id")
+    assert config_service.get_theme_preference() == "custom-theme-id"
+
+    # Test empty string
+    config_service.set_theme_preference("")
+    assert config_service.get_theme_preference() == ""
+
+
+def test_recent_files_duplicate_handling(temp_config_file):
+    """Test that adding duplicate files moves them to the front."""
+    config_service = ConfigService(temp_config_file)
+
+    # Add initial files
+    config_service.add_recent_file("/test/file1.safetensors")
+    config_service.add_recent_file("/test/file2.safetensors")
+    config_service.add_recent_file("/test/file3.safetensors")
+
+    assert config_service.get_recent_files() == [
+        "/test/file3.safetensors",
+        "/test/file2.safetensors",
+        "/test/file1.safetensors",
+    ]
+
+    # Add file1 again - should move to front and not duplicate
+    config_service.add_recent_file("/test/file1.safetensors")
+
+    recent_files = config_service.get_recent_files()
+    assert len(recent_files) == 3  # Should not increase
+    assert recent_files[0] == "/test/file1.safetensors"  # Should be at front
+    assert recent_files == [
+        "/test/file1.safetensors",
+        "/test/file3.safetensors",
+        "/test/file2.safetensors",
+    ]
+
+
+def test_pydantic_validation_in_persistence(temp_config_file):
+    """Test that Pydantic validation works when loading from file."""
+    # Create invalid JSON data
+    invalid_data = {
+        "config_version": "1.0",
+        "recent_files": "not-a-list",  # Should be a list
+        "theme": "system",
+        "window": {
+            "width": "not-a-number",  # Should be an integer
+            "height": 800,
+        },
+    }
+
+    # Write invalid data to file
+    with open(temp_config_file, "w") as f:
+        json.dump(invalid_data, f)
+
+    # ConfigService should handle validation error and use defaults
+    config_service = ConfigService(temp_config_file)
+
+    # Should get default values due to validation failure
+    assert config_service.get_recent_files() == []
+    assert config_service.get_theme_preference() == "system"
+    assert config_service.get_window_size() == (1100, 800)
+
+
+@pytest.mark.skipif(
+    os.name != "nt", reason="Windows path test only supported on Windows"
+)
+def test_config_service_default_path_windows(mocker):
+    """Test default config path creation on Windows."""
+    # Mock Windows environment
+    mocker.patch("os.name", "nt")
+    mocker.patch.dict("os.environ", {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"})
+    mock_mkdir = mocker.patch("pathlib.Path.mkdir")
+
+    config_service = ConfigService()
+
+    expected_path = (
+        Path("C:\\Users\\test\\AppData\\Roaming")
+        / "metaeditor_safetensors"
+        / "settings.json"
+    )
+    assert config_service.config_path == expected_path
+    mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="Unix path test not supported on Windows")
+def test_config_service_default_path_unix_with_xdg(mocker):
+    """Test default config path creation on Unix with XDG_CONFIG_HOME."""
+    # Mock Unix environment with XDG_CONFIG_HOME
+    mocker.patch("os.name", "posix")
+    mocker.patch.dict("os.environ", {"XDG_CONFIG_HOME": "/home/test/.config"})
+    mock_mkdir = mocker.patch("pathlib.Path.mkdir")
+
+    config_service = ConfigService()
+    expected_path = (
+        Path("/home/test/.config") / "metaeditor_safetensors" / "settings.json"
+    )
+    assert config_service.config_path == expected_path
+    mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+
+
+def test_file_io_error_during_save(mocker, temp_config_file):
+    """Test handling of IOError during save operations."""
+    config_service = ConfigService(temp_config_file)
+
+    # Mock file write to raise IOError
+    mock_open_func = mocker.mock_open()
+    mock_open_func.side_effect = IOError("Permission denied")
+    mocker.patch("builtins.open", mock_open_func)
+
+    # Should not crash when save fails
+    config_service.set_theme_preference("dark")
+    config_service.add_recent_file("/test/file.safetensors")
+    config_service.set_window_size(1200, 900)
+
+
+def test_type_error_during_save(mocker, temp_config_file):
+    """Test handling of TypeError during save operations."""
+    config_service = ConfigService(temp_config_file)
+
+    # Mock settings to have an object that can't be serialized
+    mock_settings = mocker.patch.object(config_service, "settings")
+    mock_settings.model_dump_json.side_effect = TypeError(
+        "Object is not JSON serializable"
+    )
+
+    # Should not crash when save fails due to serialization error
+    config_service._save()
+
+
+def test_corrupted_json_file_loading(temp_config_file):
+    """Test handling of corrupted JSON file during loading."""
+    # Write invalid JSON to file
+    with open(temp_config_file, "w") as f:
+        f.write("{ invalid json content }")
+
+    # Should load defaults without crashing
+    config_service = ConfigService(temp_config_file)
+    assert config_service.get_recent_files() == []
+    assert config_service.get_theme_preference() == "system"
+    assert config_service.get_window_size() == (1100, 800)
+
+
+def test_empty_json_file_loading(temp_config_file):
+    """Test handling of empty JSON file during loading."""
+    # Write empty content to file
+    with open(temp_config_file, "w") as f:
+        f.write("")
+
+    # Should load defaults without crashing
+    config_service = ConfigService(temp_config_file)
+    assert config_service.get_recent_files() == []
+    assert config_service.get_theme_preference() == "system"
+    assert config_service.get_window_size() == (1100, 800)
+
+
+def test_observer_error_handling(temp_config_file):
+    """Test that observer errors don't crash the service."""
+    config_service = ConfigService(temp_config_file)
+
+    # Add observer that raises an exception
+    def failing_observer(files_list):
+        raise ValueError("Observer error")
+
+    config_service.add_recent_files_observer(failing_observer)
+
+    # Should not crash when observer fails
+    config_service.add_recent_file("/test/file.safetensors")
+
+    # Verify file was still added
+    assert config_service.get_recent_files() == ["/test/file.safetensors"]
+
+
+def test_remove_nonexistent_recent_file(temp_config_file):
+    """Test removing a file that doesn't exist in recent files."""
+    config_service = ConfigService(temp_config_file)
+
+    # Add some files
+    config_service.add_recent_file("/test/file1.safetensors")
+    config_service.add_recent_file("/test/file2.safetensors")
+
+    # Try to remove non-existent file
+    config_service.remove_recent_file("/test/nonexistent.safetensors")
+
+    # Should not affect existing files
+    assert len(config_service.get_recent_files()) == 2
+    assert "/test/file1.safetensors" in config_service.get_recent_files()
+    assert "/test/file2.safetensors" in config_service.get_recent_files()
+
+
+def test_remove_nonexistent_observer(temp_config_file):
+    """Test removing an observer that wasn't added."""
+    config_service = ConfigService(temp_config_file)
+
+    def dummy_observer(files_list):
+        pass
+
+    # Should not crash when trying to remove non-existent observer
+    config_service.remove_recent_files_observer(dummy_observer)
+
+    # Add and remove actual observer
+    config_service.add_recent_files_observer(dummy_observer)
+    config_service.remove_recent_files_observer(dummy_observer)
+
+    # Try to remove again - should not crash
+    config_service.remove_recent_files_observer(dummy_observer)
+
+
+def test_clear_recent_files_empty_list(temp_config_file):
+    """Test clearing recent files when list is already empty."""
+    config_service = ConfigService(temp_config_file)
+
+    # List should be empty by default
+    assert config_service.get_recent_files() == []
+
+    # Clearing empty list should work fine
+    config_service.clear_recent_files()
+    assert config_service.get_recent_files() == []
+
+
+def test_file_encoding_handling(temp_config_file):
+    """Test that file encoding is handled correctly."""
+    config_service = ConfigService(temp_config_file)
+
+    # Add file with unicode characters
+    unicode_path = "/test/файл с русскими символами.safetensors"
+    config_service.add_recent_file(unicode_path)
+
+    # Create new instance to test loading
+    config_service2 = ConfigService(temp_config_file)
+    assert unicode_path in config_service2.get_recent_files()
+
+
+def test_theme_preference_edge_cases(temp_config_file):
+    """Test theme preference with edge case values."""
+    config_service = ConfigService(temp_config_file)
+
+    # Test with None-like string
+    config_service.set_theme_preference("none")
+    assert config_service.get_theme_preference() == "none"
+
+    # Test with numeric string
+    config_service.set_theme_preference("123")
+    assert config_service.get_theme_preference() == "123"
+
+    # Test with special characters
+    config_service.set_theme_preference("theme-with-dashes_and_underscores")
+    assert config_service.get_theme_preference() == "theme-with-dashes_and_underscores"
+
+
+def test_window_size_edge_cases(temp_config_file):
+    """Test window size with edge case values."""
+    config_service = ConfigService(temp_config_file)
+
+    # Test with very small values
+    config_service.set_window_size(1, 1)
+    assert config_service.get_window_size() == (1, 1)
+
+    # Test with very large values
+    config_service.set_window_size(9999, 9999)
+    assert config_service.get_window_size() == (9999, 9999)
+
+    # Test with zero values
+    config_service.set_window_size(0, 0)
+    assert config_service.get_window_size() == (0, 0)

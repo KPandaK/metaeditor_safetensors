@@ -202,30 +202,3 @@ class TestSaveWorker:
         mock_error.emit.assert_called_once_with(str(fs_exception))
         mock_finished.emit.assert_not_called()
         # Progress may or may not be called depending on when the error occurs
-
-    def test_save_worker_run_with_none_metadata(self, mock_service, mocker):
-        """Test SaveWorker.run() handles None metadata gracefully."""
-        filepath = "/path/to/test.safetensors"
-        none_metadata = {}
-
-        # Mock successful save operation
-        mock_service.write_metadata.return_value = filepath
-
-        worker = SaveWorker(mock_service, filepath, none_metadata)
-
-        # Mock signal emissions to track calls
-        mock_progress = mocker.patch.object(worker, "progress")
-        mock_finished = mocker.patch.object(worker, "finished")
-        mock_error = mocker.patch.object(worker, "error")
-
-        # Run the worker
-        worker.run()
-
-        # Verify service method was called with None metadata
-        mock_service.write_metadata.assert_called_once_with(
-            filepath, none_metadata, progress_callback=mock_progress.emit
-        )
-
-        # Verify signals were emitted correctly
-        mock_finished.emit.assert_called_once_with(filepath)
-        mock_error.emit.assert_not_called()

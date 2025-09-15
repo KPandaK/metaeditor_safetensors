@@ -58,9 +58,6 @@ class MainView(QMainWindow):
     recent_file_triggered = Signal(str)
     clear_recent_requested = Signal()
 
-    # --- Theme Signals ---
-    theme_requested = Signal(str)
-
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
@@ -76,11 +73,15 @@ class MainView(QMainWindow):
     tags_changed = Signal(str)
     merged_from_changed = Signal(str)
 
-    def __init__(self):
+    def __init__(self, config_service):
         super().__init__()
 
-        # Set a default window size for a better initial appearance
-        self.resize(1100, 800)
+        # Store config service reference
+        self._config_service = config_service
+
+        # Set window size from config
+        width, height = self._config_service.get_window_size()
+        self.resize(width, height)
 
         # Set up window icon and title
         self._setup_window_properties()
@@ -392,3 +393,9 @@ class MainView(QMainWindow):
                 event.acceptProposedAction()
                 return
         event.ignore()
+
+    def closeEvent(self, event):
+        # Save current window size
+        geometry = self.geometry()
+        self._config_service.set_window_size(geometry.width(), geometry.height())
+        super().closeEvent(event)

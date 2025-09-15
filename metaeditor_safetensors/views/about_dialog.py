@@ -5,6 +5,7 @@ from PySide6.QtCore import QFile, QIODevice, Qt, QTimer, QUrl
 from PySide6.QtGui import QClipboard, QDesktopServices
 from PySide6.QtWidgets import QApplication, QDialog
 
+from metaeditor_safetensors.models.theme import ThemeType
 from metaeditor_safetensors.widgets.clickable_image import ThemeMode
 
 from ..services.css_service import refresh_style_recursive
@@ -81,17 +82,15 @@ class AboutDialog(QDialog):
 
         # Connect to theme changes
         if self._theme_service:
-            self._theme_service.theme_changed.connect(
-                lambda: self._update_link_buttons()
-            )
+            self._theme_service.add_theme_changed_observer(self._update_link_buttons)
 
-        self._update_link_buttons()
+        # Initial setup based on current theme
+        self._update_link_buttons(self._theme_service.get_current_theme())
 
-    def _update_link_buttons(self):
-        current_theme = self._theme_service.get_current_theme()
-        if current_theme and hasattr(current_theme, "category"):
+    def _update_link_buttons(self, theme):
+        if theme:
             # Switch image based on theme category
-            if current_theme.category == "dark":
+            if theme.config.category == ThemeType.DARK:
                 self.ui.githubLink.setMode(ThemeMode.DARK)
             else:
                 self.ui.githubLink.setMode(ThemeMode.LIGHT)
