@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from ..models.metadata_keys import MetadataKeys
 from ..models.metadata_model import MetadataModel
+from ..models.theme import ThemeType
 from ..services.config_service import ConfigService
 from ..services.image_service import ImageService
 from ..services.safetensors_service import SafetensorsService
@@ -51,6 +52,11 @@ class MainController(QObject):
 
         # Register for theme changes
         self._theme_service.add_theme_changed_observer(self._on_theme_changed)
+
+        # Register for system theme changes
+        self._theme_service.add_system_theme_changed_callback(
+            self._on_system_theme_changed
+        )
 
         # Connect the view's signals to the controller's slots.
         self._connect_signals()
@@ -197,6 +203,18 @@ class MainController(QObject):
 
     def _on_theme_changed(self, theme):
         self._config_service.set_theme_preference(theme.config.theme_id)
+
+    def _on_system_theme_changed(self, system_theme: str):
+        """Handle system theme change events."""
+        # Check if user preference is set to "system"
+        current_preference = self._config_service.get_theme_preference()
+        if current_preference == ThemeType.SYSTEM:
+            # Apply the system theme
+            success = self._theme_service.apply_theme(current_preference)
+            if success:
+                self._view.set_status_message(
+                    f"System theme changed to: {system_theme}", 2000
+                )
 
     @Slot()
     def on_set_thumbnail_requested(self):
