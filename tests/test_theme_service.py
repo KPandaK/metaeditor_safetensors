@@ -306,24 +306,24 @@ class TestThemeService:
         assert theme_service.has_theme("dark"), "Dark theme should be available"
         assert theme_service.has_theme("light"), "Light theme should be available"
 
-        # Connect to observer and track calls
+        # Connect to callback and track calls
         observer_calls = []
-        theme_service.add_theme_changed_observer(
-            lambda theme: observer_calls.append(theme)
+        theme_service.add_theme_changed_callback(
+            lambda theme_id: observer_calls.append(theme_id)
         )
 
-        # Apply theme and check observer call
+        # Apply theme and check callback call
         result = theme_service.apply_theme("dark")
         assert result, "Dark theme application should succeed"
         assert len(observer_calls) == 1
-        assert observer_calls[0].config.theme_id == "dark"
+        assert observer_calls[0] == "dark"
 
-        # Apply system theme and check observer call
+        # Apply system theme and check callback call
         observer_calls.clear()
         result = theme_service.apply_theme("system")
         assert result, "System theme application should succeed"
         assert len(observer_calls) == 1
-        assert observer_calls[0].config.name == "Dark Theme"  # Should resolve to dark
+        assert observer_calls[0] == "system"  # Should get the original preference
 
     def test_has_theme_method(self, mocker, themes_dir):
         """Test has_theme method for checking theme availability."""
@@ -500,20 +500,20 @@ class TestThemeServiceObserverPattern:
         # Track observer calls
         observer_calls = []
 
-        def test_observer(theme):
-            observer_calls.append(theme)
+        def test_observer(theme_id):
+            observer_calls.append(theme_id)
 
         # Register observer
-        theme_service.add_theme_changed_observer(test_observer)
+        theme_service.add_theme_changed_callback(test_observer)
 
         # Apply a theme - should trigger observer
         success = theme_service.apply_theme("dark")
         assert success, "Theme application should succeed"
         assert len(observer_calls) == 1
-        assert observer_calls[0].config.theme_id == "dark"
+        assert observer_calls[0] == "dark"
 
         # Remove observer and test no more calls
-        theme_service.remove_theme_changed_observer(test_observer)
+        theme_service.remove_theme_changed_callback(test_observer)
 
         # Apply another theme - should not trigger removed observer
         theme_service.apply_theme("light")
@@ -714,10 +714,10 @@ def test_observer_callback_exception_handling(mocker, themes_dir):
     theme_service = ThemeService()
 
     # Add observer that raises exception
-    def failing_observer(theme):
+    def failing_observer(theme_id):
         raise ValueError("Observer error")
 
-    theme_service.add_theme_changed_observer(failing_observer)
+    theme_service.add_theme_changed_callback(failing_observer)
 
     # Should not crash when applying theme
     result = theme_service.apply_theme("dark")
@@ -733,11 +733,11 @@ def test_remove_nonexistent_observer(mocker, themes_dir):
 
     theme_service = ThemeService()
 
-    def dummy_observer(theme):
+    def dummy_observer(theme_id):
         pass
 
     # Should not crash when removing non-existent observer
-    theme_service.remove_theme_changed_observer(dummy_observer)
+    theme_service.remove_theme_changed_callback(dummy_observer)
 
 
 def test_darkdetect_unexpected_return_value(mocker, themes_dir):
@@ -862,3 +862,338 @@ def test_theme_service_live_reload_env_var_variations(mocker, temp_dir):
     mocker.patch.dict("os.environ", {"DEV_LIVE_STYLING": ""})
     theme_service4 = ThemeService()
     assert theme_service4._enable_live_reload is False
+
+
+class TestSystemThemeMonitoring:
+    """Test cases for system theme monitoring functionality."""
+
+    def test_monitoring_activation_with_system_theme(self, mocker, themes_dir):
+        """Test that system theme monitoring starts when system theme is applied."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        theme_service = ThemeService()
+
+        # Initially, monitoring should not be active
+        assert not theme_service.is_monitoring_system_theme()
+        assert theme_service.get_current_theme_preference() is None
+
+        # Apply system theme - monitoring should start
+        with mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        ) as mock_listener:
+            # Make the listener mock block indefinitely to simulate real behavior
+            import threading
+
+            mock_listener.side_effect = lambda callback: threading.Event().wait()
+
+            result = theme_service.apply_theme("system")
+            assert result is True
+
+            # Give the thread a moment to start and set the monitoring flag
+            import time
+
+            time.sleep(0.1)
+
+            assert theme_service.is_monitoring_system_theme()
+            assert theme_service.get_current_theme_preference() == "system"
+
+        theme_service.cleanup()
+
+    def test_monitoring_deactivation_with_specific_theme(self, mocker, themes_dir):
+        """Test that system theme monitoring stops when specific theme is applied."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        theme_service = ThemeService()
+
+        # Apply system theme first to start monitoring
+        with mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        ) as mock_listener:
+            # Make the listener mock block indefinitely to simulate real behavior
+            import threading
+
+            mock_listener.side_effect = lambda callback: threading.Event().wait()
+
+            theme_service.apply_theme("system")
+            import time
+
+            time.sleep(0.1)
+            assert theme_service.is_monitoring_system_theme()
+
+        # Apply specific theme - monitoring should stop
+        result = theme_service.apply_theme("dark")
+        assert result is True
+        assert not theme_service.is_monitoring_system_theme()
+        assert theme_service.get_current_theme_preference() == "dark"
+
+        theme_service.cleanup()
+
+    def test_system_theme_changed_callback_emission(self, mocker, themes_dir):
+        """Test that system_theme_changed callback is called correctly."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        theme_service = ThemeService()
+
+        # Set up callback capture
+        callback_received = []
+        theme_service.add_system_theme_changed_callback(
+            lambda theme_name: callback_received.append(theme_name)
+        )
+
+        # Simulate system theme change callback directly
+        theme_service._notify_system_theme_changed("Light")
+
+        # Check that callback was received
+        assert len(callback_received) == 1
+        assert callback_received[0] == "Light"
+
+        theme_service.cleanup()
+
+    def test_system_theme_change_with_system_theme_active(self, mocker, themes_dir):
+        """Test theme reapplication when system theme changes with system theme active."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        theme_service = ThemeService()
+
+        # Mock apply_theme to track calls
+        original_apply = theme_service.apply_theme
+        theme_service.apply_theme = mocker.MagicMock(side_effect=original_apply)
+
+        # Start with dark system theme
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        with mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        ):
+            # Apply system theme
+            result = theme_service.apply_theme("system")
+            assert result is True
+            assert theme_service.get_current_theme_preference() == "system"
+
+            # Simulate system theme change to light
+            mocker.patch(
+                "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+                return_value="light",
+            )
+            theme_service._on_system_theme_changed("Light")
+
+            # apply_theme should have been called again with "system"
+            from unittest.mock import call
+
+            expected_calls = [call("system"), call("system")]
+            theme_service.apply_theme.assert_has_calls(expected_calls)
+
+        theme_service.cleanup()
+
+    def test_system_theme_change_ignored_when_not_system(self, mocker, themes_dir):
+        """Test that system theme changes are ignored when not using system theme."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        theme_service = ThemeService()
+
+        # Apply specific theme (not system)
+        result = theme_service.apply_theme("dark")
+        assert result is True
+        assert theme_service.get_current_theme_preference() == "dark"
+
+        # Mock apply_theme to track calls
+        original_apply = theme_service.apply_theme
+        theme_service.apply_theme = mocker.MagicMock(side_effect=original_apply)
+
+        # Simulate system theme change
+        theme_service._on_system_theme_changed("Light")
+
+        # apply_theme should not have been called since we're not using system theme
+        theme_service.apply_theme.assert_not_called()
+
+        theme_service.cleanup()
+
+    def test_cleanup_stops_monitoring(self, mocker, themes_dir):
+        """Test that cleanup properly stops theme monitoring."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        theme_service = ThemeService()
+
+        # Start monitoring
+        with mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        ) as mock_listener:
+            # Make the listener mock block indefinitely to simulate real behavior
+            import threading
+
+            mock_listener.side_effect = lambda callback: threading.Event().wait()
+
+            theme_service.apply_theme("system")
+            import time
+
+            time.sleep(0.1)
+            assert theme_service.is_monitoring_system_theme()
+
+        # Cleanup should stop monitoring
+        theme_service.cleanup()
+        assert not theme_service.is_monitoring_system_theme()
+
+    def test_monitoring_thread_safety(self, mocker, themes_dir):
+        """Test thread safety of monitoring activation/deactivation."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
+            return_value="dark",
+        )
+
+        theme_service = ThemeService()
+
+        # Test multiple rapid start/stop cycles
+        with mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        ) as mock_listener:
+            # Make the listener mock block indefinitely to simulate real behavior
+            import threading
+
+            mock_listener.side_effect = lambda callback: threading.Event().wait()
+
+            for i in range(5):
+                theme_service.apply_theme("system")
+                import time
+
+                time.sleep(0.01)  # Very brief pause
+                theme_service.apply_theme("dark")
+                time.sleep(0.01)
+
+        # Should end up with monitoring stopped
+        assert not theme_service.is_monitoring_system_theme()
+
+        theme_service.cleanup()
+
+    def test_getter_methods(self, mocker, themes_dir):
+        """Test new getter methods for theme preference and monitoring state."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        theme_service = ThemeService()
+
+        # Initially no preference set
+        assert theme_service.get_current_theme_preference() is None
+        assert not theme_service.is_monitoring_system_theme()
+
+        theme_service.cleanup()
+
+    def test_callback_management(self, mocker, themes_dir):
+        """Test callback management for system theme changes."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        theme_service = ThemeService()
+
+        # Test adding and removing callbacks
+        callback_calls = []
+
+        def test_callback(theme_name):
+            callback_calls.append(theme_name)
+
+        # Add callback
+        theme_service.add_system_theme_changed_callback(test_callback)
+
+        # Trigger callback
+        theme_service._notify_system_theme_changed("Dark")
+        assert len(callback_calls) == 1
+        assert callback_calls[0] == "Dark"
+
+        # Remove callback
+        theme_service.remove_system_theme_changed_callback(test_callback)
+
+        # Trigger again - should not be called
+        theme_service._notify_system_theme_changed("Light")
+        assert len(callback_calls) == 1  # Should not increase
+
+        theme_service.cleanup()
+
+    def test_callback_exception_handling(self, mocker, themes_dir):
+        """Test that callback exceptions don't crash the service."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        theme_service = ThemeService()
+
+        # Add callback that raises exception
+        def failing_callback(theme_name):
+            raise ValueError("Callback error")
+
+        theme_service.add_system_theme_changed_callback(failing_callback)
+
+        # Should not crash when notifying callbacks
+        try:
+            theme_service._notify_system_theme_changed("Dark")
+        except Exception:
+            pytest.fail("Callback exceptions should be handled gracefully")
+
+        theme_service.cleanup()
+
+    def test_has_theme_with_system(self, mocker, themes_dir):
+        """Test has_theme method includes 'system' theme."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        theme_service = ThemeService()
+
+        # Test existing themes
+        assert theme_service.has_theme("dark")
+        assert theme_service.has_theme("light")
+        assert theme_service.has_theme("system")  # Should include system
+
+        # Test non-existent theme
+        assert not theme_service.has_theme("nonexistent")
+
+        theme_service.cleanup()
