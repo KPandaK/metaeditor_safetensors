@@ -8,6 +8,7 @@ system theme detection, user preferences, and runtime theme switching.
 
 import logging
 import os
+import threading
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -37,11 +38,13 @@ class ThemeService(QObject):
 
     Supports theme directories containing multiple QSS files that are
     combined at runtime, with system theme detection and live reloading
-    in development mode.
+    in development mode. Includes monitoring for system theme changes
+    when using auto theme selection.
     """
 
     # Signals
     theme_changed = Signal(str)
+    system_theme_changed = Signal(str)  # New signal for system theme changes
 
     def __init__(self, app: QApplication):
         super().__init__()
@@ -50,6 +53,12 @@ class ThemeService(QObject):
         self._current_theme: Optional[Theme] = None
         self._available_themes: Dict[str, Theme] = {}
         self._themes_root: Optional[Path] = None
+        self._current_theme_preference: Optional[str] = None  # Track if "auto" is selected
+
+        # System theme monitoring
+        self._monitoring_thread: Optional[threading.Thread] = None
+        self._monitoring_active = False
+        self._monitor_lock = threading.Lock()
 
         # Themes directory - always in the package
         try:
@@ -72,6 +81,9 @@ class ThemeService(QObject):
         # Setup file watching if in development mode
         if self._enable_live_reload:
             self._setup_file_watchers()
+
+        # Connect to system theme change signal to handle auto-reapplication
+        self.system_theme_changed.connect(self._on_system_theme_changed)
 
     def _initialize_themes(self):
         """Find available themes from the package themes directory."""
@@ -182,6 +194,15 @@ class ThemeService(QObject):
         """Get the currently applied theme."""
         return self._current_theme
 
+    def get_current_theme_preference(self) -> Optional[str]:
+        """Get the current theme preference (e.g., 'auto', 'dark', 'light')."""
+        return self._current_theme_preference
+
+    def is_monitoring_system_theme(self) -> bool:
+        """Check if system theme monitoring is currently active."""
+        with self._monitor_lock:
+            return self._monitoring_active
+
     def has_theme(self, theme_id: str) -> bool:
         """Check if a theme ID exists (including 'auto')."""
         return theme_id == "auto" or theme_id in self._available_themes
@@ -227,6 +248,13 @@ class ThemeService(QObject):
             self._app.setStyleSheet(qss_content)
 
             self._current_theme = theme
+            self._current_theme_preference = original_preference
+
+            # Start or stop system theme monitoring based on preference
+            if original_preference == "auto":
+                self._start_system_theme_monitoring()
+            else:
+                self._stop_system_theme_monitoring()
 
             # Emit signal with original preference (so UI knows "auto" is selected)
             signal_theme_id = original_preference or theme.theme_id
@@ -238,3 +266,82 @@ class ThemeService(QObject):
         except Exception as e:
             logger.error(f"Error applying theme {theme}: {e}")
             return False
+
+    def _start_system_theme_monitoring(self):
+        """Start monitoring system theme changes in a background thread."""
+        with self._monitor_lock:
+            if self._monitoring_active:
+                return  # Already monitoring
+
+            self._monitoring_active = True
+            self._monitoring_thread = threading.Thread(
+                target=self._system_theme_monitor_loop,
+                name="ThemeMonitor",
+                daemon=True
+            )
+            self._monitoring_thread.start()
+            logger.info("Started system theme monitoring")
+
+    def _stop_system_theme_monitoring(self):
+        """Stop monitoring system theme changes."""
+        with self._monitor_lock:
+            if not self._monitoring_active:
+                return  # Not monitoring
+
+            self._monitoring_active = False
+            logger.info("Stopped system theme monitoring")
+            
+            # Note: We cannot forcefully terminate the monitoring thread
+            # as darkdetect.listener() is a blocking call. The thread will
+            # terminate naturally when the next system theme change occurs.
+
+    def _system_theme_monitor_loop(self):
+        """Background thread loop for monitoring system theme changes."""
+        try:
+            logger.debug("System theme monitoring thread started")
+            
+            def theme_change_callback(theme_name: str):
+                """Callback for system theme changes from darkdetect."""
+                with self._monitor_lock:
+                    if not self._monitoring_active:
+                        return  # Stop processing if monitoring was disabled
+                
+                logger.info(f"System theme changed to: {theme_name}")
+                # Emit signal (thread-safe in Qt)
+                self.system_theme_changed.emit(theme_name)
+            
+            # This is a blocking call that monitors system theme changes
+            darkdetect.listener(theme_change_callback)
+            
+        except Exception as e:
+            logger.error(f"Error in system theme monitoring: {e}")
+        finally:
+            with self._monitor_lock:
+                self._monitoring_active = False
+            logger.debug("System theme monitoring thread ended")
+
+    def _on_system_theme_changed(self, theme_name: str):
+        """Handle system theme change signal (called on main thread)."""
+        try:
+            # Only react if we're currently using auto theme
+            if self._current_theme_preference != "auto":
+                logger.debug("Ignoring system theme change - not using auto theme")
+                return
+
+            # Clear cached system theme to force re-detection
+            self._cached_system_theme = None
+            
+            # Re-apply auto theme to pick up the new system theme
+            logger.info("Re-applying auto theme due to system theme change")
+            self.apply_theme("auto")
+            
+        except Exception as e:
+            logger.error(f"Error handling system theme change: {e}")
+
+    def cleanup(self):
+        """Clean up resources including theme monitoring."""
+        self._stop_system_theme_monitoring()
+        
+        if self._file_watcher:
+            self._file_watcher.deleteLater()
+            self._file_watcher = None
