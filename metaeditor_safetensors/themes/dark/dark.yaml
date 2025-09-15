@@ -1,18 +1,13 @@
 # Dark Theme Configuration
 # =========================
 
-theme_id: "dark"
-name: "Dark"
-description: "A modern dark theme with VS Code-inspired styling"
+theme_id: "dark-modern"
+name: "Dark Modern"
+description: "A modern dark theme"
 category: "dark"
 version: "1.0.0"
 
 # QSS file loading order (files will be loaded in this order)
 # If a file is not listed here, it will be loaded alphabetically after these
-qss_files:
-  - "base.qss"
-  - "buttons.qss"
-  - "inputs.qss"
-  - "menus.qss"
-  - "misc.qss"
-  - "tables.qss"
+qss_order:
+  - "dark.qss"

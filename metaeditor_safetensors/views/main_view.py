@@ -52,13 +52,11 @@ class MainView(QMainWindow):
     open_file_requested = Signal()
     save_requested = Signal()
     settings_requested = Signal()
+    about_requested = Signal()
     exit_requested = Signal()
     file_dropped = Signal(str)
     recent_file_triggered = Signal(str)
     clear_recent_requested = Signal()
-
-    # --- Theme Signals ---
-    theme_requested = Signal(str)
 
     # --- Thumbnail Signals ---
     set_thumbnail_requested = Signal()
@@ -75,11 +73,15 @@ class MainView(QMainWindow):
     tags_changed = Signal(str)
     merged_from_changed = Signal(str)
 
-    def __init__(self):
+    def __init__(self, config_service):
         super().__init__()
 
-        # Set a default window size for a better initial appearance
-        self.resize(1100, 800)
+        # Store config service reference
+        self._config_service = config_service
+
+        # Set window size from config
+        width, height = self._config_service.get_window_size()
+        self.resize(width, height)
 
         # Set up window icon and title
         self._setup_window_properties()
@@ -143,21 +145,24 @@ class MainView(QMainWindow):
         file_menu = menu_bar.addMenu("&File")
 
         open_action = QAction("&Open...", self)
+        open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.open_file_requested)
         file_menu.addAction(open_action)
 
         # Open Recent submenu
         self.recent_files_menu = file_menu.addMenu("Open &Recent")
-        self._update_recent_files_menu([])  # Initialize with empty list
+        self._update_recent_files_menu([])
 
         save_action = QAction("&Save", self)
+        save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save_requested)
         file_menu.addAction(save_action)
 
         file_menu.addSeparator()
 
         # Settings action in File menu
-        settings_action = QAction("&Settings...", self)
+        settings_action = QAction("S&ettings...", self)
+        settings_action.setShortcut("Ctrl+,")
         settings_action.triggered.connect(self.settings_requested)
         file_menu.addAction(settings_action)
 
@@ -171,24 +176,20 @@ class MainView(QMainWindow):
         view_menu = menu_bar.addMenu("&View")
 
         raw_view_action = QAction("View &Raw Metadata", self)
+        raw_view_action.setShortcut("Ctrl+Shift+R")
         raw_view_action.setEnabled(False)  # Not implemented yet
-        view_menu.addAction(raw_view_action)
         view_menu.addAction(raw_view_action)
 
         tensors_view_action = QAction("View &Tensors", self)
+        tensors_view_action.setShortcut("Ctrl+Shift+T")
         tensors_view_action.setEnabled(False)  # Not implemented yet
         view_menu.addAction(tensors_view_action)
 
         # Help Menu
         help_menu = menu_bar.addMenu("&Help")
         about_action = QAction("&About", self)
-        about_action.triggered.connect(self.show_about_window)
+        about_action.triggered.connect(self.about_requested)
         help_menu.addAction(about_action)
-
-    def show_about_window(self):
-        """Shows the about window."""
-        about_dialog = AboutDialog(self)
-        about_dialog.exec()
 
     def update_recent_files_menu(self, recent_files: list[str]):
         """
@@ -392,3 +393,9 @@ class MainView(QMainWindow):
                 event.acceptProposedAction()
                 return
         event.ignore()
+
+    def closeEvent(self, event):
+        # Save current window size
+        geometry = self.geometry()
+        self._config_service.set_window_size(geometry.width(), geometry.height())
+        super().closeEvent(event)

@@ -1,18 +1,10 @@
-"""
-Settings Dialog
-===============
-
-A dialog for configuring application settings including themes,
-preferences, and other user options.
-"""
-
 import logging
 from typing import Any, Dict, Optional
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QButtonGroup, QDialog, QDialogButtonBox
 
-from ..models.theme import Theme
+from ..models.theme import ThemeType
 from ..services.config_service import ConfigService
 from ..services.theme_service import ThemeService
 from .settings_dialog_ui import Ui_SettingsDialog
@@ -21,14 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class SettingsDialog(QDialog):
-    """
-    Settings dialog for configuring application preferences.
-
-    Signals:
-        theme_changed: Emitted when theme selection changes
-        settings_applied: Emitted when settings are applied
-    """
-
     theme_changed = Signal(str)  # theme identifier
     settings_applied = Signal()
 
@@ -57,7 +41,6 @@ class SettingsDialog(QDialog):
         self._setup_ui()
 
     def _connect_signals(self):
-        """Connect internal UI signals."""
         # Theme mode changes
         self._theme_mode_group.buttonToggled.connect(self._on_theme_mode_changed)
 
@@ -70,7 +53,6 @@ class SettingsDialog(QDialog):
         self.ui.buttonBox.clicked.connect(self._on_button_clicked)
 
     def _setup_ui(self):
-        """Initialize the UI state."""
         # Set initial state
         self.ui.autoThemeRadio.setChecked(True)
         self.ui.themeComboBox.setEnabled(False)
@@ -80,14 +62,12 @@ class SettingsDialog(QDialog):
         self.setModal(True)
 
     def set_services(self, theme_service: ThemeService, config_service: ConfigService):
-        """Set the theme service and config service, then populate theme options."""
         self._theme_service = theme_service
         self._config_service = config_service
         self._populate_theme_options()
         self._load_current_settings()
 
     def _populate_theme_options(self):
-        """Populate the theme combo box with available themes."""
         if not self._theme_service:
             return
 
@@ -100,7 +80,6 @@ class SettingsDialog(QDialog):
         self.ui.themeComboBox.setEnabled(False)
 
     def _load_current_settings(self):
-        """Load current settings from the config service."""
         if not self._config_service:
             return
 
@@ -111,14 +90,14 @@ class SettingsDialog(QDialog):
         self._original_settings = {"theme_preference": current_preference}
 
         # Set UI state based on current preference
-        if current_preference == "auto":
+        if current_preference == ThemeType.SYSTEM:
             self.ui.autoThemeRadio.setChecked(True)
-        elif current_preference == "light":
+        elif current_preference == ThemeType.LIGHT:
             self.ui.lightThemeRadio.setChecked(True)
-        elif current_preference == "dark":
+        elif current_preference == ThemeType.DARK:
             self.ui.darkThemeRadio.setChecked(True)
         else:
-            # Unknown theme - default to auto
+            # Unknown theme - default to system
             self.ui.autoThemeRadio.setChecked(True)
 
         # Update theme info display
@@ -160,20 +139,22 @@ class SettingsDialog(QDialog):
 
         theme_identifier = self._get_selected_theme_identifier()
         if theme_identifier:
-            self._theme_service.apply_theme(theme_identifier)
+            self._theme_service.apply_theme(
+                theme_identifier.value
+            )  # Use string value for ThemeService
             self._update_theme_info()
 
-    def _get_selected_theme_identifier(self) -> Optional[str]:
+    def _get_selected_theme_identifier(self) -> Optional[ThemeType]:
         """Get the currently selected theme identifier."""
         if self.ui.autoThemeRadio.isChecked():
-            return "auto"
+            return ThemeType.SYSTEM
         elif self.ui.lightThemeRadio.isChecked():
-            return "light"
+            return ThemeType.LIGHT
         elif self.ui.darkThemeRadio.isChecked():
-            return "dark"
+            return ThemeType.DARK
         elif self.ui.customThemeRadio.isChecked():
-            # For now, default to auto since we don't have custom themes
-            return "auto"
+            # For now, default to system since we don't have custom themes
+            return ThemeType.SYSTEM
         return None
 
     def _on_button_clicked(self, button):
@@ -196,10 +177,9 @@ class SettingsDialog(QDialog):
 
         theme_identifier = self._get_selected_theme_identifier()
         if theme_identifier:
-            # Save the theme preference using config service directly
-            self._config_service.set_theme_preference(theme_identifier)
-
-            self.theme_changed.emit(theme_identifier)
+            self.theme_changed.emit(
+                theme_identifier.value
+            )  # Emit string value for ThemeService
             self.settings_applied.emit()
 
             # Update original settings for future cancel operations
@@ -214,7 +194,9 @@ class SettingsDialog(QDialog):
 
         original_theme = self._original_settings.get("theme_preference")
         if original_theme:
-            self._theme_service.apply_theme(original_theme)
+            self._theme_service.apply_theme(
+                original_theme
+            )  # Apply theme by theme_id string
             logger.debug(f"Reverted to original theme: {original_theme}")
 
     def closeEvent(self, event):

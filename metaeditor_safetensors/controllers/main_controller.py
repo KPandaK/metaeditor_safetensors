@@ -1,13 +1,5 @@
-"""
-Main Controller
-===============
-
-This module defines the `MainController`, the central component of the application
-that orchestrates the interactions between the Model and the View.
-"""
-
 import os
-from typing import Optional
+from typing import List, Optional
 
 from PySide6.QtCore import QDateTime, QObject, Qt, QThread, Slot
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
@@ -19,19 +11,13 @@ from ..services.image_service import ImageService
 from ..services.safetensors_service import SafetensorsService
 from ..services.save_worker import SaveWorker
 from ..services.theme_service import ThemeService
+from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
 from ..views.thumbnail_dialog import ThumbnailDialog
 
 
 class MainController(QObject):
-    """
-    The main controller for the application.
-
-    It connects the user interface (View) with the data model (Model) and
-    handles the application's logic.
-    """
-
     # Type annotations for instance attributes
     _thread: Optional[QThread]
     worker: Optional[SaveWorker]
@@ -60,23 +46,30 @@ class MainController(QObject):
         # Register the controller's update method as an observer of the model.
         self._model.add_observer(self.update_view)
 
+        # Register for recent files changes
+        self._config_service.add_recent_files_observer(self._on_recent_files_changed)
+
+        # Register for theme changes
+        self._theme_service.add_theme_changed_observer(self._on_theme_changed)
+
         # Connect the view's signals to the controller's slots.
         self._connect_signals()
 
+        # Apply initial theme preference
+        preferred_theme = config_service.get_theme_preference()
+        self._theme_service.apply_theme(preferred_theme)
+
     def _connect_signals(self):
-        """Connects signals from the view to the controller's slots."""
         self._view.open_file_requested.connect(self.on_open_file_requested)
         self._view.file_dropped.connect(self.on_file_dropped)
         self._view.save_requested.connect(self.on_save_requested)
         self._view.settings_requested.connect(self.on_settings_requested)
+        self._view.about_requested.connect(self.on_about_requested)
         self._view.exit_requested.connect(self.on_exit_requested)
 
         # Connect recent files signals
         self._view.recent_file_triggered.connect(self.on_recent_file_triggered)
         self._view.clear_recent_requested.connect(self.on_clear_recent_requested)
-
-        # Connect theme signals
-        self._view.theme_requested.connect(self.on_theme_requested)
 
         # Connect metadata field changes
         self._view.title_changed.connect(
@@ -110,18 +103,15 @@ class MainController(QObject):
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
 
     def run(self):
-        """Shows the main window and starts the application."""
         self._view.show()
-        self.update_view()  # Initial view update
+        self.update_view()
         self._view.set_all_fields_enabled(False)
         self._view.set_status_message("Ready. Please open a safetensors file to begin.")
 
-        # Update recent files menu on startup
-        self._update_recent_files_menu()
+        self._on_recent_files_changed(self._config_service.get_recent_files())
 
     @Slot()
     def on_open_file_requested(self):
-        """Handles the open file request from the view."""
         filepath, _ = QFileDialog.getOpenFileName(
             self._view,
             "Open Safetensors File",
@@ -133,12 +123,10 @@ class MainController(QObject):
 
     @Slot(str)
     def on_file_dropped(self, filepath: str):
-        """Handles file drop events from the view."""
         if filepath:
             self._load_file(filepath)
 
     def _load_file(self, filepath: str):
-        """Load a safetensors file and update recent files list."""
         self._current_file = filepath
         try:
             self._view.set_status_message(f"Reading metadata from {filepath}...")
@@ -148,61 +136,29 @@ class MainController(QObject):
 
             # Add to recent files
             self._config_service.add_recent_file(filepath)
-            self._update_recent_files_menu()
 
         except Exception as e:
             self._view.set_status_message(f"Error loading file: {e}")
             self._current_file = None
-            self._model.load_data({})  # Clear model on error
+            self._model.load_data({})
 
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
-        """Handles recent file selection from the menu."""
         # Check if file still exists
         if not os.path.exists(filepath):
             self._view.set_status_message(f"File no longer exists: {filepath}")
             # Remove from recent files list
             self._config_service.remove_recent_file(filepath)
-            self._update_recent_files_menu()
             return
 
         self._load_file(filepath)
 
     @Slot()
     def on_clear_recent_requested(self):
-        """Handles the clear recent files request."""
         self._config_service.clear_recent_files()
-        self._update_recent_files_menu()
         self._view.set_status_message("Recent files cleared.", 3000)
 
-    @Slot(str)
-    def on_theme_requested(self, theme_identifier: str):
-        """
-        Handles theme change requests from the UI.
-
-        Args:
-            theme_identifier: The theme identifier (filename or 'auto')
-        """
-        if not self._theme_service:
-            return
-
-        success = self._theme_service.apply_theme(theme_identifier)
-        if success:
-            # Save the theme preference to config
-            self._config_service.set_theme_preference(theme_identifier)
-
-            current_theme = self._theme_service.get_current_theme()
-            if current_theme:
-                self._view.set_status_message(
-                    f"Applied theme: {current_theme.name}", 3000
-                )
-        else:
-            self._view.set_status_message(
-                f"Failed to apply theme: {theme_identifier}", 3000
-            )
-
     def on_settings_requested(self):
-        """Handle settings dialog request from the File menu."""
         if not self._theme_service:
             self._view.set_status_message("Theme service not available", 3000)
             return
@@ -213,7 +169,6 @@ class MainController(QObject):
 
         # Connect settings dialog signals
         settings_dialog.theme_changed.connect(self._on_settings_theme_changed)
-        settings_dialog.settings_applied.connect(self._on_settings_applied)
 
         # Show dialog
         result = settings_dialog.exec()
@@ -221,31 +176,30 @@ class MainController(QObject):
         if result == QDialog.DialogCode.Accepted:
             self._view.set_status_message("Settings saved successfully", 2000)
 
-    def _on_settings_theme_changed(self, theme_identifier: str):
-        """Handle theme changes from the settings dialog."""
-        # Apply theme and save preference
-        success = self._theme_service.apply_theme(theme_identifier)
+    def on_about_requested(self):
+        if not self._theme_service:
+            self._view.set_status_message("Theme service not available", 3000)
+            return
+
+        # Create and configure about dialog
+        about_dialog = AboutDialog(self._theme_service, self._view)
+
+        # Show dialog
+        about_dialog.exec()
+
+    def _on_settings_theme_changed(self, theme_id: str):
+        success = self._theme_service.apply_theme(theme_id)
         if success:
-            self._config_service.set_theme_preference(theme_identifier)
-            current_theme = self._theme_service.get_current_theme()
-            if current_theme:
-                self._view.set_status_message(
-                    f"Theme changed to: {current_theme.name}", 2000
-                )
+            self._view.set_status_message(f"Theme changed to: {theme_id}", 2000)
 
-    def _on_settings_applied(self):
-        """Handle when settings are applied in the dialog."""
-        # Refresh any UI elements that might be affected by settings changes
-        pass
-
-    def _update_recent_files_menu(self):
-        """Update the recent files menu in the view."""
-        recent_files = self._config_service.get_recent_files()
+    def _on_recent_files_changed(self, recent_files: List[str]):
         self._view.update_recent_files_menu(recent_files)
+
+    def _on_theme_changed(self, theme):
+        self._config_service.set_theme_preference(theme.config.theme_id)
 
     @Slot()
     def on_set_thumbnail_requested(self):
-        """Handles the request to set a new thumbnail image."""
         filepath, _ = QFileDialog.getOpenFileName(
             self._view,
             "Select Thumbnail Image",
@@ -262,19 +216,18 @@ class MainController(QObject):
 
     @Slot()
     def on_clear_thumbnail_requested(self):
-        """Handles the request to clear the thumbnail."""
         self._model.set_value(MetadataKeys.THUMBNAIL, "")
         self._view.set_status_message("Thumbnail cleared.", 3000)
 
     @Slot()
     def on_view_thumbnail_requested(self):
-        """Handles the request to view the thumbnail."""
         thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
         if thumbnail_data_uri:
             pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
             if pixmap and not pixmap.isNull():
                 dialog = ThumbnailDialog(pixmap, self._view)
 
+                # TODO: This feels like it should be part of a window positioning service
                 # Center the dialog over the main window
                 main_window_geometry = self._view.geometry()
                 dialog_geometry = dialog.geometry()
@@ -307,10 +260,6 @@ class MainController(QObject):
 
     @Slot()
     def on_save_requested(self):
-        """
-        Handles the save request from the view by setting up and starting
-        a background worker thread.
-        """
         if not self._current_file:
             self._view.set_status_message("Please open a file first.")
             return
@@ -356,12 +305,10 @@ class MainController(QObject):
 
     @Slot(int)
     def on_save_progress(self, value: int):
-        """Updates the progress bar."""
         self._view.set_progress_value(value)
 
     @Slot(str)
     def on_save_finished(self, filepath: str):
-        """Handles successful save completion."""
         self._view.set_status_message(f"Successfully saved to {filepath}", 5000)
         self._model.mark_saved()
         self._view.set_all_fields_enabled(True)
@@ -370,14 +317,12 @@ class MainController(QObject):
 
     @Slot(str)
     def on_save_error(self, error_message: str):
-        """Handles save errors."""
         self._view.set_status_message(f"Save failed: {error_message}")
         self._view.set_all_fields_enabled(True)
         self._view.hide_progress_bar()
         self.cleanup_thread()
 
     def cleanup_thread(self):
-        """Cleans up the thread and worker objects."""
         if self._thread and self._thread.isRunning():
             self._thread.quit()
             # Wait for thread to finish with a 5-second timeout
@@ -390,7 +335,6 @@ class MainController(QObject):
         self.worker = None
 
     def shutdown(self):
-        """Properly shutdown the controller and clean up resources."""
         self.cleanup_thread()
         # Cleanup theme service monitoring
         if self._theme_service:
@@ -399,24 +343,18 @@ class MainController(QObject):
 
     @Slot()
     def on_exit_requested(self):
-        """Handles the exit request from the view."""
         # TODO: Check for unsaved changes before exiting
         self.shutdown()
         self._view.close()
 
     @Slot(QDateTime)
     def on_datetime_changed(self, dt: QDateTime):
-        """Handles the datetime change signal."""
         # Convert QDateTime to a string format for the model, e.g., ISO 8601
         self._model.set_value(
             MetadataKeys.DATE, dt.toString(Qt.DateFormat.ISODateWithMs)
         )
 
     def update_view(self):
-        """
-        Updates the view with the current state of the model.
-        This method is called whenever the model changes.
-        """
         is_dirty = self._model.is_dirty()
         title = ""
         if self._current_file:

@@ -3,9 +3,10 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 # Variables
 
-python := if os_family() == "windows" { "./venv/Scripts/python.exe" } else { "./venv/bin/python" }
-rcc := if os_family() == "windows" { "./venv/Scripts/pyside6-rcc.exe" } else { "./venv/bin/pyside6-rcc" }
-uic := if os_family() == "windows" { "./venv/Scripts/pyside6-uic.exe" } else { "./venv/bin/pyside6-uic" }
+# Use poetry for Python commands
+python := "poetry run python"
+rcc := "poetry run pyside6-rcc"
+uic := "poetry run pyside6-uic"
 
 rcc_input_path := env("RCC_INPUT_PATH")
 rcc_output_path := env("RCC_OUTPUT_PATH")
@@ -16,6 +17,10 @@ default: run
 
 # Install dependencies
 install: _install
+
+# Update dependencies
+update:
+    @poetry update
 
 # Compile Qt resources
 compile-resources: _compile-resources
@@ -29,33 +34,33 @@ compile:
     @just _compile-ui
 
 # Format code with Ruff
-fmt:
+fmt *ARGS:
     @echo "Formatting code with Ruff..."
-    @{{ python }} -m ruff format .
+    @{{ python }} -m ruff format {{ ARGS }} .
 
 # Lint code with Ruff
 lint:
     @echo "Linting code with Ruff..."
-    @{{ python }} -m ruff check --fix .
+    @poetry run ruff check --fix .
 
 # Type checking with mypy
 mypy:
     @echo "Running mypy type checks..."
-    @{{ python }} -m mypy .
+    @poetry run mypy .
 
 # Security checks with Bandit
 bandit:
     @echo "Running bandit security checks..."
-    @{{ python }} -m bandit -r metaeditor_safetensors/ -ll
+    @poetry run bandit -r metaeditor_safetensors/ -ll
 
-# Run unit tests
+# Run unit tests with coverage
 test:
-    @echo "Running unit tests..."
-    @{{ python }} -m coverage run -m unittest discover tests -v
+    @echo "Running unit tests with pytest and coverage..."
+    @poetry run pytest --cov=metaeditor_safetensors --cov-report=term-missing -v --tb=short
 
 # Run the MetaEditor application
 run: compile
-    {{ python }} main.py
+    poetry run python main.py
 
 # Run presubmit checks (format, lint, mypy, test)
 presub:
@@ -99,30 +104,14 @@ _compile-ui:
 
 [windows]
 _install:
-    @if (Test-Path "./venv/") { \
-        Write-Host "Virtual environment already exists. Skipping creation." -ForegroundColor Yellow; \
-    } else { \
-        Write-Host "Creating virtual environment..."; \
-        & {{ python }} -m venv venv; \
-        Write-Host "Installing dependencies from requirements.txt..."; \
-        & {{ python }} -m pip install --upgrade pip; \
-    }
-
-    @{{ python }} -m pip install -e .[dev]
+    @Write-Host "Installing dependencies with Poetry..."
+    @poetry install --with dev
 
 [linux]
 [macos]
 _install:
-    @if [ -d "./venv/" ]; then \
-        echo "Virtual environment already exists. Skipping creation."; \
-    else \
-        echo "Creating virtual environment..."; \
-        {{ python }} -m venv venv; \
-        echo "Installing dependencies from requirements.txt..."; \
-        {{ python }} -m pip install --upgrade pip; \
-    fi
-
-    @{{ python }} -m pip install -e .[dev]
+    @echo "Installing dependencies with Poetry..."
+    @poetry install --with dev
 
 # ============================================================================
 # Utility Recipes

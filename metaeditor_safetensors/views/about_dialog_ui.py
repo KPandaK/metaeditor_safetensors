@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QFrame, QHBoxLayout,
     QLabel, QPushButton, QScrollArea, QSizePolicy,
     QSpacerItem, QTabWidget, QVBoxLayout, QWidget)
 
+from metaeditor_safetensors.widgets.clickable_image import ClickableImage
 from metaeditor_safetensors.widgets.svg_widget import SvgWidget
 from . import resources_rc
 
@@ -112,23 +113,18 @@ class Ui_AboutDialog(object):
 
         self.rightColumnLayout.addWidget(self.aboutAuthor)
 
-        self.frame = QFrame(self.aboutTab)
-        self.frame.setObjectName(u"frame")
-        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Shadow.Raised)
-        self.verticalLayout_4 = QVBoxLayout(self.frame)
-        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
-        self.aboutDescription = QLabel(self.frame)
+        self.verticalSpacer_3 = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.rightColumnLayout.addItem(self.verticalSpacer_3)
+
+        self.aboutDescription = QLabel(self.aboutTab)
         self.aboutDescription.setObjectName(u"aboutDescription")
         sizePolicy.setHeightForWidth(self.aboutDescription.sizePolicy().hasHeightForWidth())
         self.aboutDescription.setSizePolicy(sizePolicy)
         self.aboutDescription.setWordWrap(True)
         self.aboutDescription.setOpenExternalLinks(True)
 
-        self.verticalLayout_4.addWidget(self.aboutDescription)
-
-
-        self.rightColumnLayout.addWidget(self.frame)
+        self.rightColumnLayout.addWidget(self.aboutDescription)
 
         self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
 
@@ -137,7 +133,7 @@ class Ui_AboutDialog(object):
         self.linksHLayout = QHBoxLayout()
         self.linksHLayout.setSpacing(10)
         self.linksHLayout.setObjectName(u"linksHLayout")
-        self.kofiLink = QLabel(self.aboutTab)
+        self.kofiLink = ClickableImage(self.aboutTab)
         self.kofiLink.setObjectName(u"kofiLink")
         sizePolicy2.setHeightForWidth(self.kofiLink.sizePolicy().hasHeightForWidth())
         self.kofiLink.setSizePolicy(sizePolicy2)
@@ -148,7 +144,7 @@ class Ui_AboutDialog(object):
 
         self.linksHLayout.addWidget(self.kofiLink)
 
-        self.githubLink = QLabel(self.aboutTab)
+        self.githubLink = ClickableImage(self.aboutTab)
         self.githubLink.setObjectName(u"githubLink")
         sizePolicy2.setHeightForWidth(self.githubLink.sizePolicy().hasHeightForWidth())
         self.githubLink.setSizePolicy(sizePolicy2)
@@ -260,7 +256,7 @@ class Ui_AboutDialog(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 374, 358))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 132, 1046))
         self.verticalLayout_2 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.creditsText_2 = QLabel(self.scrollAreaWidgetContents)

@@ -10,6 +10,9 @@ from PySide6.QtCore import QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QPainter, QPixmap
 from PySide6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
 
+# Qt's maximum widget size constant
+QWIDGETSIZE_MAX = 16777215
+
 
 class ImageWidget(QGraphicsView):
     """
@@ -99,6 +102,20 @@ class ImageWidget(QGraphicsView):
         # Update size hint when pixmap changes
         self.updateGeometry()
 
+    def _calculate_aspect_ratio(self):
+        """Calculate the aspect ratio of the current pixmap."""
+        if self._original_pixmap is not None and not self._original_pixmap.isNull():
+            pixmap = self._original_pixmap
+            image_width = pixmap.width()
+            image_height = pixmap.height()
+
+            if image_width > 0:
+                return image_height / image_width
+            else:
+                return 1.0
+        else:
+            return 1.0
+
     def _update_size(self):
         """Update widget size based on primary dimension."""
         # Prevent infinite recursion
@@ -112,23 +129,9 @@ class ImageWidget(QGraphicsView):
             current_width = self.width()
             current_height = self.height()
 
-            aspect_ratio = 1.0
-            image_width = 0
-            image_height = 0
+            aspect_ratio = self._calculate_aspect_ratio()
 
-            if self.hasPixmap():
-                # Image state: maintain aspect ratio
-                pixmap = self._original_pixmap
-                image_width = pixmap.width()
-                image_height = pixmap.height()
-
-            # Calculate aspect ratio, avoid division by zero
-            if image_width > 0:
-                aspect_ratio = image_height / image_width
-            else:
-                aspect_ratio = 1.0
-
-            # Instead of setFixedHeight/Width, use maximum size constraints
+            # Apply size constraints based on primary dimension and aspect ratio
             # This lets the widget grow within available space but not force window resizing
             if self._primary_dimension == "width":
                 # Width drives the size, set maximum height based on current width
@@ -136,14 +139,14 @@ class ImageWidget(QGraphicsView):
                 constrained_height = max(self._min_height, desired_height)
                 self.setMaximumHeight(constrained_height)
                 # Remove any width constraints
-                self.setMaximumWidth(16777215)  # Qt's QWIDGETSIZE_MAX
+                self.setMaximumWidth(QWIDGETSIZE_MAX)
             elif self._primary_dimension == "height":
                 # Height drives the size, set maximum width based on current height
                 desired_width = int(current_height / aspect_ratio)
                 constrained_width = max(self._min_width, desired_width)
                 self.setMaximumWidth(constrained_width)
                 # Remove any height constraints
-                self.setMaximumHeight(16777215)  # Qt's QWIDGETSIZE_MAX
+                self.setMaximumHeight(QWIDGETSIZE_MAX)
 
         finally:
             self._updating_size = False
@@ -155,20 +158,7 @@ class ImageWidget(QGraphicsView):
         Returns:
             QSize: Preferred size for the widget
         """
-        if not self.hasPixmap():
-            # Empty state: return square size based on minimum constraints
-            return QSize(self._min_width, self._min_height)
-
-        # Image state: calculate size based on primary dimension
-        pixmap = self._original_pixmap
-        image_width = pixmap.width()
-        image_height = pixmap.height()
-
-        if image_width <= 0:
-            return QSize(self._min_width, self._min_height)
-
-        # Calculate aspect ratio
-        aspect_ratio = image_height / image_width
+        aspect_ratio = self._calculate_aspect_ratio()
 
         # Get current widget dimensions (or use reasonable defaults)
         current_width = self.width()
@@ -220,8 +210,10 @@ class ImageWidget(QGraphicsView):
         """Handle resize events by refitting the image and updating size."""
         super().resizeEvent(event)
 
-        # Re-fit the image when the widget is resized
-        self._fit_in_view()
+        # Re-fit the image when the widget is resized (only if we have a pixmap)
+        if self.hasPixmap():
+            self._fit_in_view()
+
         # Update size for current state (empty or image)
         self._update_size()
 
