@@ -392,6 +392,9 @@ class MainController(QObject):
     def shutdown(self):
         """Properly shutdown the controller and clean up resources."""
         self.cleanup_thread()
+        # Cleanup theme service monitoring
+        if self._theme_service:
+            self._theme_service.cleanup()
         # Additional cleanup can be added here if needed
 
     @Slot()
