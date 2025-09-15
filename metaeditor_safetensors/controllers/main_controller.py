@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from ..models.metadata_keys import MetadataKeys
 from ..models.metadata_model import MetadataModel
+from ..models.theme import ThemeType
 from ..services.config_service import ConfigService
 from ..services.image_service import ImageService
 from ..services.safetensors_service import SafetensorsService
@@ -207,7 +208,7 @@ class MainController(QObject):
         """Handle system theme change events."""
         # Check if user preference is set to "system"
         current_preference = self._config_service.get_theme_preference()
-        if current_preference == "system":
+        if current_preference == ThemeType.SYSTEM:
             # Apply the system theme
             success = self._theme_service.apply_theme(current_preference)
             if success:
