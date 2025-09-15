@@ -52,6 +52,11 @@ class MainController(QObject):
         # Register for theme changes
         self._theme_service.add_theme_changed_observer(self._on_theme_changed)
 
+        # Register for system theme changes
+        self._theme_service.add_system_theme_changed_callback(
+            self._on_system_theme_changed
+        )
+
         # Connect the view's signals to the controller's slots.
         self._connect_signals()
 
@@ -190,8 +195,6 @@ class MainController(QObject):
     def _on_settings_theme_changed(self, theme_id: str):
         success = self._theme_service.apply_theme(theme_id)
         if success:
-            # Update system monitoring based on the new theme preference
-            self._theme_service.update_system_monitoring_for_preference(theme_id)
             self._view.set_status_message(f"Theme changed to: {theme_id}", 2000)
 
     def _on_recent_files_changed(self, recent_files: List[str]):
@@ -199,6 +202,18 @@ class MainController(QObject):
 
     def _on_theme_changed(self, theme):
         self._config_service.set_theme_preference(theme.config.theme_id)
+
+    def _on_system_theme_changed(self, system_theme: str):
+        """Handle system theme change events."""
+        # Check if user preference is set to "system"
+        current_preference = self._config_service.get_theme_preference()
+        if current_preference == "system":
+            # Apply the system theme
+            success = self._theme_service.apply_theme("system")
+            if success:
+                self._view.set_status_message(
+                    f"System theme changed to: {system_theme}", 2000
+                )
 
     @Slot()
     def on_set_thumbnail_requested(self):

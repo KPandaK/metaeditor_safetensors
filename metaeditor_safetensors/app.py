@@ -37,8 +37,8 @@ def main():
     safetensors_service = SafetensorsService()
     image_service = ImageService()
 
-    # Initialize theme service with config service for monitoring
-    theme_service = ThemeService(config_service)
+    # Initialize theme service
+    theme_service = ThemeService()
     theme_service.add_theme_changed_observer(
         lambda theme: app.setStyleSheet(theme.get_qss())
     )
