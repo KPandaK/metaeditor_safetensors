@@ -69,9 +69,9 @@ class TestSafetensorsService:
         read_metadata = service.read_metadata(test_filepath)
 
         # Assert that the metadata is identical
-        assert (
-            read_metadata == dummy_metadata
-        ), "READ FAILED: The metadata read does not match the safetensors file format."
+        assert read_metadata == dummy_metadata, (
+            "READ FAILED: The metadata read does not match the safetensors file format."
+        )
 
     def test_write_equivalency(self, service, dummy_tensors, dummy_metadata, test_dir):
         """
@@ -103,19 +103,19 @@ class TestSafetensorsService:
             metadata_ours = f.metadata()
 
         # 5. Assert that metadata is identical
-        assert (
-            metadata_theirs == metadata_ours
-        ), "WRITE FAILED: The metadata does not match the numpy library's output."
+        assert metadata_theirs == metadata_ours, (
+            "WRITE FAILED: The metadata does not match the numpy library's output."
+        )
 
         # 6. Assert that tensor data is identical
-        assert (
-            len(tensors_theirs) == len(tensors_ours)
-        ), "WRITE FAILED: The number of tensors changed between numpy's save and our save."
+        assert len(tensors_theirs) == len(tensors_ours), (
+            "WRITE FAILED: The number of tensors changed between numpy's save and our save."
+        )
 
         for key, their_tensor in tensors_theirs.items():
-            assert (
-                key in tensors_ours
-            ), f"WRITE FAILED: Tensor '{key}' is missing from our service's output."
+            assert key in tensors_ours, (
+                f"WRITE FAILED: Tensor '{key}' is missing from our service's output."
+            )
             our_tensor = tensors_ours[key]
             np.testing.assert_array_equal(
                 their_tensor,

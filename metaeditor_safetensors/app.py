@@ -6,9 +6,10 @@ from importlib.metadata import PackageNotFoundError, version
 from PySide6.QtWidgets import QApplication
 
 from .controllers.main_controller import MainController
-from .models.metadata_model import MetadataModel
+from .models.metadata import Metadata
 from .services.config_service import ConfigService
 from .services.image_service import ImageService
+from .services.modelspec_service import ModelSpecService
 from .services.safetensors_service import SafetensorsService
 from .services.theme_service import ThemeService
 from .views.main_view import MainView
@@ -36,6 +37,7 @@ def main():
     config_service = ConfigService()
     safetensors_service = SafetensorsService()
     image_service = ImageService()
+    modelspec_service = ModelSpecService()
 
     # Initialize theme service
     theme_service = ThemeService()
@@ -44,10 +46,16 @@ def main():
     )
 
     # 3. Instantiate the MVC components.
-    model = MetadataModel()
+    model = Metadata()
     view = MainView(config_service)
     controller = MainController(
-        model, view, config_service, safetensors_service, image_service, theme_service
+        model,
+        view,
+        config_service,
+        safetensors_service,
+        image_service,
+        theme_service,
+        modelspec_service,
     )
 
     # 4. Run the application.

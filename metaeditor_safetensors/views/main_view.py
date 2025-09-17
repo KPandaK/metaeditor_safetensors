@@ -29,10 +29,11 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QMainWindow, QWidget
 
-from ..models.metadata_keys import MetadataKeys
+from ..models.modelspec import ModelSpec
 
 # Import custom widget so it can be found by the UI loader
 from ..widgets.image_widget import ImageWidget
+from ..widgets.modelspec_status_widget import ModelSpecStatusWidget
 from .about_dialog import AboutDialog
 
 # This imports the class generated from the .ui file.
@@ -73,6 +74,9 @@ class MainView(QMainWindow):
     tags_changed = Signal(str)
     merged_from_changed = Signal(str)
 
+    # --- ModelSpec Status Widget Signals ---
+    modelspec_status_clicked = Signal()
+
     def __init__(self, config_service):
         super().__init__()
 
@@ -106,24 +110,50 @@ class MainView(QMainWindow):
         # Configure thumbnail widget for vertical column layout
         self.thumbnail_widget.setPrimaryDimension("width")
 
-        # --- Widget Mapping for Data Binding ---
         self._widget_map = {
-            MetadataKeys.TITLE: (self.ui.titleEdit, "setText"),
-            MetadataKeys.DESCRIPTION: (self.ui.descriptionEdit, "setPlainText"),
-            MetadataKeys.AUTHOR: (self.ui.authorEdit, "setText"),
-            MetadataKeys.DATE: (self.ui.dateTimeEdit, "setDateTime"),
-            MetadataKeys.LICENSE: (self.ui.licenseEdit, "setText"),
-            MetadataKeys.USAGE_HINT: (self.ui.usageHintEdit, "setText"),
-            MetadataKeys.TAGS: (self.ui.tagsEdit, "setText"),
-            MetadataKeys.MERGED_FROM: (self.ui.mergedFromEdit, "setText"),
+            ModelSpec.get_field_name("title"): {
+                "widget": self.ui.titleEdit,
+                "setter": "setText",
+            },
+            ModelSpec.get_field_name("description"): {
+                "widget": self.ui.descriptionEdit,
+                "setter": "setPlainText",
+            },
+            ModelSpec.get_field_name("author"): {
+                "widget": self.ui.authorEdit,
+                "setter": "setText",
+            },
+            ModelSpec.get_field_name("date"): {
+                "widget": self.ui.dateTimeEdit,
+                "setter": "setDateTime",
+                "supports_placeholder": False,  # DateTime widgets don't support placeholders
+            },
+            ModelSpec.get_field_name("license"): {
+                "widget": self.ui.licenseEdit,
+                "setter": "setText",
+            },
+            ModelSpec.get_field_name("usage_hint"): {
+                "widget": self.ui.usageHintEdit,
+                "setter": "setText",
+            },
+            ModelSpec.get_field_name("tags"): {
+                "widget": self.ui.tagsEdit,
+                "setter": "setText",
+            },
+            ModelSpec.get_field_name("merged_from"): {
+                "widget": self.ui.mergedFromEdit,
+                "setter": "setText",
+            },
         }
-        # ---
 
-        # Connect widget signals to this view's public signals.
+        self._setup_placeholder_texts()
         self._connect_signals()
 
-        # Store original pixmap for proper resizing
-        self._original_pixmap = None
+        # TODO: Remove me - this should be added through Qt Designer
+        # Create and add ModelSpec status widget to status bar
+        self._modelspec_status_widget = ModelSpecStatusWidget()
+        self._modelspec_status_widget.clicked.connect(self.modelspec_status_clicked)
+        self.statusBar().addPermanentWidget(self._modelspec_status_widget)
 
     def _setup_window_properties(self):
         """Set up the window icon."""
@@ -255,18 +285,32 @@ class MainView(QMainWindow):
         self.ui.clearThumbnailBtn.clicked.connect(self.clear_thumbnail_requested)
         self.ui.viewThumbnailBtn.clicked.connect(self.view_thumbnail_requested)
 
-    def get_widget(self, name: str) -> QWidget:
-        """
-        Provides access to a widget by its object name from the .ui file.
+    def _setup_placeholder_texts(self):
+        # Get all field placeholder texts from ModelSpec
+        placeholders = ModelSpec.get_all_field_placeholders()
 
-        Args:
-            name: The objectName of the widget set in Qt Designer.
+        # Use the unified widget map for placeholder setup
+        for field_name, widget_info in self._widget_map.items():
+            # Get the raw field name (without "modelspec." prefix)
+            raw_field_name = field_name.replace("modelspec.", "")
 
-        Returns:
-            The QWidget instance, or None if not found.
-        """
-        widget = self.editor_panel.findChild(QWidget, name)
-        return widget if widget is not None else QWidget()
+            # Check if this widget supports placeholders (default True)
+            supports_placeholder = widget_info.get("supports_placeholder", True)
+
+            if (
+                supports_placeholder
+                and raw_field_name in placeholders
+                and placeholders[raw_field_name]
+            ):
+                widget = widget_info["widget"]
+                placeholder_text = placeholders[raw_field_name]
+
+                if hasattr(widget, "setPlaceholderText"):
+                    widget.setPlaceholderText(placeholder_text)
+                elif hasattr(widget, "setPlainText") and not widget.toPlainText():
+                    # For QTextEdit widgets, we can't set placeholder directly in older Qt versions
+                    # but we can set a CSS style or handle it differently
+                    pass
 
     def set_window_title(self, title: str):
         """Sets the main window's title."""
@@ -314,14 +358,13 @@ class MainView(QMainWindow):
         The controller calls this when the model is updated.
         """
         if field_name in self._widget_map:
-            widget, setter_method_name = self._widget_map[field_name]
+            widget_info = self._widget_map[field_name]
+            widget = widget_info["widget"]
+            setter_method_name = widget_info["setter"]
             setter_method = getattr(widget, setter_method_name)
 
-            # Block signals to prevent feedback loops
             widget.blockSignals(True)
 
-            # --- Type-Specific Handling ---
-            # Convert string to QDateTime for the datetime widget
             if setter_method_name == "setDateTime":
                 if isinstance(value, str):
                     # Attempt to parse ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
@@ -332,15 +375,12 @@ class MainView(QMainWindow):
                     setter_method(dt)
                 elif isinstance(value, QDateTime):
                     setter_method(value)
-            # For all other widgets, convert the value to a string
             else:
                 setter_method(str(value))
-            # ---
 
             widget.blockSignals(False)
 
     def set_all_fields_enabled(self, enabled: bool):
-        """Enables or disables all input fields."""
         self.ui.titleEdit.setEnabled(enabled)
         self.ui.descriptionEdit.setEnabled(enabled)
         self.ui.authorEdit.setEnabled(enabled)
@@ -353,13 +393,22 @@ class MainView(QMainWindow):
         self.ui.viewThumbnailBtn.setEnabled(enabled)
         self.ui.clearThumbnailBtn.setEnabled(enabled)
 
+    def update_modelspec_status(self, compliance_result):
+        """
+        Update the ModelSpec status widget with compliance information.
+
+        Args:
+            compliance_result: ComplianceResult from ModelSpecService
+        """
+        self._modelspec_status_widget.set_compliance_result(compliance_result)
+
+    def clear_modelspec_status(self):
+        """Clear the ModelSpec status (no file loaded)."""
+        self._modelspec_status_widget.clear_compliance()
+
     # --- Drag and Drop Support ---
 
     def _is_valid_safetensors_file(self, urls):
-        """
-        Checks if any of the provided QUrls point to a local .safetensors file.
-        Returns the first valid file path, or None if not found.
-        """
         for url in urls:
             if url.isLocalFile():
                 file_path = url.toLocalFile()
@@ -368,7 +417,6 @@ class MainView(QMainWindow):
         return None
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        """Handle drag enter events - accept if dragging .safetensors files."""
         if event.mimeData().hasUrls():
             if self._is_valid_safetensors_file(event.mimeData().urls()):
                 event.acceptProposedAction()
@@ -376,7 +424,6 @@ class MainView(QMainWindow):
         event.ignore()
 
     def dragMoveEvent(self, event: QDragMoveEvent):
-        """Handle drag move events - accept if we accepted the drag enter."""
         if event.mimeData().hasUrls():
             if self._is_valid_safetensors_file(event.mimeData().urls()):
                 event.acceptProposedAction()
@@ -384,7 +431,6 @@ class MainView(QMainWindow):
         event.ignore()
 
     def dropEvent(self, event: QDropEvent):
-        """Handle drop events - process the first .safetensors file that was dropped."""
         if event.mimeData().hasUrls():
             file_path = self._is_valid_safetensors_file(event.mimeData().urls())
             if file_path:

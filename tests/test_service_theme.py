@@ -517,9 +517,9 @@ class TestThemeServiceObserverPattern:
 
         # Apply another theme - should not trigger removed observer
         theme_service.apply_theme("light")
-        assert (
-            len(observer_calls) == 1
-        ), "Observer calls should not increase after removal"
+        assert len(observer_calls) == 1, (
+            "Observer calls should not increase after removal"
+        )
 
 
 def test_theme_service_no_package_root(mocker):

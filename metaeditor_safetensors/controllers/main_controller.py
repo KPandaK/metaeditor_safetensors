@@ -4,10 +4,11 @@ from typing import List, Optional
 from PySide6.QtCore import QDateTime, QObject, Qt, QThread, Slot
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
-from ..models.metadata_keys import MetadataKeys
-from ..models.metadata_model import MetadataModel
+from ..models.metadata import Metadata
+from ..models.modelspec import ModelSpec
 from ..services.config_service import ConfigService
 from ..services.image_service import ImageService
+from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.save_worker import SaveWorker
 from ..services.theme_service import ThemeService
@@ -25,12 +26,13 @@ class MainController(QObject):
 
     def __init__(
         self,
-        model: MetadataModel,
+        model: Metadata,
         view: MainView,
         config_service: ConfigService,
         safetensors_service: SafetensorsService,
         image_service: ImageService,
         theme_service: ThemeService,
+        modelspec_service: ModelSpecService,
     ):
         super().__init__()
         self._model = model
@@ -39,6 +41,7 @@ class MainController(QObject):
         self._safetensor_service = safetensors_service
         self._image_service = image_service
         self._theme_service = theme_service
+        self._modelspec_service = modelspec_service
         self._current_file = None
         self._thread = None
         self.worker = None
@@ -73,34 +76,37 @@ class MainController(QObject):
 
         # Connect metadata field changes
         self._view.title_changed.connect(
-            lambda t: self._model.set_value(MetadataKeys.TITLE, t)
+            lambda t: self._model.set_value(ModelSpec.get_field_name("title"), t)
         )
         self._view.description_changed.connect(
-            lambda d: self._model.set_value(MetadataKeys.DESCRIPTION, d)
+            lambda d: self._model.set_value(ModelSpec.get_field_name("description"), d)
         )
         self._view.author_changed.connect(
-            lambda a: self._model.set_value(MetadataKeys.AUTHOR, a)
+            lambda a: self._model.set_value(ModelSpec.get_field_name("author"), a)
         )
         self._view.datetime_changed.connect(self.on_datetime_changed)
         self._view.license_changed.connect(
             lambda license_value: self._model.set_value(
-                MetadataKeys.LICENSE, license_value
+                ModelSpec.get_field_name("license"), license_value
             )
         )
         self._view.usage_hint_changed.connect(
-            lambda h: self._model.set_value(MetadataKeys.USAGE_HINT, h)
+            lambda h: self._model.set_value(ModelSpec.get_field_name("usage_hint"), h)
         )
         self._view.tags_changed.connect(
-            lambda t: self._model.set_value(MetadataKeys.TAGS, t)
+            lambda t: self._model.set_value(ModelSpec.get_field_name("tags"), t)
         )
         self._view.merged_from_changed.connect(
-            lambda m: self._model.set_value(MetadataKeys.MERGED_FROM, m)
+            lambda m: self._model.set_value(ModelSpec.get_field_name("merged_from"), m)
         )
 
         # Connect thumbnail actions
         self._view.set_thumbnail_requested.connect(self.on_set_thumbnail_requested)
         self._view.clear_thumbnail_requested.connect(self.on_clear_thumbnail_requested)
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
+
+        # Connect ModelSpec status widget
+        self._view.modelspec_status_clicked.connect(self.on_modelspec_status_clicked)
 
     def run(self):
         self._view.show()
@@ -209,19 +215,21 @@ class MainController(QObject):
         if filepath:
             try:
                 data_uri = self._image_service.image_to_data_uri(filepath)
-                self._model.set_value(MetadataKeys.THUMBNAIL, data_uri)
+                self._model.set_value(ModelSpec.get_field_name("thumbnail"), data_uri)
                 self._view.set_status_message("Thumbnail set.", 3000)
             except Exception as e:
                 self._view.set_status_message(f"Error setting thumbnail: {e}")
 
     @Slot()
     def on_clear_thumbnail_requested(self):
-        self._model.set_value(MetadataKeys.THUMBNAIL, "")
+        self._model.set_value(ModelSpec.get_field_name("thumbnail"), "")
         self._view.set_status_message("Thumbnail cleared.", 3000)
 
     @Slot()
     def on_view_thumbnail_requested(self):
-        thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
+        thumbnail_data_uri = self._model.get_value(
+            ModelSpec.get_field_name("thumbnail")
+        )
         if thumbnail_data_uri:
             pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
             if pixmap and not pixmap.isNull():
@@ -349,7 +357,7 @@ class MainController(QObject):
     def on_datetime_changed(self, dt: QDateTime):
         # Convert QDateTime to a string format for the model, e.g., ISO 8601
         self._model.set_value(
-            MetadataKeys.DATE, dt.toString(Qt.DateFormat.ISODateWithMs)
+            ModelSpec.get_field_name("date"), dt.toString(Qt.DateFormat.ISODateWithMs)
         )
 
     def update_view(self):
@@ -368,9 +376,49 @@ class MainController(QObject):
         self._view.update_all_fields(all_data)
 
         # Update the thumbnail
-        thumbnail_data_uri = self._model.get_value(MetadataKeys.THUMBNAIL)
+        thumbnail_data_uri = self._model.get_value(
+            ModelSpec.get_field_name("thumbnail")
+        )
         thumbnail_pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
         self._view.set_thumbnail_pixmap(thumbnail_pixmap)
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
+
+        # Update ModelSpec compliance status
+        self._update_modelspec_status()
+
+    def _update_modelspec_status(self):
+        """Update the ModelSpec compliance status in the view."""
+        if self._current_file is None:
+            self._view.clear_modelspec_status()
+        else:
+            all_data = self._model.get_all_data()
+            compliance_result = self._modelspec_service.analyze_compliance(all_data)
+            self._view.update_modelspec_status(compliance_result)
+
+    @Slot()
+    def on_modelspec_status_clicked(self):
+        """Handle clicks on the ModelSpec status widget."""
+        if not self._current_file:
+            self._view.set_status_message(
+                "No file loaded. Open a safetensors file to check ModelSpec compliance.",
+                5000,
+            )
+            return
+
+        # For now, just show a status message
+        # In the future, this could open a detailed compliance dialog
+        all_data = self._model.get_all_data()
+        compliance_result = self._modelspec_service.analyze_compliance(all_data)
+
+        if compliance_result.missing_must_fields:
+            missing_count = len(compliance_result.missing_must_fields)
+            self._view.set_status_message(
+                f"ModelSpec: Missing {missing_count} required field(s). See tooltip for details.",
+                7000,
+            )
+        else:
+            self._view.set_status_message(
+                "ModelSpec: All required fields present! Model is compliant.", 5000
+            )
