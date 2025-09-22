@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 
-from PySide6.QtCore import QDateTime, QObject, Qt, QThread, Slot
+from PySide6.QtCore import QDateTime, QObject, Qt, Slot
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
 from ..models.metadata import Metadata
@@ -10,7 +10,6 @@ from ..services.config_service import ConfigService
 from ..services.image_service import ImageService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
-from ..services.save_worker import SaveWorker
 from ..services.theme_service import ThemeService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
@@ -20,8 +19,6 @@ from ..views.thumbnail_dialog import ThumbnailDialog
 
 class MainController(QObject):
     # Type annotations for instance attributes
-    _thread: Optional[QThread]
-    worker: Optional[SaveWorker]
     _current_file: Optional[str]
 
     def __init__(
@@ -43,8 +40,6 @@ class MainController(QObject):
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
         self._current_file = None
-        self._thread = None
-        self.worker = None
 
         # Register the controller's update method as an observer of the model.
         self._model.add_observer(self.update_view)
@@ -277,7 +272,7 @@ class MainController(QObject):
             return
 
         # Prevent multiple save operations
-        if self._thread and self._thread.isRunning():
+        if self._safetensor_service.is_saving():
             self._view.set_status_message("Save operation already in progress.")
             return
 
@@ -286,64 +281,36 @@ class MainController(QObject):
         self._view.show_progress_bar()
         self._view.set_status_message(f"Saving {self._current_file}...")
 
-        # --- Setup and run the background worker ---
-        self._thread = QThread()
-        self.worker = SaveWorker(
-            service=self._safetensor_service,
+        # Start async save operation
+        success = self._safetensor_service.write_metadata_async(
             filepath=self._current_file,
             metadata=self._model.get_all_data(),
+            progress_callback=self._on_save_progress,
+            success_callback=self._on_save_success,
+            error_callback=self._on_save_error,
         )
-        self.worker.moveToThread(self._thread)
 
-        # Connect worker signals to controller slots
-        self.worker.progress.connect(self.on_save_progress)
-        self.worker.finished.connect(self.on_save_finished)
-        self.worker.error.connect(self.on_save_error)
+        if not success:
+            self._view.set_status_message("Save operation already in progress.")
+            self._view.set_all_fields_enabled(True)
+            self._view.hide_progress_bar()
 
-        # Connect thread signals
-        self._thread.started.connect(self.worker.run)
-        self._thread.finished.connect(self._thread.deleteLater)
-        self.worker.finished.connect(self._thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.error.connect(self._thread.quit)
-        self.worker.error.connect(self.worker.deleteLater)
+    def _on_save_progress(self, progress: int):
+        self._view.set_progress_value(progress)
 
-        # Start the thread
-        self._thread.start()
-
-    @Slot(int)
-    def on_save_progress(self, value: int):
-        self._view.set_progress_value(value)
-
-    @Slot(str)
-    def on_save_finished(self, filepath: str):
+    def _on_save_success(self, filepath: str):
         self._view.set_status_message(f"Successfully saved to {filepath}", 5000)
         self._model.mark_saved()
         self._view.set_all_fields_enabled(True)
         self._view.hide_progress_bar()
-        self.cleanup_thread()
 
-    @Slot(str)
-    def on_save_error(self, error_message: str):
+    def _on_save_error(self, error_message: str):
         self._view.set_status_message(f"Save failed: {error_message}")
         self._view.set_all_fields_enabled(True)
         self._view.hide_progress_bar()
-        self.cleanup_thread()
-
-    def cleanup_thread(self):
-        if self._thread and self._thread.isRunning():
-            self._thread.quit()
-            # Wait for thread to finish with a 5-second timeout
-            if not self._thread.wait(5000):  # 5000ms = 5 seconds
-                # Thread didn't finish gracefully, force terminate
-                self._thread.terminate()
-                # Give it a short time to terminate, then proceed
-                self._thread.wait(1000)  # 1 second timeout for terminate
-        self._thread = None
-        self.worker = None
 
     def shutdown(self):
-        self.cleanup_thread()
+        self._safetensor_service.shutdown()
         self._config_service.remove_recent_files_observer(self._on_recent_files_changed)
         self._theme_service.remove_theme_changed_observer(self._on_theme_changed)
 

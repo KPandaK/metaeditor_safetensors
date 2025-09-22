@@ -17,7 +17,6 @@ class SvgWidget(QWidget):
         self.update()
 
     def paintEvent(self, event):
-        # return self._svg_renderer is not None and self._svg_renderer.isValid()
         if self._svg_renderer is None or not self._svg_renderer.isValid():
             super().paintEvent(event)
             return

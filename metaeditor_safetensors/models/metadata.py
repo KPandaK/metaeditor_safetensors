@@ -3,17 +3,6 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 
 class Metadata:
-    """
-    Manages the application's metadata.
-
-    This class holds the metadata from a safetensors file, keeps track of
-    the original state to detect changes ("dirty" state), and allows observers
-    to register for notifications when the data changes.
-
-    The model is agnostic to ModelSpec - it simply stores and manages metadata.
-    ModelSpec validation and logic is handled by ModelSpecService.
-    """
-
     def __init__(self):
         self._data: Dict[str, Any] = {}
         self._original_data: Dict[str, Any] = {}

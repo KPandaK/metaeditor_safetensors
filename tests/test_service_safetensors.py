@@ -89,7 +89,12 @@ class TestSafetensorsService:
         # file (it can be a copy of the official one or a new one).
         shutil.copy(their_path, our_path)
         # Now, "save" the metadata into it using our service.
-        service.write_metadata(our_path, dummy_metadata)
+
+        # Use synchronous method for testing
+        result_filepath = service.write_metadata(our_path, dummy_metadata)
+
+        # Check operation succeeded
+        assert result_filepath == our_path
 
         # 4. Load both files back using the official library
         tensors_theirs = load_file(their_path)
@@ -157,9 +162,10 @@ class TestSafetensorsService:
             # Write only 6 bytes instead of 8 for the header length
             f.write(b"123456")
 
+        # Use synchronous method and expect exception
         with pytest.raises(IOError) as exc_info:
             service.write_metadata(invalid_header_file, {"new": "data"})
-        assert "Failed to save file" in str(exc_info.value)
+
         assert "Invalid safetensors file" in str(exc_info.value)
 
     def test_read_metadata_truncated_header(self, service, test_dir):
@@ -203,14 +209,16 @@ class TestSafetensorsService:
             progress_calls.append(progress)
 
         # Test with callback
-        result = service.write_metadata(
-            test_filepath, {"new": "data"}, progress_callback
+        result_filepath = service.write_metadata(
+            test_filepath,
+            {"new": "data"},
+            progress_callback=progress_callback,
         )
 
         # Verify progress was called and ended at 100%
         assert len(progress_calls) > 0
         assert progress_calls[-1] == 100
-        assert result == test_filepath
+        assert result_filepath == test_filepath
 
     def test_write_metadata_cleanup_on_error(
         self, mocker, service, dummy_tensors, dummy_metadata, test_filepath
@@ -222,9 +230,12 @@ class TestSafetensorsService:
 
         # Mock to cause an error during file operations
         mocker.patch("builtins.open", side_effect=IOError("Simulated write error"))
+
+        # Use synchronous method and expect exception
         with pytest.raises(IOError) as exc_info:
             service.write_metadata(test_filepath, {"new": "data"})
-        assert "Failed to save file" in str(exc_info.value)
+
+        assert "Simulated write error" in str(exc_info.value)
 
         # Verify temp file was cleaned up
         assert not os.path.exists(temp_file)
@@ -244,3 +255,150 @@ class TestSafetensorsService:
         with pytest.raises(ValueError) as exc_info:
             service.read_metadata(test_filepath)
         assert "unexpected error occurred" in str(exc_info.value)
+
+    def test_read_metadata_no_metadata_key(self, service, dummy_tensors, test_filepath):
+        """Test reading file that has no __metadata__ key."""
+        # Create file without metadata using safetensors directly
+        save_file(dummy_tensors, test_filepath)  # No metadata parameter
+
+        # Should return empty dict when no __metadata__ key exists
+        metadata = service.read_metadata(test_filepath)
+        assert metadata == {}
+
+    def test_shutdown_no_worker(self, service):
+        """Test shutdown when no worker exists."""
+        # Should not raise any errors
+        service.shutdown()
+        assert service._worker_thread is None
+        assert service._save_worker is None
+
+    def test_shutdown_worker_not_running(self, service):
+        """Test shutdown when worker exists but not running."""
+        from unittest.mock import MagicMock
+
+        # Create a mock thread that's not running
+        mock_thread = MagicMock()
+        mock_thread.isRunning.return_value = False
+        service._worker_thread = mock_thread
+
+        service.shutdown()
+
+        # Should not call quit() since thread is not running
+        mock_thread.quit.assert_not_called()
+        assert service._worker_thread is None
+        assert service._save_worker is None
+
+
+class TestSafetensorsServiceAsync:
+    """Test async functionality of SafetensorsService."""
+
+    def test_write_metadata_async_success(
+        self, service, dummy_tensors, dummy_metadata, test_filepath, qtbot
+    ):
+        """Test successful async metadata write."""
+        # Create initial file
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Track callback calls
+        success_calls = []
+        error_calls = []
+
+        def success_callback(filepath):
+            success_calls.append(filepath)
+
+        def error_callback(error):
+            error_calls.append(error)
+
+        new_metadata = {"new_key": "new_value", "author": "Test Author"}
+
+        # Start async operation
+        result = service.write_metadata_async(
+            test_filepath,
+            new_metadata,
+            success_callback=success_callback,
+            error_callback=error_callback,
+        )
+
+        # Should return True if started successfully
+        assert result is True
+
+        # Wait for completion using qtbot
+        def check_completion():
+            return len(success_calls) > 0 or len(error_calls) > 0
+
+        qtbot.waitUntil(check_completion, timeout=5000)
+
+        # Check results
+        assert len(success_calls) == 1
+        assert success_calls[0] == test_filepath
+        assert len(error_calls) == 0
+
+        # Verify metadata was actually written
+        updated_metadata = service.read_metadata(test_filepath)
+        assert updated_metadata == new_metadata
+
+    def test_write_metadata_async_already_running(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test that starting async operation while one is running returns False."""
+        # Create initial file
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Start first operation
+        result1 = service.write_metadata_async(test_filepath, {"first": "data"})
+        assert result1 is True
+
+        # Try to start second operation while first is running
+        result2 = service.write_metadata_async(test_filepath, {"second": "data"})
+        assert result2 is False
+
+        # Clean up
+        if service._worker_thread:
+            service._worker_thread.quit()
+            service._worker_thread.wait(5000)
+
+    def test_is_saving(self, service, dummy_tensors, dummy_metadata, test_filepath):
+        """Test is_saving() method."""
+        # Create initial file
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Initially not saving
+        assert not service.is_saving()
+
+        # Start operation
+        result = service.write_metadata_async(test_filepath, {"new": "data"})
+        assert result is True
+
+        # Wait for completion
+        if service._worker_thread:
+            service._worker_thread.quit()
+            service._worker_thread.wait(5000)
+
+        # Should not be saving after completion
+        assert not service.is_saving()
+
+    def test_write_metadata_async_no_callbacks(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test async operation with no callbacks provided."""
+        # Create initial file
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Start async operation with no callbacks
+        result = service.write_metadata_async(
+            test_filepath,
+            {"new": "data"},
+            # All callbacks are None (default)
+        )
+
+        # Should return True if started successfully
+        assert result is True
+
+        # Wait for completion
+        if service._worker_thread:
+            service._worker_thread.quit()
+            service._worker_thread.wait(5000)
+
+        # Verify metadata was written even without callbacks
+        updated_metadata = service.read_metadata(test_filepath)
+        assert updated_metadata == {"new": "data"}

@@ -1,10 +1,3 @@
-"""
-File service for modern Python path detection.
-
-Provides utilities for finding project root and package directories
-using modern Python best practices.
-"""
-
 import os
 from importlib import resources
 from pathlib import Path
@@ -12,15 +5,6 @@ from typing import Optional, Union
 
 
 def get_project_root(start_path: Optional[Path] = None) -> Path:
-    """
-    Find project root by searching upward for project markers.
-
-    Args:
-        start_path: Optional starting path for search. If None, uses current working directory.
-
-    Returns:
-        Path to the project root directory.
-    """
     if start_path is None:
         start_path = Path.cwd()
     else:
@@ -38,15 +22,6 @@ def get_project_root(start_path: Optional[Path] = None) -> Path:
 
 
 def get_package_root(package_name: str = "metaeditor_safetensors") -> Path:
-    """
-    Get package directory using importlib.resources.
-
-    Args:
-        package_name: Name of the package to locate.
-
-    Returns:
-        Path to the package directory.
-    """
     try:
         package_files = resources.files(package_name)
         return Path(str(package_files))
