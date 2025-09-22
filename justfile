@@ -6,12 +6,9 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Use poetry for Python commands
 python := "poetry run python"
 rcc := "poetry run pyside6-rcc"
-uic := "poetry run pyside6-uic"
 
 rcc_input_path := env("RCC_INPUT_PATH")
 rcc_output_path := env("RCC_OUTPUT_PATH")
-uic_input_dir := env("UIC_INPUT_DIR")
-uic_output_dir := env("UIC_OUTPUT_DIR")
 
 default: run
 
@@ -25,13 +22,8 @@ update:
 # Compile Qt resources
 compile-resources: _compile-resources
 
-# Compiles Qt ui files
-compile-ui: _compile-ui
-
-# Compile all Qt files
-compile:
-    @just _compile-resources
-    @just _compile-ui
+# Compile Qt resources (alias for compatibility)
+compile: _compile-resources
 
 # Format code with Ruff
 fmt *ARGS:
@@ -79,28 +71,6 @@ _compile-resources:
     @just file-exists {{ rcc_output_path }}
     @echo "Compiling {{ file_name(rcc_input_path) }} -> {{ file_name(rcc_output_path) }}"
     @{{ rcc }} {{ rcc_input_path }} -o {{ rcc_output_path }}
-
-[windows]
-_compile-ui:
-    @just directory-exists {{ uic_input_dir }}
-    @just directory-exists {{ uic_output_dir }}
-    @Get-ChildItem -Path {{ uic_input_dir }} -Filter "*.ui" | ForEach-Object { \
-        $output_file = "{{ uic_output_dir }}/$($_.BaseName)_ui.py"; \
-        Write-Host "Compiling $($_.Name) -> $($_.BaseName)_ui.py"; \
-        & {{ uic }} --from-imports $_.FullName -o $output_file \
-    }
-
-[linux]
-[macos]
-_compile-ui:
-    @just directory-exists {{ uic_input_dir }}
-    @just directory-exists {{ uic_output_dir }}
-    @for ui_file in {{ uic_input_dir }}/*.ui; do \
-        base_name=$$(basename $$ui_file .ui); \
-        output_file="{{ uic_output_dir }}/$${base_name}_ui.py"; \
-        echo "Compiling $$(basename $$ui_file) -> $$(base_name)_ui.py"; \
-        {{ uic }} --from-imports $$ui_file -o $$output_file; \
-    done
 
 [windows]
 _install:

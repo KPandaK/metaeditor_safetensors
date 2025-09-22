@@ -16,11 +16,9 @@ class SvgWidget(QWidget):
             self._svg_renderer = None
         self.update()
 
-    def hasSvg(self):
-        return self._svg_renderer is not None and self._svg_renderer.isValid()
-
     def paintEvent(self, event):
-        if not self.hasSvg():
+        # return self._svg_renderer is not None and self._svg_renderer.isValid()
+        if self._svg_renderer is None or not self._svg_renderer.isValid():
             super().paintEvent(event)
             return
 
@@ -45,6 +43,6 @@ class SvgWidget(QWidget):
         super().paintEvent(event)
 
     def sizeHint(self):
-        if self.hasSvg():
+        if self._svg_renderer is not None and self._svg_renderer.isValid():
             return self._svg_renderer.defaultSize()
         return QSize(100, 100)

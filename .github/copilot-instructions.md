@@ -9,7 +9,7 @@ MetaEditor SafeTensors is a Python GUI application for viewing and editing metad
 - This will run `ruff` in format mode to auto-fix formatting issues
 
 ### Development Flow
-- Compile: `just compile` (compiles Qt resources and UI files, required to run the app)
+- Compile: `just compile` (compiles Qt resources, required to run the app)
 - Test: `just test` (runs the full test suite)
 - Full presubmit: `just presub` (runs formatting, linting, and tests)
 
@@ -17,12 +17,11 @@ MetaEditor SafeTensors is a Python GUI application for viewing and editing metad
 ```
 .
 ├── assets/                          # Qt resource files (icons, stylesheets)
-├── designer/                        # Qt Designer UI files (*.ui)
 ├── tests/                          # Unit test suite
 ├── metaeditor_safetensors/         # Main source code
 │   ├── controllers/                # MVC controllers
 │   ├── models/                     # Data models
-│   ├── views/                      # GUI views (*_ui.py generated from *.ui)
+│   ├── views/                      # GUI views
 │   ├── services/                   # Business logic services
 │   └── widgets/                    # Custom Qt widgets
 ├── justfile                        # Just task runner config (like Makefile)
@@ -37,7 +36,7 @@ MetaEditor SafeTensors is a Python GUI application for viewing and editing metad
 2. Maintain existing code structure and organization
 3. Use dependency injection patterns where appropriate
 4. Write unit tests for new features and bug fixes
-5. Do not manually edit generated files (`views/*_ui.py` or `resources_rc.py`)
+5. Do not manually edit generated files (`resources_rc.py`)
 
 ### Additional Notes
 - **PySide6 tests fail on headless systems**: Use `QT_QPA_PLATFORM=offscreen`
