@@ -1,26 +1,12 @@
-"""
-Main View
-=========
-
-This module defines the `MainView`, which is the main window of the application.
-It is responsible for the overall UI structure, including the menu bar, and for
-hosting the main editing panel designed in Qt Designer.
-
-The `MainView` is a "dumb" component; it only displays data and emits signals
-when the user interacts with it. It has no direct knowledge of the model.
-"""
-
 import functools
 import logging
-import os
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-from PySide6.QtCore import QDateTime, QSize, Qt, QUrl, Signal
+from PySide6.QtCore import QDateTime, Qt, Signal
 from PySide6.QtGui import (
     QAction,
-    QActionGroup,
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
@@ -29,26 +15,12 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QMainWindow, QWidget
 
+from ..layouts.main_ui_layout import Ui_EditorPanel
 from ..models.modelspec import ModelSpec
-
-# Import custom widget so it can be found by the UI loader
-from ..widgets.image_widget import ImageWidget
 from ..widgets.modelspec_status_widget import ModelSpecStatusWidget
-from .about_dialog import AboutDialog
-
-# This imports the class generated from the .ui file.
-from .main_view_ui import Ui_EditorPanel
 
 
 class MainView(QMainWindow):
-    """
-    The main application window.
-
-    This class creates the main window frame (menu bar, status bar) and
-    embeds the editor panel from the Qt Designer file as its central widget.
-    It emits signals for user actions that the controller will connect to.
-    """
-
     # --- Action Signals ---
     open_file_requested = Signal()
     save_requested = Signal()
@@ -90,58 +62,46 @@ class MainView(QMainWindow):
         # Set up window icon and title
         self._setup_window_properties()
 
-        # Enable drag and drop
-        self.setAcceptDrops(True)
-
         # Create the main window's menu bar
         self._create_menu_bar()
 
-        # The 'ui' attribute will hold the instance of the generated UI class.
-        # This class is a QWidget, which we will set as the central widget.
         self.editor_panel = QWidget()
         self.ui = Ui_EditorPanel()
-        self.ui.setupUi(self.editor_panel)
+        self.ui.setup_ui(self.editor_panel)
         self.setCentralWidget(self.editor_panel)
-
-        # The thumbnail widget is now created directly by Qt Designer promotion
-        # Store reference to the custom widget for easy access
-        self.thumbnail_widget = self.ui.thumbnailDisplay
-
-        # Configure thumbnail widget for vertical column layout
-        self.thumbnail_widget.setPrimaryDimension("width")
 
         self._widget_map = {
             ModelSpec.get_field_name("title"): {
-                "widget": self.ui.titleEdit,
+                "widget": self.ui.title_edit,
                 "setter": "setText",
             },
             ModelSpec.get_field_name("description"): {
-                "widget": self.ui.descriptionEdit,
+                "widget": self.ui.description_edit,
                 "setter": "setPlainText",
             },
             ModelSpec.get_field_name("author"): {
-                "widget": self.ui.authorEdit,
+                "widget": self.ui.author_edit,
                 "setter": "setText",
             },
             ModelSpec.get_field_name("date"): {
-                "widget": self.ui.dateTimeEdit,
+                "widget": self.ui.date_time_edit,
                 "setter": "setDateTime",
-                "supports_placeholder": False,  # DateTime widgets don't support placeholders
+                "supports_placeholder": False,
             },
             ModelSpec.get_field_name("license"): {
-                "widget": self.ui.licenseEdit,
+                "widget": self.ui.license_edit,
                 "setter": "setText",
             },
             ModelSpec.get_field_name("usage_hint"): {
-                "widget": self.ui.usageHintEdit,
+                "widget": self.ui.usage_hint_edit,
                 "setter": "setText",
             },
             ModelSpec.get_field_name("tags"): {
-                "widget": self.ui.tagsEdit,
+                "widget": self.ui.tags_edit,
                 "setter": "setText",
             },
             ModelSpec.get_field_name("merged_from"): {
-                "widget": self.ui.mergedFromEdit,
+                "widget": self.ui.merged_from_edit,
                 "setter": "setText",
             },
         }
@@ -156,8 +116,6 @@ class MainView(QMainWindow):
         self.statusBar().addPermanentWidget(self._modelspec_status_widget)
 
     def _setup_window_properties(self):
-        """Set up the window icon."""
-
         # Set window icon from Qt resources
         icon = QIcon(":/assets/icon.ico")
         if not icon.isNull():
@@ -166,6 +124,9 @@ class MainView(QMainWindow):
             logger.warning("Could not load icon from resources")
 
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
+        # Enable drag and drop
+        self.setAcceptDrops(True)
 
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
@@ -222,16 +183,9 @@ class MainView(QMainWindow):
         help_menu.addAction(about_action)
 
     def update_recent_files_menu(self, recent_files: list[str]):
-        """
-        Updates the "Open Recent" submenu with the provided list of files.
-
-        Args:
-            recent_files: List of file paths to display in the menu
-        """
         self._update_recent_files_menu(recent_files)
 
     def _update_recent_files_menu(self, recent_files: list[str]):
-        """Internal method to rebuild the recent files menu."""
         # Clear existing actions
         self.recent_files_menu.clear()
 
@@ -264,37 +218,32 @@ class MainView(QMainWindow):
         self.recent_files_menu.addAction(clear_action)
 
     def _connect_signals(self):
-        """
-        Connects the signals from the UI widgets to the view's own signals.
-        """
-        self.ui.titleEdit.textChanged.connect(self.title_changed)
-        self.ui.descriptionEdit.textChanged.connect(
-            lambda: self.description_changed.emit(self.ui.descriptionEdit.toPlainText())
+        self.ui.title_edit.textChanged.connect(self.title_changed)
+        self.ui.description_edit.textChanged.connect(
+            lambda: self.description_changed.emit(
+                self.ui.description_edit.toPlainText()
+            )
         )
-        self.ui.authorEdit.textChanged.connect(self.author_changed)
-        self.ui.dateTimeEdit.dateTimeChanged.connect(self.datetime_changed)
-        self.ui.licenseEdit.textChanged.connect(self.license_changed)
-        self.ui.usageHintEdit.textChanged.connect(
-            lambda: self.usage_hint_changed.emit(self.ui.usageHintEdit.toPlainText())
+        self.ui.author_edit.textChanged.connect(self.author_changed)
+        self.ui.date_time_edit.dateTimeChanged.connect(self.datetime_changed)
+        self.ui.license_edit.textChanged.connect(self.license_changed)
+        self.ui.usage_hint_edit.textChanged.connect(
+            lambda: self.usage_hint_changed.emit(self.ui.usage_hint_edit.toPlainText())
         )
-        self.ui.tagsEdit.textChanged.connect(self.tags_changed)
-        self.ui.mergedFromEdit.textChanged.connect(self.merged_from_changed)
+        self.ui.tags_edit.textChanged.connect(self.tags_changed)
+        self.ui.merged_from_edit.textChanged.connect(self.merged_from_changed)
 
         # Connect thumbnail button signals
-        self.ui.setThumbnailBtn.clicked.connect(self.set_thumbnail_requested)
-        self.ui.clearThumbnailBtn.clicked.connect(self.clear_thumbnail_requested)
-        self.ui.viewThumbnailBtn.clicked.connect(self.view_thumbnail_requested)
+        self.ui.set_thumbnail_btn.clicked.connect(self.set_thumbnail_requested)
+        self.ui.clear_thumbnail_btn.clicked.connect(self.clear_thumbnail_requested)
+        self.ui.view_thumbnail_btn.clicked.connect(self.view_thumbnail_requested)
 
     def _setup_placeholder_texts(self):
-        # Get all field placeholder texts from ModelSpec
         placeholders = ModelSpec.get_all_field_placeholders()
 
-        # Use the unified widget map for placeholder setup
         for field_name, widget_info in self._widget_map.items():
-            # Get the raw field name (without "modelspec." prefix)
             raw_field_name = field_name.replace("modelspec.", "")
 
-            # Check if this widget supports placeholders (default True)
             supports_placeholder = widget_info.get("supports_placeholder", True)
 
             if (
@@ -308,8 +257,6 @@ class MainView(QMainWindow):
                 if hasattr(widget, "setPlaceholderText"):
                     widget.setPlaceholderText(placeholder_text)
                 elif hasattr(widget, "setPlainText") and not widget.toPlainText():
-                    # For QTextEdit widgets, we can't set placeholder directly in older Qt versions
-                    # but we can set a CSS style or handle it differently
                     pass
 
     def set_window_title(self, title: str):
@@ -319,44 +266,31 @@ class MainView(QMainWindow):
     # --- Methods to update UI from Controller ---
 
     def set_thumbnail_pixmap(self, pixmap: QPixmap | None):
-        """
-        Displays the provided QPixmap as the thumbnail.
-
-        Args:
-            pixmap: The QPixmap to display, or None to clear the thumbnail.
-        """
-        self.thumbnail_widget.setPixmap(pixmap)
+        if hasattr(self.ui, "thumbnail_display"):
+            self.ui.thumbnail_display.setPixmap(pixmap)
+        else:
+            logger.warning("UI does not have a 'thumbnail_display' attribute.")
 
     def set_status_message(self, message: str, timeout: int = 0):
         """Displays a message in the status bar."""
         self.statusBar().showMessage(message, timeout)
 
     def show_progress_bar(self):
-        """Shows the progress bar and resets it to 0."""
-        self.ui.progressBar.setValue(0)
-        self.ui.progressBar.setVisible(True)
+        self.ui.progress_bar.setValue(0)
+        self.ui.progress_bar.setVisible(True)
 
     def hide_progress_bar(self):
-        """Hides the progress bar."""
-        self.ui.progressBar.setVisible(False)
+        self.ui.progress_bar.setVisible(False)
 
     def set_progress_value(self, value: int):
-        """Sets the progress bar value (0-100)."""
-        self.ui.progressBar.setValue(value)
+        self.ui.progress_bar.setValue(value)
 
     def update_all_fields(self, data: dict):
-        """
-        Updates all UI fields based on the provided data dictionary.
-        """
         for field_name in self._widget_map.keys():
             value = data.get(field_name, "")
             self.set_field_value(field_name, value)
 
     def set_field_value(self, field_name: str, value: Any):
-        """
-        Sets the value of a specific field in the UI using the widget map.
-        The controller calls this when the model is updated.
-        """
         if field_name in self._widget_map:
             widget_info = self._widget_map[field_name]
             widget = widget_info["widget"]
@@ -381,17 +315,17 @@ class MainView(QMainWindow):
             widget.blockSignals(False)
 
     def set_all_fields_enabled(self, enabled: bool):
-        self.ui.titleEdit.setEnabled(enabled)
-        self.ui.descriptionEdit.setEnabled(enabled)
-        self.ui.authorEdit.setEnabled(enabled)
-        self.ui.dateTimeEdit.setEnabled(enabled)
-        self.ui.licenseEdit.setEnabled(enabled)
-        self.ui.usageHintEdit.setEnabled(enabled)
-        self.ui.tagsEdit.setEnabled(enabled)
-        self.ui.mergedFromEdit.setEnabled(enabled)
-        self.ui.setThumbnailBtn.setEnabled(enabled)
-        self.ui.viewThumbnailBtn.setEnabled(enabled)
-        self.ui.clearThumbnailBtn.setEnabled(enabled)
+        self.ui.title_edit.setEnabled(enabled)
+        self.ui.description_edit.setEnabled(enabled)
+        self.ui.author_edit.setEnabled(enabled)
+        self.ui.date_time_edit.setEnabled(enabled)
+        self.ui.license_edit.setEnabled(enabled)
+        self.ui.usage_hint_edit.setEnabled(enabled)
+        self.ui.tags_edit.setEnabled(enabled)
+        self.ui.merged_from_edit.setEnabled(enabled)
+        self.ui.set_thumbnail_btn.setEnabled(enabled)
+        self.ui.view_thumbnail_btn.setEnabled(enabled)
+        self.ui.clear_thumbnail_btn.setEnabled(enabled)
 
     def update_modelspec_status(self, compliance_result):
         """

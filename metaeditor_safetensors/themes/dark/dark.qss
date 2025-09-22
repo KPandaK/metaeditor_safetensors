@@ -607,30 +607,6 @@ QToolButton:checked {
     color: #ffffff;
 }
 
-QToolButton[popupMode="1"] { /* MenuButtonPopup */
-    padding-right: 20px;
-}
-
-QToolButton::menu-button {
-    border: 1px solid transparent;
-    border-top-right-radius: 2px;
-    border-bottom-right-radius: 2px;
-    width: 16px;
-}
-
-QToolButton::menu-arrow {
-    width: 8px;
-    height: 8px;
-    image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid #cccccc;
-}
-
-QToolButton::menu-arrow:hover {
-    border-top-color: #ffffff;
-}
-
 /* 
 Data Views
 */
@@ -1109,4 +1085,27 @@ ImageWidget[hasImage="false"] {
     border: 2px dashed #454545;
     border-radius: 3px;
     background-color: #252526;
+}
+
+CollapsibleSection {
+    border: 1px solid #454545;
+    border-radius: 3px;
+    background-color: #252526;
+}
+
+CollapsibleSection QToolButton {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 0px;
+    background-color: transparent;
+    color: #cccccc;
+    text-align: left;
+}
+
+CollapsibleSection QToolButton:pressed, 
+CollapsibleSection QToolButton:hover,
+CollapsibleSection QToolButton:focus,
+CollapsibleSection QToolButton:checked {
+    background-color: transparent;
+    color: #cccccc;
 }

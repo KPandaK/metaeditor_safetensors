@@ -1,6 +1,5 @@
 from PySide6.QtCore import (
     QCoreApplication,
-    QMetaObject,
     QRect,
     QSize,
     Qt,
@@ -60,21 +59,20 @@ class Ui_AboutDialog(object):
         vertical_layout.addWidget(self.tab_widget)
 
         # Create tabs
-        self.about_tab = self.create_about_tab()
+        self.about_tab = self._create_about_tab()
         self.tab_widget.addTab(self.about_tab, "")
 
-        self.credits_tab = self.create_credits_tab()
+        self.credits_tab = self._create_credits_tab()
         self.tab_widget.addTab(self.credits_tab, "")
 
-        self.license_tab = self.create_license_tab()
+        self.license_tab = self._create_license_tab()
         self.tab_widget.addTab(self.license_tab, "")
 
         self.tab_widget.setCurrentIndex(0)
         self.tab_widget.tabBar().setExpanding(True)
         self.retranslate_ui()
-        QMetaObject.connectSlotsByName(dialog)
 
-    def create_about_tab(self):
+    def _create_about_tab(self):
         about_tab = QWidget()
         about_tab.setObjectName("aboutTab")
 
@@ -173,6 +171,7 @@ class Ui_AboutDialog(object):
         self.kofi_link.setFrameShadow(QFrame.Shadow.Sunken)
         self.kofi_link.setPixmap(QPixmap(":/assets/support_me.png"))
         self.kofi_link.setScaledContents(True)
+        self.kofi_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self.kofi_link.setProperty("class", "clickable-image")
         links_layout.addWidget(self.kofi_link)
 
@@ -181,6 +180,11 @@ class Ui_AboutDialog(object):
         self.github_link.setMaximumSize(QSize(163, 40))
         self.github_link.setPixmap(QPixmap(":/assets/GitHub_Lockup_Dark.png"))
         self.github_link.setScaledContents(True)
+        self.github_link.setImages(
+            light_image_path=":/assets/GitHub_Lockup_Dark.png",
+            dark_image_path=":/assets/GitHub_Lockup_Light.png",
+        )
+        self.github_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self.github_link.setProperty("class", "clickable-image")
         links_layout.addWidget(self.github_link)
 
@@ -196,7 +200,7 @@ class Ui_AboutDialog(object):
         horizontal_layout.setStretch(1, 1)
         return about_tab
 
-    def create_credits_tab(self):
+    def _create_credits_tab(self):
         credits_tab = QWidget()
         credits_tab.setObjectName("creditsTab")
 
@@ -240,7 +244,7 @@ class Ui_AboutDialog(object):
         horizontal_layout.setStretch(1, 1)
         return credits_tab
 
-    def create_license_tab(self):
+    def _create_license_tab(self):
         license_tab = QWidget()
         license_tab.setObjectName("licenseTab")
 
