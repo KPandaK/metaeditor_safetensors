@@ -8,7 +8,9 @@ class SaveWorker(QObject):
     finished = Signal(str)
     error = Signal(str)
 
-    def __init__(self, service, filepath: str, metadata: Dict[str, Any], parent=None):
+    def __init__(
+        self, service: Any, filepath: str, metadata: Dict[str, Any], parent=None
+    ):
         super().__init__(parent)
         self._service = service
         self._filepath = filepath
