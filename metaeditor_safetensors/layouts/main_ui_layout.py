@@ -4,6 +4,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtWidgets import (
     QAbstractSpinBox,
+    QComboBox,
     QDateTimeEdit,
     QGroupBox,
     QHBoxLayout,
@@ -19,6 +20,18 @@ from PySide6.QtWidgets import (
 
 from metaeditor_safetensors.widgets.collapsible_section import CollapsibleSection
 from metaeditor_safetensors.widgets.image_widget import ImageWidget
+
+from ..services.widget_binding_service import (
+    FieldBinding,
+    WidgetBindingService,
+    data_uri_to_pixmap,
+    datetime_to_iso_string,
+    iso_string_to_datetime,
+    pixmap_to_data_uri,
+    string_to_model_type,
+    string_to_tags,
+    tags_to_string,
+)
 
 
 def create_size_policy_for_widget(
@@ -90,9 +103,14 @@ class Ui_EditorPanel(object):
 
         self.retranslate_ui(panel)
 
+        self._setup_bindings()
+
     def _create_general_section(self, parent):
         section = CollapsibleSection(parent)
         section.setMinimumSize(QSize(0, 0))
+
+        # Title & Type layout
+        title_type_layout = QHBoxLayout()
 
         # Title
         title_layout = QVBoxLayout()
@@ -104,7 +122,20 @@ class Ui_EditorPanel(object):
         self.title_edit.setObjectName("titleEdit")
         title_layout.addWidget(self.title_edit)
 
-        section.add_layout(title_layout)
+        title_type_layout.addLayout(title_layout)
+
+        # Type
+        type_layout = QVBoxLayout()
+        self.type_label = QLabel(section)
+        self.type_label.setObjectName("typeLabel")
+        type_layout.addWidget(self.type_label)
+
+        self.type_select = QComboBox(section)
+        self.type_select.setObjectName("typeSelect")
+        type_layout.addWidget(self.type_select)
+
+        title_type_layout.addLayout(type_layout)
+        section.add_layout(title_type_layout)
 
         # Description
         desc_layout = QVBoxLayout()
@@ -295,13 +326,20 @@ class Ui_EditorPanel(object):
             QCoreApplication.translate("EditorPanel", "Title:", None)
         )
         self.title_edit.setPlaceholderText(
-            QCoreApplication.translate("EditorPanel", "Enter model title...", None)
+            QCoreApplication.translate("EditorPanel", "Name of the model.", None)
+        )
+        self.type_label.setText(
+            QCoreApplication.translate("EditorPanel", "Model Type:", None)
         )
         self.description_label.setText(
             QCoreApplication.translate("EditorPanel", "Description:", None)
         )
         self.description_edit.setPlaceholderText(
-            QCoreApplication.translate("EditorPanel", "Describe your model...", None)
+            QCoreApplication.translate(
+                "EditorPanel",
+                "Describe the model's purpose, training data, and capabilities.",
+                None,
+            )
         )
         self.tags_label.setText(
             QCoreApplication.translate("EditorPanel", "Tags:", None)
@@ -316,7 +354,9 @@ class Ui_EditorPanel(object):
             QCoreApplication.translate("EditorPanel", "Author:", None)
         )
         self.author_edit.setPlaceholderText(
-            QCoreApplication.translate("EditorPanel", "Author name...", None)
+            QCoreApplication.translate(
+                "EditorPanel", "Author name or organization.", None
+            )
         )
         self.date_label.setText(
             QCoreApplication.translate("EditorPanel", "Date:", None)
@@ -329,7 +369,7 @@ class Ui_EditorPanel(object):
         )
         self.merged_from_edit.setPlaceholderText(
             QCoreApplication.translate(
-                "EditorPanel", "Source models if merged...", None
+                "EditorPanel", "Source models, if merged from other models.", None
             )
         )
         self.source_section.setTitle(
@@ -343,7 +383,7 @@ class Ui_EditorPanel(object):
         )
         self.usage_hint_edit.setPlaceholderText(
             QCoreApplication.translate(
-                "EditorPanel", "Usage instructions or hints...", None
+                "EditorPanel", "Usage instructions or tips for using the model.", None
             )
         )
         self.license_label.setText(
@@ -351,7 +391,7 @@ class Ui_EditorPanel(object):
         )
         self.license_edit.setPlaceholderText(
             QCoreApplication.translate(
-                "EditorPanel", "e.g. MIT, Apache 2.0, Custom...", None
+                "EditorPanel", "License type (e.g., MIT, Apache-2.0, CC-BY-4.0).", None
             )
         )
         self.thumbnail_group.setTitle(
@@ -365,4 +405,115 @@ class Ui_EditorPanel(object):
         )
         self.clear_thumbnail_btn.setText(
             QCoreApplication.translate("EditorPanel", "Clear", None)
+        )
+
+    def _setup_bindings(self):
+        binding_service = WidgetBindingService()
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.title",
+                self.title_edit,
+                "text",
+                "setText",
+                "textChanged",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "metaeditor.model_type_override",
+                self.type_select,
+                "currentText",
+                "setCurrentText",
+                "currentTextChanged",
+                to_metadata_converter=string_to_model_type,
+                from_metadata_converter=lambda mt: mt.value if mt else "",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.description",
+                self.description_edit,
+                "toPlainText",
+                "setPlainText",
+                "textChanged",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.tags",
+                self.tags_edit,
+                "text",
+                "setText",
+                "textChanged",
+                to_metadata_converter=string_to_tags,
+                from_metadata_converter=tags_to_string,
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.author",
+                self.author_edit,
+                "text",
+                "setText",
+                "textChanged",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.date",
+                self.date_time_edit,
+                "dateTime",
+                "setDateTime",
+                "dateTimeChanged",
+                to_metadata_converter=datetime_to_iso_string,
+                from_metadata_converter=iso_string_to_datetime,
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.merged_from",
+                self.merged_from_edit,
+                "text",
+                "setText",
+                "textChanged",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.usage_hint",
+                self.usage_hint_edit,
+                "toPlainText",
+                "setPlainText",
+                "textChanged",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.license",
+                self.license_edit,
+                "text",
+                "setText",
+                "textChanged",
+            )
+        )
+
+        binding_service.add_binding(
+            FieldBinding(
+                "modelspec.thumbnail",
+                self.thumbnail_display,
+                "pixmap",
+                "setPixmap",
+                "pixmapChanged",
+                to_metadata_converter=pixmap_to_data_uri,
+                from_metadata_converter=data_uri_to_pixmap,
+            )
         )

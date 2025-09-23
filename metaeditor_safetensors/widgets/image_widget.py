@@ -1,11 +1,3 @@
-"""
-Aspect Ratio Image Widget
-=========================
-
-A custom widget for displaying images with proper aspect ratio scaling
-using Qt's Graphics View Framework.
-"""
-
 from PySide6.QtCore import QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QPainter, QPixmap
 from PySide6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
@@ -15,16 +7,6 @@ QWIDGETSIZE_MAX = 16777215
 
 
 class ImageWidget(QGraphicsView):
-    """
-    A widget that displays images with proper aspect ratio scaling.
-
-    Uses QGraphicsView + QGraphicsPixmapItem for optimal image display
-    with automatic scaling that maintains aspect ratio.
-
-    This widget can be used in Qt Designer by promoting a QGraphicsView
-    to this class.
-    """
-
     # Signal emitted when the pixmap changes
     pixmapChanged = Signal()
 
@@ -65,19 +47,12 @@ class ImageWidget(QGraphicsView):
         self._updating_size = False
 
     def setPrimaryDimension(self, dimension):
-        """Public method to set primary dimension."""
         if dimension in ["width", "height"]:
             self._primary_dimension = dimension
         else:
             raise ValueError("Dimension must be 'width' or 'height'")
 
     def setPixmap(self, pixmap):
-        """
-        Set the pixmap to display.
-
-        Args:
-            pixmap (QPixmap or None): The pixmap to display
-        """
         self._original_pixmap = pixmap
 
         if pixmap and not pixmap.isNull():
@@ -103,7 +78,6 @@ class ImageWidget(QGraphicsView):
         self.updateGeometry()
 
     def _calculate_aspect_ratio(self):
-        """Calculate the aspect ratio of the current pixmap."""
         if self._original_pixmap is not None and not self._original_pixmap.isNull():
             pixmap = self._original_pixmap
             image_width = pixmap.width()
@@ -117,7 +91,6 @@ class ImageWidget(QGraphicsView):
             return 1.0
 
     def _update_size(self):
-        """Update widget size based on primary dimension."""
         # Prevent infinite recursion
         if self._updating_size:
             return
@@ -152,12 +125,6 @@ class ImageWidget(QGraphicsView):
             self._updating_size = False
 
     def sizeHint(self):
-        """
-        Provide size hint based on primary dimension and current state.
-
-        Returns:
-            QSize: Preferred size for the widget
-        """
         aspect_ratio = self._calculate_aspect_ratio()
 
         # Get current widget dimensions (or use reasonable defaults)
@@ -179,20 +146,12 @@ class ImageWidget(QGraphicsView):
         return QSize(self._min_width, self._min_height)
 
     def getCurrentSize(self):
-        """Get current widget dimensions for debugging."""
         return {"width": self.width(), "height": self.height()}
 
     def pixmap(self):
-        """
-        Get the current pixmap.
-
-        Returns:
-            QPixmap: The current pixmap or None
-        """
         return self._original_pixmap
 
     def _fit_in_view(self):
-        """Fit the pixmap in the view while maintaining aspect ratio and centering."""
         if self._original_pixmap and not self._original_pixmap.isNull():
             # Get the pixmap rect in scene coordinates
             pixmap_rect = self._pixmap_item.boundingRect()
@@ -207,7 +166,6 @@ class ImageWidget(QGraphicsView):
             self.centerOn(pixmap_rect.center())
 
     def resizeEvent(self, event):
-        """Handle resize events by refitting the image and updating size."""
         super().resizeEvent(event)
 
         # Re-fit the image when the widget is resized (only if we have a pixmap)
@@ -218,10 +176,4 @@ class ImageWidget(QGraphicsView):
         self._update_size()
 
     def hasPixmap(self):
-        """
-        Check if the widget has a pixmap
-
-        Returns:
-            bool: True if a pixmap exists, False otherwise
-        """
         return self._original_pixmap is not None and not self._original_pixmap.isNull()

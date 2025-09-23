@@ -1,20 +1,24 @@
+import logging
 import os
 from typing import List, Optional
 
-from PySide6.QtCore import QDateTime, QObject, Qt, Slot
+from PySide6.QtCore import QObject, Slot
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
-from ..models.metadata import Metadata
+from ..models.metadata import ChangeSource, Metadata
 from ..models.modelspec import ModelSpec
 from ..services.config_service import ConfigService
 from ..services.image_service import ImageService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
+from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
 from ..views.thumbnail_dialog import ThumbnailDialog
+
+logger = logging.getLogger(__name__)
 
 
 class MainController(QObject):
@@ -41,14 +45,14 @@ class MainController(QObject):
         self._modelspec_service = modelspec_service
         self._current_file = None
 
-        # Register the controller's update method as an observer of the model.
-        self._model.add_observer(self.update_view)
-
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
 
         # Register for theme changes
         self._theme_service.add_theme_changed_observer(self._on_theme_changed)
+
+        # Register for metadata changes to update UI
+        self._model.add_observer(self._on_metadata_changed)
 
         # Connect the view's signals to the controller's slots.
         self._connect_signals()
@@ -69,32 +73,6 @@ class MainController(QObject):
         self._view.recent_file_triggered.connect(self.on_recent_file_triggered)
         self._view.clear_recent_requested.connect(self.on_clear_recent_requested)
 
-        # Connect metadata field changes
-        self._view.title_changed.connect(
-            lambda t: self._model.set_value(ModelSpec.get_field_name("title"), t)
-        )
-        self._view.description_changed.connect(
-            lambda d: self._model.set_value(ModelSpec.get_field_name("description"), d)
-        )
-        self._view.author_changed.connect(
-            lambda a: self._model.set_value(ModelSpec.get_field_name("author"), a)
-        )
-        self._view.datetime_changed.connect(self.on_datetime_changed)
-        self._view.license_changed.connect(
-            lambda license_value: self._model.set_value(
-                ModelSpec.get_field_name("license"), license_value
-            )
-        )
-        self._view.usage_hint_changed.connect(
-            lambda h: self._model.set_value(ModelSpec.get_field_name("usage_hint"), h)
-        )
-        self._view.tags_changed.connect(
-            lambda t: self._model.set_value(ModelSpec.get_field_name("tags"), t)
-        )
-        self._view.merged_from_changed.connect(
-            lambda m: self._model.set_value(ModelSpec.get_field_name("merged_from"), m)
-        )
-
         # Connect thumbnail actions
         self._view.set_thumbnail_requested.connect(self.on_set_thumbnail_requested)
         self._view.clear_thumbnail_requested.connect(self.on_clear_thumbnail_requested)
@@ -105,7 +83,6 @@ class MainController(QObject):
 
     def run(self):
         self._view.show()
-        self.update_view()
         self._view.set_all_fields_enabled(False)
         self._view.set_status_message("Ready. Please open a safetensors file to begin.")
 
@@ -133,6 +110,8 @@ class MainController(QObject):
             self._view.set_status_message(f"Reading metadata from {filepath}...")
             metadata = self._safetensor_service.read_metadata(filepath)
             self._model.load_data(metadata)
+
+            self.update_view()
             self._view.set_status_message(f"Loaded file: {filepath}", 5000)
 
             # Add to recent files
@@ -142,6 +121,7 @@ class MainController(QObject):
             self._view.set_status_message(f"Error loading file: {e}")
             self._current_file = None
             self._model.load_data({})
+            self.update_view()
 
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
@@ -199,6 +179,40 @@ class MainController(QObject):
     def _on_theme_changed(self, theme):
         self._config_service.set_theme_preference(theme.config.theme_id)
 
+    def _on_metadata_changed(
+        self, field=None, source=ChangeSource.PROGRAMMATIC, source_widget=None
+    ):
+        self._update_window_title()
+
+        # If this was a user change from a specific widget, update other widgets for that field
+        if (
+            field is not None
+            and source == ChangeSource.USER
+            and source_widget is not None
+        ):
+            # Get the binding service singleton to update other widgets
+            binding_service = WidgetBindingService()
+            binding_service.update_widget_from_metadata(
+                field, exclude_widget=source_widget
+            )
+
+        # Update ModelSpec status whenever metadata changes
+        self._update_modelspec_status()
+
+    def _update_window_title(self):
+        is_dirty = self._model.is_dirty()
+        title = ""
+
+        if self._current_file:
+            filename = os.path.basename(self._current_file)
+            title += f"{filename}"
+
+        # Show dirty indicator if there are unsaved changes
+        if is_dirty:
+            title += " *"  # Add an asterisk to indicate unsaved changes
+
+        self._view.set_window_title(title)
+
     @Slot()
     def on_set_thumbnail_requested(self):
         filepath, _ = QFileDialog.getOpenFileName(
@@ -209,15 +223,22 @@ class MainController(QObject):
         )
         if filepath:
             try:
-                data_uri = self._image_service.image_to_data_uri(filepath)
-                self._model.set_value(ModelSpec.get_field_name("thumbnail"), data_uri)
+                data_uri = self._image_service.filepath_to_data_uri(filepath)
+                self._model.set_value(
+                    ModelSpec.get_field_name("thumbnail"),
+                    data_uri,
+                    source=ChangeSource.PROGRAMMATIC,
+                )
                 self._view.set_status_message("Thumbnail set.", 3000)
             except Exception as e:
                 self._view.set_status_message(f"Error setting thumbnail: {e}")
 
+    # TODO: Setting and clearing thumbnails doesn't work
     @Slot()
     def on_clear_thumbnail_requested(self):
-        self._model.set_value(ModelSpec.get_field_name("thumbnail"), "")
+        self._model.set_value(
+            ModelSpec.get_field_name("thumbnail"), "", source=ChangeSource.PROGRAMMATIC
+        )
         self._view.set_status_message("Thumbnail cleared.", 3000)
 
     @Slot()
@@ -301,6 +322,7 @@ class MainController(QObject):
     def _on_save_success(self, filepath: str):
         self._view.set_status_message(f"Successfully saved to {filepath}", 5000)
         self._model.mark_saved()
+        self.update_view()
         self._view.set_all_fields_enabled(True)
         self._view.hide_progress_bar()
 
@@ -313,6 +335,7 @@ class MainController(QObject):
         self._safetensor_service.shutdown()
         self._config_service.remove_recent_files_observer(self._on_recent_files_changed)
         self._theme_service.remove_theme_changed_observer(self._on_theme_changed)
+        self._model.remove_observer(self._on_metadata_changed)
 
     @Slot()
     def on_exit_requested(self):
@@ -320,34 +343,22 @@ class MainController(QObject):
         self.shutdown()
         self._view.close()
 
-    @Slot(QDateTime)
-    def on_datetime_changed(self, dt: QDateTime):
-        # Convert QDateTime to a string format for the model, e.g., ISO 8601
-        self._model.set_value(
-            ModelSpec.get_field_name("date"), dt.toString(Qt.DateFormat.ISODateWithMs)
-        )
-
     def update_view(self):
         is_dirty = self._model.is_dirty()
         title = ""
+
         if self._current_file:
             filename = os.path.basename(self._current_file)
             title += f"{filename}"
+
+        # Show dirty indicator if there are unsaved changes
         if is_dirty:
             title += " *"  # Add an asterisk to indicate unsaved changes
 
         self._view.set_window_title(title)
 
-        # Get all data from the model and update the view
-        all_data = self._model.get_all_data()
-        self._view.update_all_fields(all_data)
-
-        # Update the thumbnail
-        thumbnail_data_uri = self._model.get_value(
-            ModelSpec.get_field_name("thumbnail")
-        )
-        thumbnail_pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
-        self._view.set_thumbnail_pixmap(thumbnail_pixmap)
+        binding_service = WidgetBindingService()
+        binding_service.initialize_widgets_from_metadata()
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
@@ -360,8 +371,7 @@ class MainController(QObject):
         if self._current_file is None:
             self._view.clear_modelspec_status()
         else:
-            all_data = self._model.get_all_data()
-            compliance_result = self._modelspec_service.analyze_compliance(all_data)
+            compliance_result = self._modelspec_service.get_compliance_result()
             self._view.update_modelspec_status(compliance_result)
 
     @Slot()
@@ -376,8 +386,7 @@ class MainController(QObject):
 
         # For now, just show a status message
         # In the future, this could open a detailed compliance dialog
-        all_data = self._model.get_all_data()
-        compliance_result = self._modelspec_service.analyze_compliance(all_data)
+        compliance_result = self._modelspec_service.get_compliance_result()
 
         if compliance_result.missing_must_fields:
             missing_count = len(compliance_result.missing_must_fields)

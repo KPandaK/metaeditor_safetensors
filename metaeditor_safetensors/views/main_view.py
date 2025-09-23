@@ -1,22 +1,22 @@
 import functools
 import logging
-from typing import Any
+
+from metaeditor_safetensors.services.widget_binding_service import WidgetBindingService
 
 logger = logging.getLogger(__name__)
 
-from PySide6.QtCore import QDateTime, Qt, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QAction,
     QDragEnterEvent,
     QDragMoveEvent,
     QDropEvent,
     QIcon,
-    QPixmap,
 )
 from PySide6.QtWidgets import QMainWindow, QWidget
 
 from ..layouts.main_ui_layout import Ui_EditorPanel
-from ..models.modelspec import ModelSpec
+from ..models.modelspec import ModelType
 from ..widgets.modelspec_status_widget import ModelSpecStatusWidget
 
 
@@ -35,16 +35,6 @@ class MainView(QMainWindow):
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
     view_thumbnail_requested = Signal()
-
-    # --- Metadata Field Change Signals ---
-    title_changed = Signal(str)
-    description_changed = Signal(str)
-    author_changed = Signal(str)
-    datetime_changed = Signal(QDateTime)
-    license_changed = Signal(str)
-    usage_hint_changed = Signal(str)
-    tags_changed = Signal(str)
-    merged_from_changed = Signal(str)
 
     # --- ModelSpec Status Widget Signals ---
     modelspec_status_clicked = Signal()
@@ -70,43 +60,7 @@ class MainView(QMainWindow):
         self.ui.setup_ui(self.editor_panel)
         self.setCentralWidget(self.editor_panel)
 
-        self._widget_map = {
-            ModelSpec.get_field_name("title"): {
-                "widget": self.ui.title_edit,
-                "setter": "setText",
-            },
-            ModelSpec.get_field_name("description"): {
-                "widget": self.ui.description_edit,
-                "setter": "setPlainText",
-            },
-            ModelSpec.get_field_name("author"): {
-                "widget": self.ui.author_edit,
-                "setter": "setText",
-            },
-            ModelSpec.get_field_name("date"): {
-                "widget": self.ui.date_time_edit,
-                "setter": "setDateTime",
-                "supports_placeholder": False,
-            },
-            ModelSpec.get_field_name("license"): {
-                "widget": self.ui.license_edit,
-                "setter": "setText",
-            },
-            ModelSpec.get_field_name("usage_hint"): {
-                "widget": self.ui.usage_hint_edit,
-                "setter": "setText",
-            },
-            ModelSpec.get_field_name("tags"): {
-                "widget": self.ui.tags_edit,
-                "setter": "setText",
-            },
-            ModelSpec.get_field_name("merged_from"): {
-                "widget": self.ui.merged_from_edit,
-                "setter": "setText",
-            },
-        }
-
-        self._setup_placeholder_texts()
+        self._setup_type_combobox()
         self._connect_signals()
 
         # TODO: Remove me - this should be added through Qt Designer
@@ -218,58 +172,26 @@ class MainView(QMainWindow):
         self.recent_files_menu.addAction(clear_action)
 
     def _connect_signals(self):
-        self.ui.title_edit.textChanged.connect(self.title_changed)
-        self.ui.description_edit.textChanged.connect(
-            lambda: self.description_changed.emit(
-                self.ui.description_edit.toPlainText()
-            )
-        )
-        self.ui.author_edit.textChanged.connect(self.author_changed)
-        self.ui.date_time_edit.dateTimeChanged.connect(self.datetime_changed)
-        self.ui.license_edit.textChanged.connect(self.license_changed)
-        self.ui.usage_hint_edit.textChanged.connect(
-            lambda: self.usage_hint_changed.emit(self.ui.usage_hint_edit.toPlainText())
-        )
-        self.ui.tags_edit.textChanged.connect(self.tags_changed)
-        self.ui.merged_from_edit.textChanged.connect(self.merged_from_changed)
-
         # Connect thumbnail button signals
         self.ui.set_thumbnail_btn.clicked.connect(self.set_thumbnail_requested)
         self.ui.clear_thumbnail_btn.clicked.connect(self.clear_thumbnail_requested)
         self.ui.view_thumbnail_btn.clicked.connect(self.view_thumbnail_requested)
 
-    def _setup_placeholder_texts(self):
-        placeholders = ModelSpec.get_all_field_placeholders()
+    # TODO: Initial state isn't being set up correctly. Initial value is always UNKNOWN
+    def _setup_type_combobox(self):
+        self.ui.type_select.clear()
 
-        for field_name, widget_info in self._widget_map.items():
-            raw_field_name = field_name.replace("modelspec.", "")
+        # Add each ModelType value to the combobox
+        for model_type in ModelType:
+            self.ui.type_select.addItem(model_type.value, model_type)
 
-            supports_placeholder = widget_info.get("supports_placeholder", True)
-
-            if (
-                supports_placeholder
-                and raw_field_name in placeholders
-                and placeholders[raw_field_name]
-            ):
-                widget = widget_info["widget"]
-                placeholder_text = placeholders[raw_field_name]
-
-                if hasattr(widget, "setPlaceholderText"):
-                    widget.setPlaceholderText(placeholder_text)
-                elif hasattr(widget, "setPlainText") and not widget.toPlainText():
-                    pass
+        # Set default to UNKNOWN
+        index = self.ui.type_select.findData(ModelType.UNKNOWN)
+        if index >= 0:
+            self.ui.type_select.setCurrentIndex(index)
 
     def set_window_title(self, title: str):
-        """Sets the main window's title."""
         super().setWindowTitle(title)
-
-    # --- Methods to update UI from Controller ---
-
-    def set_thumbnail_pixmap(self, pixmap: QPixmap | None):
-        if hasattr(self.ui, "thumbnail_display"):
-            self.ui.thumbnail_display.setPixmap(pixmap)
-        else:
-            logger.warning("UI does not have a 'thumbnail_display' attribute.")
 
     def set_status_message(self, message: str, timeout: int = 0):
         """Displays a message in the status bar."""
@@ -285,37 +207,13 @@ class MainView(QMainWindow):
     def set_progress_value(self, value: int):
         self.ui.progress_bar.setValue(value)
 
-    def update_all_fields(self, data: dict):
-        for field_name in self._widget_map.keys():
-            value = data.get(field_name, "")
-            self.set_field_value(field_name, value)
-
-    def set_field_value(self, field_name: str, value: Any):
-        if field_name in self._widget_map:
-            widget_info = self._widget_map[field_name]
-            widget = widget_info["widget"]
-            setter_method_name = widget_info["setter"]
-            setter_method = getattr(widget, setter_method_name)
-
-            widget.blockSignals(True)
-
-            if setter_method_name == "setDateTime":
-                if isinstance(value, str):
-                    # Attempt to parse ISO 8601 format (YYYY-MM-DDTHH:mm:ss.sssZ)
-                    dt = QDateTime.fromString(value, Qt.DateFormat.ISODateWithMs)
-                    if not dt.isValid():
-                        # Fallback for format without milliseconds
-                        dt = QDateTime.fromString(value, Qt.DateFormat.ISODate)
-                    setter_method(dt)
-                elif isinstance(value, QDateTime):
-                    setter_method(value)
-            else:
-                setter_method(str(value))
-
-            widget.blockSignals(False)
+    def clear_all_fields(self):
+        binding_service = WidgetBindingService()
+        binding_service.clear_all_widgets()
 
     def set_all_fields_enabled(self, enabled: bool):
         self.ui.title_edit.setEnabled(enabled)
+        self.ui.type_select.setEnabled(enabled)
         self.ui.description_edit.setEnabled(enabled)
         self.ui.author_edit.setEnabled(enabled)
         self.ui.date_time_edit.setEnabled(enabled)
@@ -328,19 +226,10 @@ class MainView(QMainWindow):
         self.ui.clear_thumbnail_btn.setEnabled(enabled)
 
     def update_modelspec_status(self, compliance_result):
-        """
-        Update the ModelSpec status widget with compliance information.
-
-        Args:
-            compliance_result: ComplianceResult from ModelSpecService
-        """
         self._modelspec_status_widget.set_compliance_result(compliance_result)
 
     def clear_modelspec_status(self):
-        """Clear the ModelSpec status (no file loaded)."""
         self._modelspec_status_widget.clear_compliance()
-
-    # --- Drag and Drop Support ---
 
     def _is_valid_safetensors_file(self, urls):
         for url in urls:
