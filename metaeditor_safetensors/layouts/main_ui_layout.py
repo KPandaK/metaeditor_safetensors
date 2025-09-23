@@ -22,6 +22,7 @@ from metaeditor_safetensors.widgets.collapsible_section import CollapsibleSectio
 from metaeditor_safetensors.widgets.image_widget import ImageWidget
 
 from ..services.widget_binding_service import (
+    BindingType,
     FieldBinding,
     WidgetBindingService,
     data_uri_to_pixmap,
@@ -287,6 +288,7 @@ class Ui_EditorPanel(object):
 
         # Thumbnail buttons
         buttons_layout = QHBoxLayout()
+        buttons_layout.setContentsMargins(0, 0, 0, 10)
         buttons_layout.setObjectName("thumbnailButtonsLayout")
 
         self.set_thumbnail_btn = QPushButton(self.thumbnail_group)
@@ -514,6 +516,7 @@ class Ui_EditorPanel(object):
                 "pixmap",
                 "setPixmap",
                 "pixmapChanged",
+                binding_type=BindingType.ONE_WAY,
                 to_metadata_converter=pixmap_to_data_uri,
                 from_metadata_converter=data_uri_to_pixmap,
             )

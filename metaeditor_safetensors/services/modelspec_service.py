@@ -73,7 +73,10 @@ class ModelSpecService:
     def get_compliance_result(self) -> ComplianceResult:
         if self._cached_compliance is None:
             self._validate()
-        assert self._cached_compliance is not None
+        if self._cached_compliance is None:
+            raise RuntimeError(
+                "Compliance result is unexpectedly None after validation."
+            )
         return self._cached_compliance
 
     def is_validation_current(self) -> bool:

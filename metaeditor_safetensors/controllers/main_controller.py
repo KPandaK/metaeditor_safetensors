@@ -184,17 +184,18 @@ class MainController(QObject):
     ):
         self._update_window_title()
 
-        # If this was a user change from a specific widget, update other widgets for that field
-        if (
-            field is not None
-            and source == ChangeSource.USER
-            and source_widget is not None
-        ):
-            # Get the binding service singleton to update other widgets
-            binding_service = WidgetBindingService()
-            binding_service.update_widget_from_metadata(
-                field, exclude_widget=source_widget
-            )
+        # Update widgets based on change source and field
+        binding_service = WidgetBindingService()
+
+        if field is not None:
+            if source == ChangeSource.USER and source_widget is not None:
+                # User change - update other widgets for the same field, excluding source widget
+                binding_service.update_widget_from_metadata(
+                    field, exclude_widget=source_widget
+                )
+            elif source == ChangeSource.PROGRAMMATIC:
+                # Programmatic change - update all widgets for this field (no exclusion needed)
+                binding_service.update_widget_from_metadata(field)
 
         # Update ModelSpec status whenever metadata changes
         self._update_modelspec_status()
@@ -223,31 +224,29 @@ class MainController(QObject):
         )
         if filepath:
             try:
-                data_uri = self._image_service.filepath_to_data_uri(filepath)
                 self._model.set_value(
-                    ModelSpec.get_field_name("thumbnail"),
-                    data_uri,
+                    "modelspec.thumbnail",
+                    self._image_service.filepath_to_data_uri(filepath),
                     source=ChangeSource.PROGRAMMATIC,
                 )
+
                 self._view.set_status_message("Thumbnail set.", 3000)
             except Exception as e:
                 self._view.set_status_message(f"Error setting thumbnail: {e}")
 
-    # TODO: Setting and clearing thumbnails doesn't work
     @Slot()
     def on_clear_thumbnail_requested(self):
         self._model.set_value(
-            ModelSpec.get_field_name("thumbnail"), "", source=ChangeSource.PROGRAMMATIC
+            "modelspec.thumbnail", "", source=ChangeSource.PROGRAMMATIC
         )
+
         self._view.set_status_message("Thumbnail cleared.", 3000)
 
     @Slot()
     def on_view_thumbnail_requested(self):
-        thumbnail_data_uri = self._model.get_value(
-            ModelSpec.get_field_name("thumbnail")
-        )
-        if thumbnail_data_uri:
-            pixmap = self._image_service.data_uri_to_pixmap(thumbnail_data_uri)
+        data_uri = self._model.get_value("modelspec.thumbnail")
+        if data_uri:
+            pixmap = self._image_service.data_uri_to_pixmap(data_uri)
             if pixmap and not pixmap.isNull():
                 dialog = ThumbnailDialog(pixmap, self._view)
 

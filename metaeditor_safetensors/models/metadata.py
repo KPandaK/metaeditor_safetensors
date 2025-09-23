@@ -29,7 +29,7 @@ class Metadata:
         self,
         key: str,
         value: Any,
-        source: ChangeSource = ChangeSource.USER,
+        source: ChangeSource = ChangeSource.PROGRAMMATIC,
         source_widget: Any = None,
     ):
         # Equality testing to prevent unnecessary notifications

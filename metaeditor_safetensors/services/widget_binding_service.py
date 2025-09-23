@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from functools import lru_cache
 from typing import Any, Callable, List, Optional
 
@@ -22,6 +23,12 @@ def singleton(cls):
     return get_instance
 
 
+class BindingType(Enum):
+    TWO_WAY = "two_way"
+    ONE_WAY = "one_way"
+    ONE_WAY_TO_SOURCE = "one_way_to_source"
+
+
 class FieldBinding:
     def __init__(
         self,
@@ -30,6 +37,7 @@ class FieldBinding:
         getter: str,
         setter: str,
         signal: str,
+        binding_type: BindingType = BindingType.TWO_WAY,
         to_metadata_converter: Optional[Callable] = None,
         from_metadata_converter: Optional[Callable] = None,
     ):
@@ -38,6 +46,7 @@ class FieldBinding:
         self.getter = getter
         self.setter = setter
         self.signal = signal
+        self.binding_type = binding_type
 
         # Converter functions for data transformation
         self.to_metadata_converter = to_metadata_converter or (lambda x: x)
@@ -73,12 +82,13 @@ class WidgetBindingService:
     def add_binding(self, binding: FieldBinding) -> None:
         self._bindings.append(binding)
 
-        # Connect widget signal to metadata update
-        signal = getattr(binding.widget, binding.signal)
-        signal.connect(lambda: self._on_widget_changed(binding))
+        # Connect widget signal for bindings that widget -> model updates
+        if binding.binding_type in [BindingType.TWO_WAY, BindingType.ONE_WAY_TO_SOURCE]:
+            signal = getattr(binding.widget, binding.signal)
+            signal.connect(lambda: self._on_widget_changed(binding))
 
         logger.debug(
-            f"Added binding: {binding.field_key} -> {binding.widget.__class__.__name__}"
+            f"Added binding: {binding.field_key} -> {binding.widget.__class__.__name__} ({binding.binding_type.value})"
         )
 
     def _on_widget_changed(self, binding: FieldBinding) -> None:
@@ -123,6 +133,10 @@ class WidgetBindingService:
 
         for binding in self._bindings:
             if binding.field_key == field_key:
+                # Only update widgets that allow model → widget updates
+                if binding.binding_type == BindingType.ONE_WAY_TO_SOURCE:
+                    continue
+
                 # Skip if this is the widget that triggered the change
                 if exclude_widget is not None and binding.widget is exclude_widget:
                     logger.debug(f"Skipping source widget for field: {field_key}")

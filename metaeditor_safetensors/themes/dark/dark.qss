@@ -241,7 +241,6 @@ QComboBox::drop-down {
     background-color: #454545;
 }
 
-
 QComboBox::down-arrow {
     width: 16;
     height: 16;
