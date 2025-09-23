@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 from typing import Any, Callable, List, Optional
 
 from PySide6.QtCore import QDateTime, Qt
@@ -14,12 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 def singleton(cls):
-    instances = {}
-
+    @lru_cache(maxsize=1)
     def get_instance(*args, **kwargs):
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
+        return cls(*args, **kwargs)
 
     return get_instance
 

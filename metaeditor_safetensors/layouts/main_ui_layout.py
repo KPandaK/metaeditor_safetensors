@@ -27,6 +27,7 @@ from ..services.widget_binding_service import (
     data_uri_to_pixmap,
     datetime_to_iso_string,
     iso_string_to_datetime,
+    model_type_to_string,
     pixmap_to_data_uri,
     string_to_model_type,
     string_to_tags,
@@ -428,7 +429,7 @@ class Ui_EditorPanel(object):
                 "setCurrentText",
                 "currentTextChanged",
                 to_metadata_converter=string_to_model_type,
-                from_metadata_converter=lambda mt: mt.value if mt else "",
+                from_metadata_converter=model_type_to_string,
             )
         )
 

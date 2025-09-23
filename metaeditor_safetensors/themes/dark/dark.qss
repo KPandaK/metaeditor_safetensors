@@ -216,7 +216,8 @@ QSpinBox:disabled {
     color: #999999;
 }
 
-/* QComboBox {
+/** TODO: Down arrow is still missing, only shows as a dash */
+QComboBox {
     min-height: 24px;
     padding: 4px 8px 4px 8px;
     border: 1px solid #454545;
@@ -226,11 +227,6 @@ QSpinBox:disabled {
     font-size: 13px;
 }
 
-QComboBox:focus {
-    border-color: #007acc;
-    background-color: #1e1e1e;
-}
-
 QComboBox:disabled {
     background-color: #2d2d30;
     border-color: #2d2d30;
@@ -238,8 +234,6 @@ QComboBox:disabled {
 }
 
 QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
     width: 20px;
     border-left: 1px solid #454545;
     border-top-right-radius: 2px;
@@ -247,15 +241,10 @@ QComboBox::drop-down {
     background-color: #454545;
 }
 
-QComboBox::drop-down:hover {
-    background-color: #007acc;
-    border-left-color: #007acc;
-}
 
 QComboBox::down-arrow {
-    width: 8px;
-    height: 8px;
-    image: none;
+    width: 16;
+    height: 16;
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
     border-top: 4px solid #cccccc;
@@ -284,7 +273,7 @@ QComboBox QAbstractItemView::item:hover {
 
 QComboBox QAbstractItemView::item:selected {
     background-color: #094771;
-} */
+}
 
 /* Text areas */
 QTextEdit {
