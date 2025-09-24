@@ -423,7 +423,7 @@ class Ui_EditorPanel(object):
 
         binding_service.add_binding(
             FieldBinding(
-                "metaeditor.model_type_override",
+                "metaeditor.model_type",
                 self.type_select,
                 "currentText",
                 "setCurrentText",

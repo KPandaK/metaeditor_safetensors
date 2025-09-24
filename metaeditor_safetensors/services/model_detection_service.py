@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import yaml
 
@@ -54,11 +54,14 @@ class ModelDetectionService:
             )
             self._config = {}
 
-    def detect_model_type(
-        self,
-        architecture: Optional[str],
-        secondary_fields: Optional[Dict[str, Any]] = None,
-    ) -> ModelType:
+    def detect_model_type(self, fields: Dict[str, Any]) -> ModelType:
+        architecture = fields.get("modelspec.architecture")
+        secondary_fields = {
+            k: v
+            for k, v in fields.items()
+            if k.startswith("modelspec.") and k != "modelspec.architecture"
+        }
+
         if not architecture:
             # Try secondary detection if no architecture
             if secondary_fields:

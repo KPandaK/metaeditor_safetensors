@@ -8,13 +8,11 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 from ..models.metadata import ChangeSource, Metadata
 from ..models.modelspec import ModelSpec
 from ..services.config_service import ConfigService
+from ..services.model_detection_service import ModelDetectionService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
-from ..services.utility import (
-    data_uri_to_pixmap,
-    filepath_to_data_uri,
-)
+from ..services.utility import ModelType, data_uri_to_pixmap, filepath_to_data_uri
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
@@ -113,6 +111,9 @@ class MainController(QObject):
             metadata = self._safetensor_service.read_metadata(filepath)
             self._model.load_data(metadata)
 
+            # Auto-detect model type
+            self._initialize_model_type()
+
             self.update_view()
             self._view.set_status_message(f"Loaded file: {filepath}", 5000)
 
@@ -124,6 +125,27 @@ class MainController(QObject):
             self._current_file = None
             self._model.load_data({})
             self.update_view()
+
+    def _initialize_model_type(self):
+        # Check if model type is already set
+        model_type = self._model.get_value("metaeditor.model_type")
+        if model_type:
+            # Model type already exists, don't override user's choice
+            return
+
+        # Use model detection service to make a best guess
+        detection_service = ModelDetectionService()
+
+        # Try to detect based on existing metadata fields
+        detected_type = detection_service.detect_model_type(self._model.get_all_data())
+
+        # Set the model type as a programmatic change (not user change)
+        self._model.set_value(
+            "metaeditor.model_type",
+            detected_type.value,
+            source=ChangeSource.PROGRAMMATIC,
+        )
+        logger.info(f"Auto-detected model type: {detected_type.value}")
 
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
