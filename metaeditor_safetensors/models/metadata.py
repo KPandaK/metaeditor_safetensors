@@ -45,14 +45,6 @@ class Metadata:
         # Notify with field-specific information
         self._notify_observers(field=key, source=source, source_widget=source_widget)
 
-    def remove_key(self, key: str):
-        if key in self._data:
-            del self._data[key]
-            self._notify_observers(field=key, source=ChangeSource.PROGRAMMATIC)
-
-    def has_key(self, key: str) -> bool:
-        return key in self._data
-
     def is_dirty(self) -> bool:
         return self._data != self._original_data
 

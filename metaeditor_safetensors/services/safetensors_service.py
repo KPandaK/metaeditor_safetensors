@@ -50,11 +50,13 @@ class SafetensorsService:
         filepath: str,
         metadata: Dict[str, Any],
         progress_callback: Optional[Callable[[int], None]] = None,
+        source_filepath: Optional[str] = None,
     ) -> str:
         temp_filepath = filepath + ".tmp"
+        source_file = source_filepath or filepath
 
         try:
-            with open(filepath, "rb") as f_in, open(temp_filepath, "wb") as f_out:
+            with open(source_file, "rb") as f_in, open(temp_filepath, "wb") as f_out:
                 # Read and update the header
                 header_len_bytes = f_in.read(8)
                 if len(header_len_bytes) != 8:
@@ -79,7 +81,7 @@ class SafetensorsService:
                 tensor_data_start = 8 + header_len
                 f_in.seek(tensor_data_start)
 
-                total_size = os.path.getsize(filepath)
+                total_size = os.path.getsize(source_file)
                 bytes_copied = 0
                 chunk_size = 1024 * 1024
 
@@ -126,11 +128,12 @@ class SafetensorsService:
         progress_callback: Optional[Callable[[int], None]] = None,
         success_callback: Optional[Callable[[str], None]] = None,
         error_callback: Optional[Callable[[str], None]] = None,
+        source_filepath: Optional[str] = None,
     ) -> bool:
         if self.is_saving():
             return False
 
-        self._save_worker = SaveWorker(self, filepath, metadata)
+        self._save_worker = SaveWorker(self, filepath, metadata, source_filepath)
         self._worker_thread = QThread()
         self._save_worker.moveToThread(self._worker_thread)
 
