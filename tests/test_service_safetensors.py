@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import tempfile
@@ -68,8 +69,21 @@ class TestSafetensorsService:
         # Read the metadata using our custom service
         read_metadata = service.read_metadata(test_filepath)
 
-        # Assert that the metadata is identical
-        assert read_metadata == dummy_metadata, (
+        # Our service automatically adds hash computation
+        # Remove the hash field for comparison with original metadata
+        expected_metadata = dummy_metadata.copy()
+        read_metadata_without_hash = {
+            k: v for k, v in read_metadata.items() if k != "modelspec.hash_sha256"
+        }
+
+        # Verify hash was added and is in correct format
+        assert "modelspec.hash_sha256" in read_metadata
+        hash_value = read_metadata["modelspec.hash_sha256"]
+        assert hash_value.startswith("0x")
+        assert len(hash_value) == 66  # 0x + 64 hex chars
+
+        # Assert that the rest of the metadata is identical
+        assert read_metadata_without_hash == expected_metadata, (
             "READ FAILED: The metadata read does not match the safetensors file format."
         )
 
@@ -142,7 +156,7 @@ class TestSafetensorsService:
 
         with pytest.raises(ValueError) as exc_info:
             service.read_metadata(tiny_file)
-        assert "too small" in str(exc_info.value)
+        assert "Invalid safetensors file" in str(exc_info.value)
 
     def test_read_metadata_invalid_header_length(self, service, test_dir):
         """Test when header length field doesn't equal 8 bytes."""
@@ -153,7 +167,7 @@ class TestSafetensorsService:
 
         with pytest.raises(ValueError) as exc_info:
             service.read_metadata(invalid_header_file)
-        assert "too small" in str(exc_info.value)
+        assert "Invalid safetensors file" in str(exc_info.value)
 
     def test_write_metadata_invalid_header_length(self, service, test_dir):
         """Test write_metadata when header length field doesn't equal 8 bytes during write operation."""
@@ -261,9 +275,17 @@ class TestSafetensorsService:
         # Create file without metadata using safetensors directly
         save_file(dummy_tensors, test_filepath)  # No metadata parameter
 
-        # Should return empty dict when no __metadata__ key exists
+        # Should return only hash when no __metadata__ key exists
         metadata = service.read_metadata(test_filepath)
-        assert metadata == {}
+
+        # Should have exactly one key: the computed hash
+        assert len(metadata) == 1
+        assert "modelspec.hash_sha256" in metadata
+
+        # Verify hash format
+        hash_value = metadata["modelspec.hash_sha256"]
+        assert hash_value.startswith("0x")
+        assert len(hash_value) == 66  # 0x + 64 hex chars
 
     def test_shutdown_no_worker(self, service):
         """Test shutdown when no worker exists."""
@@ -335,7 +357,15 @@ class TestSafetensorsServiceAsync:
 
         # Verify metadata was actually written
         updated_metadata = service.read_metadata(test_filepath)
-        assert updated_metadata == new_metadata
+
+        # Remove hash for comparison since our service adds it automatically
+        updated_metadata_without_hash = {
+            k: v for k, v in updated_metadata.items() if k != "modelspec.hash_sha256"
+        }
+        assert updated_metadata_without_hash == new_metadata
+
+        # Verify hash was added
+        assert "modelspec.hash_sha256" in updated_metadata
 
     def test_write_metadata_async_already_running(
         self, service, dummy_tensors, dummy_metadata, test_filepath
@@ -401,4 +431,180 @@ class TestSafetensorsServiceAsync:
 
         # Verify metadata was written even without callbacks
         updated_metadata = service.read_metadata(test_filepath)
-        assert updated_metadata == {"new": "data"}
+
+        # Remove hash for comparison since our service adds it automatically
+        updated_metadata_without_hash = {
+            k: v for k, v in updated_metadata.items() if k != "modelspec.hash_sha256"
+        }
+        assert updated_metadata_without_hash == {"new": "data"}
+
+        # Verify hash was added
+        assert "modelspec.hash_sha256" in updated_metadata
+
+
+class TestSafetensorsServiceHashFunctionality:
+    """Test hash computation functionality specifically."""
+
+    def test_hash_computation_consistency(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test that hash computation is consistent across multiple calls."""
+        # Create test file
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Read metadata multiple times
+        metadata1 = service.read_metadata(test_filepath)
+        metadata2 = service.read_metadata(test_filepath)
+        metadata3 = service.read_metadata(test_filepath)
+
+        # Hash should be consistent
+        hash1 = metadata1["modelspec.hash_sha256"]
+        hash2 = metadata2["modelspec.hash_sha256"]
+        hash3 = metadata3["modelspec.hash_sha256"]
+
+        assert hash1 == hash2 == hash3
+        assert hash1.startswith("0x")
+        assert len(hash1) == 66  # 0x + 64 hex chars
+        assert all(c in "0123456789abcdef" for c in hash1[2:])  # All lowercase hex
+
+    def test_hash_format_validation(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test that computed hash follows ModelSpec format."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+        metadata = service.read_metadata(test_filepath)
+
+        hash_value = metadata["modelspec.hash_sha256"]
+
+        # Verify ModelSpec format: 0x prefix + lowercase hex
+        assert hash_value.startswith("0x")
+        assert len(hash_value) == 66  # 0x + 64 hex characters
+
+        # Verify all characters after 0x are lowercase hexadecimal
+        hex_part = hash_value[2:]
+        assert all(c in "0123456789abcdef" for c in hex_part)
+
+        # Verify no uppercase characters
+        assert hex_part == hex_part.lower()
+
+    def test_hash_mismatch_warning(self, caplog, service, dummy_tensors, test_dir):
+        """Test that hash mismatches are logged as warnings."""
+        test_filepath = os.path.join(test_dir, "mismatch_test.safetensors")
+
+        # Create a file with correct metadata but incorrect hash
+        wrong_hash_metadata = {
+            "author": "Test",
+            "modelspec.hash_sha256": "0xwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrongwrong",
+        }
+        save_file(dummy_tensors, test_filepath, metadata=wrong_hash_metadata)
+
+        # Read the file - should log a warning about hash mismatch
+        with caplog.at_level(logging.WARNING):
+            metadata = service.read_metadata(test_filepath)
+
+        # Should have logged a hash mismatch warning
+        assert any("Hash mismatch" in record.message for record in caplog.records)
+
+        # Should still return the correct computed hash
+        assert "modelspec.hash_sha256" in metadata
+        assert (
+            metadata["modelspec.hash_sha256"]
+            != wrong_hash_metadata["modelspec.hash_sha256"]
+        )
+        assert metadata["modelspec.hash_sha256"].startswith("0x")
+
+    def test_hash_computation_with_different_tensor_data(
+        self, service, dummy_metadata, test_dir
+    ):
+        """Test that different tensor data produces different hashes."""
+        test_filepath1 = os.path.join(test_dir, "tensors1.safetensors")
+        test_filepath2 = os.path.join(test_dir, "tensors2.safetensors")
+
+        # Create two files with different tensor data
+        tensors1 = {"weight": np.array([1, 2, 3])}
+        tensors2 = {"weight": np.array([4, 5, 6])}
+
+        save_file(tensors1, test_filepath1, metadata=dummy_metadata)
+        save_file(tensors2, test_filepath2, metadata=dummy_metadata)
+
+        # Read metadata from both files
+        metadata1 = service.read_metadata(test_filepath1)
+        metadata2 = service.read_metadata(test_filepath2)
+
+        # Hashes should be different for different tensor data
+        hash1 = metadata1["modelspec.hash_sha256"]
+        hash2 = metadata2["modelspec.hash_sha256"]
+
+        assert hash1 != hash2
+        assert hash1.startswith("0x")
+        assert hash2.startswith("0x")
+
+    def test_hash_computation_error_handling(
+        self, caplog, mocker, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test error handling during hash computation."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Mock hashlib to raise an error
+        mocker.patch(
+            "hashlib.sha256", side_effect=RuntimeError("Hash computation failed")
+        )
+
+        # Should still return metadata without crashing, but log a warning
+        with caplog.at_level(logging.WARNING):
+            metadata = service.read_metadata(test_filepath)
+
+        # Should have logged a warning about hash computation failure
+        assert any(
+            "Could not compute hash for file" in record.message
+            for record in caplog.records
+        )
+
+        # Should still return the other metadata
+        assert "author" in metadata  # Original metadata should still be present
+
+        # Hash field should not be present due to computation error
+        assert "modelspec.hash_sha256" not in metadata
+
+    def test_hash_preserved_during_write(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test that hash is properly updated when metadata is written."""
+        # Create initial file
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Read to get initial hash
+        initial_metadata = service.read_metadata(test_filepath)
+        initial_hash = initial_metadata["modelspec.hash_sha256"]
+
+        # Write new metadata (tensor data unchanged)
+        new_metadata = {"author": "New Author", "version": "2.0"}
+        service.write_metadata(test_filepath, new_metadata)
+
+        # Read again - hash should be the same since tensor data didn't change
+        updated_metadata = service.read_metadata(test_filepath)
+        updated_hash = updated_metadata["modelspec.hash_sha256"]
+
+        # Hash should be identical (same tensor data)
+        assert updated_hash == initial_hash
+
+        # But other metadata should be updated
+        assert updated_metadata["author"] == "New Author"
+        assert updated_metadata["version"] == "2.0"
+
+    def test_direct_hash_calculation_method(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Test the _calculate_hash method directly."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        # Call the private method directly
+        computed_hash = service._calculate_hash(test_filepath)
+
+        # Verify format
+        assert computed_hash.startswith("0x")
+        assert len(computed_hash) == 66
+
+        # Should match what read_metadata returns
+        metadata = service.read_metadata(test_filepath)
+        assert metadata["modelspec.hash_sha256"] == computed_hash

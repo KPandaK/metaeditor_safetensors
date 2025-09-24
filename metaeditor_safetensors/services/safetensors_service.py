@@ -1,4 +1,6 @@
+import hashlib
 import json
+import logging
 import os
 import struct
 from typing import Any, Callable, Dict, Optional
@@ -6,6 +8,8 @@ from typing import Any, Callable, Dict, Optional
 from PySide6.QtCore import QThread
 
 from .save_worker import SaveWorker
+
+logger = logging.getLogger(__name__)
 
 
 class SafetensorsService:
@@ -19,9 +23,7 @@ class SafetensorsService:
                 # Read the 8-byte header length
                 header_len_bytes = f.read(8)
                 if len(header_len_bytes) != 8:
-                    raise ValueError(
-                        "File is too small to be a valid safetensors file."
-                    )
+                    raise ValueError("Invalid safetensors file.")
 
                 header_len = struct.unpack("<Q", header_len_bytes)[0]
 
@@ -34,7 +36,24 @@ class SafetensorsService:
 
                 # Extract and return the metadata dictionary
                 metadata = header_json.get("__metadata__", {})
-                return dict(metadata)
+
+            # Compute and add the file hash to the metadata
+            try:
+                file_hash = self._calculate_hash(filepath)
+                # Compare with existing hash if present
+                if "modelspec.hash_sha256" in metadata:
+                    existing_hash = metadata["modelspec.hash_sha256"]
+                    if existing_hash != file_hash:
+                        logger.warning(
+                            "Hash mismatch: existing %s vs computed %s",
+                            existing_hash,
+                            file_hash,
+                        )
+                metadata["modelspec.hash_sha256"] = file_hash
+            except Exception as hash_error:
+                logger.warning("Could not compute hash for file: %s", hash_error)
+
+            return dict(metadata)
 
         except FileNotFoundError:
             raise
@@ -120,6 +139,30 @@ class SafetensorsService:
                     os.remove(temp_filepath)
                 except OSError:
                     pass
+
+    def _calculate_hash(self, filepath: str) -> str:
+        hasher = hashlib.sha256()
+
+        with open(filepath, "rb") as f:
+            # Read the header size
+            header_len_bytes = f.read(8)
+            if len(header_len_bytes) != 8:
+                raise ValueError("Invalid safetensors file.")
+
+            header_len = struct.unpack("<Q", header_len_bytes)[0]
+
+            # Skip the header
+            f.seek(8 + header_len)
+
+            # 4MB chunks
+            CHUNK_SIZE = 4 * 1024 * 1024
+
+            # Read the tensor data and hash it
+            for chunk in iter(lambda: f.read(CHUNK_SIZE), b""):
+                hasher.update(chunk)
+
+            # Return hash in ModelSpec format (0x prefix + lowercase hex)
+            return f"0x{hasher.hexdigest().lower()}"
 
     def write_metadata_async(
         self,
