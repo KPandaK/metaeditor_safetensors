@@ -1,10 +1,17 @@
 import base64
+from enum import Enum
 from importlib import resources
 from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QBuffer, QIODevice
 from PySide6.QtGui import QImageWriter, QPixmap
+
+
+class ModelType(Enum):
+    UNKNOWN = "Unknown"
+    IMAGE_GENERATION = "Image Generation"
+    TEXT_PREDICTION = "Text Prediction"
 
 
 def get_project_root(start_path: Optional[Path] = None) -> Path:

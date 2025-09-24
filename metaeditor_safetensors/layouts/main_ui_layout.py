@@ -18,9 +18,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from metaeditor_safetensors.widgets.collapsible_section import CollapsibleSection
-from metaeditor_safetensors.widgets.image_widget import ImageWidget
-
 from ..services.utility import data_uri_to_pixmap, pixmap_to_data_uri
 from ..services.widget_binding_service import (
     BindingType,
@@ -33,6 +30,8 @@ from ..services.widget_binding_service import (
     string_to_tags,
     tags_to_string,
 )
+from ..widgets.collapsible_section import CollapsibleSection
+from ..widgets.image_widget import ImageWidget
 
 
 def create_size_policy_for_widget(

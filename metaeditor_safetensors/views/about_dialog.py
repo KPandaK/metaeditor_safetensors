@@ -5,11 +5,10 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QDialog
 
-from metaeditor_safetensors.models.theme import ThemeType
-from metaeditor_safetensors.widgets.clickable_image import ThemeMode
-
 from ..layouts.about_ui_layout import Ui_AboutDialog
+from ..models.theme import ThemeType
 from ..services.theme_service import ThemeService
+from ..widgets.clickable_image import ThemeMode
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import functools
 import logging
 
-from metaeditor_safetensors.services.widget_binding_service import WidgetBindingService
+from ..services.widget_binding_service import WidgetBindingService
 
 logger = logging.getLogger(__name__)
 

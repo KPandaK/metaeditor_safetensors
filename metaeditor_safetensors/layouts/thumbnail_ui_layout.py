@@ -1,7 +1,7 @@
 from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QHBoxLayout
 
-from metaeditor_safetensors.widgets.image_widget import ImageWidget
+from ..widgets.image_widget import ImageWidget
 
 
 class Ui_ThumbnailDialog(object):

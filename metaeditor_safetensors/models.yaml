@@ -1,0 +1,147 @@
+# Model Detection Patterns Configuration
+# This file defines patterns used to automatically detect model types
+# based on the architecture field in ModelSpec metadata.
+
+# Version of this configuration format
+version: "1.0"
+
+# Model type detection patterns
+model_types:
+  image_generation:
+    patterns:
+      # Stable Diffusion family
+      - "stable-diffusion"
+      - "sd-v1"
+      - "sd-v2"
+      - "sd-xl"
+      - "sdxl"
+      - "stable-video-diffusion"
+      - "svd"
+      - "stable-cascade"
+      - "sc"
+      
+      # Other diffusion models
+      - "diffusion"
+      - "dalle"
+      - "midjourney"
+      - "firefly"
+      - "kandinsky"
+      - "wuerstchen"
+      - "deepfloyd"
+      
+      # ControlNet and adapters
+      - "controlnet"
+      - "lora"
+      - "textual-inversion"
+      - "dreambooth"
+      
+      # VAE and upscalers
+      - "vae"
+      - "esrgan"
+      - "real-esrgan"
+      - "swinir"
+      
+      # Video models
+      - "video-diffusion"
+      - "animatediff"
+      - "zeroscope"
+
+  text_prediction:
+    patterns:
+      # GPT families
+      - "gpt"
+      - "gpt-2"
+      - "gpt-3"
+      - "gpt-4"
+      - "gpt-neo"
+      - "gpt-neox"
+      - "gpt-j"
+      
+      # LLaMA family
+      - "llama"
+      - "llama-2"
+      - "code-llama"
+      - "vicuna"
+      - "alpaca"
+      
+      # BERT family
+      - "bert"
+      - "roberta"
+      - "deberta"
+      - "electra"
+      - "distilbert"
+      
+      # T5 family
+      - "t5"
+      - "ul2"
+      - "flan-t5"
+      - "flan-ul2"
+      
+      # Chat/instruction models
+      - "chatglm"
+      - "baichuan"
+      - "qwen"
+      - "yi"
+      - "mistral"
+      - "mixtral"
+      - "phi"
+      - "gemma"
+      - "olmo"
+      - "mamba"
+      
+      # Code models
+      - "codegen"
+      - "starcoder"
+      - "santacoder"
+      - "incoder"
+      - "codet5"
+      - "code-t5"
+      - "unixcoder"
+      - "graphcodebert"
+      
+      # Embedding models
+      - "sentence-transformer"
+      - "e5"
+      - "bge"
+      - "gte"
+      - "instructor"
+      
+      # Other transformers
+      - "transformer"
+      - "encoder"
+      - "decoder"
+      - "seq2seq"
+      - "language-model"
+      - "lm"
+      - "causal-lm"
+      - "masked-lm"
+
+# Secondary detection hints based on other fields
+# These are used when architecture doesn't match any pattern
+secondary_hints:
+  image_generation:
+    # Fields that strongly suggest image generation
+    - "resolution"
+    - "trigger_phrase"
+    - "prediction_type"
+    - "timestep_range"
+    - "unet_dtype"
+    - "vae_dtype"
+    - "preprocessor"
+    - "is_negative_embedding"
+    
+  text_prediction:
+    # Fields that strongly suggest text prediction
+    - "format_type"
+    - "format_template"
+    - "language"
+    - "data_format"
+
+# Configuration for pattern matching
+matching:
+  # Whether to use case-insensitive matching
+  case_insensitive: true
+  
+  # Whether to use substring matching (true) or exact matching (false)
+  substring_match: true
+

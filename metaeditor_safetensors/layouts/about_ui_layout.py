@@ -21,8 +21,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from metaeditor_safetensors.widgets.clickable_image import ClickableImage
-from metaeditor_safetensors.widgets.svg_widget import SvgWidget
+from ..widgets.clickable_image import ClickableImage
+from ..widgets.svg_widget import SvgWidget
 
 
 def create_size_policy_for_widget(

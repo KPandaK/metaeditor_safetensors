@@ -9,7 +9,12 @@ class SaveWorker(QObject):
     error = Signal(str)
 
     def __init__(
-        self, service: Any, filepath: str, metadata: Dict[str, Any], source_filepath: Optional[str] = None, parent=None
+        self,
+        service: Any,
+        filepath: str,
+        metadata: Dict[str, Any],
+        source_filepath: Optional[str] = None,
+        parent=None,
     ):
         super().__init__(parent)
         self._service = service
@@ -24,7 +29,10 @@ class SaveWorker(QObject):
                 self.progress.emit(progress_value)
 
             result = self._service.write_metadata(
-                self._filepath, self._metadata, progress_callback=progress_callback, source_filepath=self._source_filepath
+                self._filepath,
+                self._metadata,
+                progress_callback=progress_callback,
+                source_filepath=self._source_filepath,
             )
             self.finished.emit(result)
         except Exception as e:

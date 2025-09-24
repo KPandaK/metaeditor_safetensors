@@ -8,10 +8,13 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 from ..models.metadata import ChangeSource, Metadata
 from ..models.modelspec import ModelSpec
 from ..services.config_service import ConfigService
-from ..services.image_service import ImageService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
+from ..services.utility import (
+    data_uri_to_pixmap,
+    filepath_to_data_uri,
+)
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
@@ -31,7 +34,6 @@ class MainController(QObject):
         view: MainView,
         config_service: ConfigService,
         safetensors_service: SafetensorsService,
-        image_service: ImageService,
         theme_service: ThemeService,
         modelspec_service: ModelSpecService,
     ):
@@ -40,7 +42,6 @@ class MainController(QObject):
         self._view = view
         self._config_service = config_service
         self._safetensor_service = safetensors_service
-        self._image_service = image_service
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
         self._current_file = None
@@ -65,6 +66,7 @@ class MainController(QObject):
         self._view.open_file_requested.connect(self.on_open_file_requested)
         self._view.file_dropped.connect(self.on_file_dropped)
         self._view.save_requested.connect(self.on_save_requested)
+        self._view.save_as_requested.connect(self.on_save_as_requested)
         self._view.settings_requested.connect(self.on_settings_requested)
         self._view.about_requested.connect(self.on_about_requested)
         self._view.exit_requested.connect(self.on_exit_requested)
@@ -226,7 +228,7 @@ class MainController(QObject):
             try:
                 self._model.set_value(
                     "modelspec.thumbnail",
-                    self._image_service.filepath_to_data_uri(filepath),
+                    filepath_to_data_uri(filepath),
                     source=ChangeSource.PROGRAMMATIC,
                 )
 
@@ -246,11 +248,10 @@ class MainController(QObject):
     def on_view_thumbnail_requested(self):
         data_uri = self._model.get_value("modelspec.thumbnail")
         if data_uri:
-            pixmap = self._image_service.data_uri_to_pixmap(data_uri)
+            pixmap = data_uri_to_pixmap(data_uri)
             if pixmap and not pixmap.isNull():
                 dialog = ThumbnailDialog(pixmap, self._view)
 
-                # TODO: This feels like it should be part of a window positioning service
                 # Center the dialog over the main window
                 main_window_geometry = self._view.geometry()
                 dialog_geometry = dialog.geometry()
@@ -314,6 +315,69 @@ class MainController(QObject):
             self._view.set_status_message("Save operation already in progress.")
             self._view.set_all_fields_enabled(True)
             self._view.hide_progress_bar()
+
+    @Slot()
+    def on_save_as_requested(self):
+        if not self._model.get_all_data():
+            self._view.set_status_message("Please open a file first.")
+            return
+
+        # Get the directory of current file (if any) for initial dialog location
+        initial_dir = ""
+        if self._current_file:
+            initial_dir = os.path.dirname(self._current_file)
+
+        # Show save file dialog
+        filepath, _ = QFileDialog.getSaveFileName(
+            self._view,
+            "Save As",
+            initial_dir,
+            "Safetensors Files (*.safetensors);;All Files (*)",
+        )
+
+        if not filepath:
+            return  # User cancelled dialog
+
+        # Ensure file has .safetensors extension
+        if not filepath.lower().endswith(".safetensors"):
+            filepath += ".safetensors"
+
+        # Prevent multiple save operations
+        if self._safetensor_service.is_saving():
+            self._view.set_status_message("Save operation already in progress.")
+            return
+
+        # Store the original file path as source for Save As operation
+        source_file = self._current_file
+
+        # Update current file path to new location
+        self._current_file = filepath
+
+        # Disable UI elements during save
+        self._view.set_all_fields_enabled(False)
+        self._view.show_progress_bar()
+        self._view.set_status_message(f"Saving to {filepath}...")
+
+        # Start async save operation
+        success = self._safetensor_service.write_metadata_async(
+            filepath=filepath,
+            metadata=self._model.get_all_data(),
+            progress_callback=self._on_save_progress,
+            success_callback=self._on_save_as_success,
+            error_callback=self._on_save_error,
+            source_filepath=source_file,
+        )
+
+        if not success:
+            self._view.set_status_message("Save operation already in progress.")
+            self._view.set_all_fields_enabled(True)
+            self._view.hide_progress_bar()
+
+    def _on_save_as_success(self, filepath: str):
+        self._on_save_success(filepath)
+
+        # Add new file to recent files
+        self._config_service.add_recent_file(filepath)
 
     def _on_save_progress(self, progress: int):
         self._view.set_progress_value(progress)

@@ -37,17 +37,22 @@ class TestSaveWorker:
 
     def test_save_worker_initialization(self, mock_service, test_data):
         """Test SaveWorker initialization with proper parameters."""
-        worker = SaveWorker(mock_service, test_data["filepath"], test_data["metadata"])
+        worker = SaveWorker(
+            mock_service, test_data["filepath"], test_data["metadata"], None
+        )
 
         # Verify initialization
         assert isinstance(worker, QObject)
         assert worker._service == mock_service
         assert worker._filepath == test_data["filepath"]
         assert worker._metadata == test_data["metadata"]
+        assert worker._source_filepath is None
 
     def test_save_worker_signals_exist(self, mock_service, test_data):
         """Test that SaveWorker has the required signals."""
-        worker = SaveWorker(mock_service, test_data["filepath"], test_data["metadata"])
+        worker = SaveWorker(
+            mock_service, test_data["filepath"], test_data["metadata"], None
+        )
 
         # Check that signals exist and are of correct type
         assert hasattr(worker, "progress")
@@ -62,7 +67,9 @@ class TestSaveWorker:
         # Mock successful write_metadata operation
         mock_service.write_metadata.return_value = test_data["filepath"]
 
-        worker = SaveWorker(mock_service, test_data["filepath"], test_data["metadata"])
+        worker = SaveWorker(
+            mock_service, test_data["filepath"], test_data["metadata"], None
+        )
 
         # Mock signal emissions to track calls
         mock_finished = mocker.patch.object(worker, "finished")
@@ -89,7 +96,9 @@ class TestSaveWorker:
         test_exception = Exception("Save failed")
         mock_service.write_metadata.side_effect = test_exception
 
-        worker = SaveWorker(mock_service, test_data["filepath"], test_data["metadata"])
+        worker = SaveWorker(
+            mock_service, test_data["filepath"], test_data["metadata"], None
+        )
 
         # Mock signal emissions to track calls
         mock_finished = mocker.patch.object(worker, "finished")
@@ -114,14 +123,18 @@ class TestSaveWorker:
         # Mock successful save operation
         mock_service.write_metadata.return_value = test_data["filepath"]
 
-        worker = SaveWorker(mock_service, test_data["filepath"], test_data["metadata"])
+        worker = SaveWorker(
+            mock_service, test_data["filepath"], test_data["metadata"], None
+        )
 
         # Mock signal emissions to track calls
         mock_progress = mocker.patch.object(worker, "progress")
         mock_finished = mocker.patch.object(worker, "finished")
 
         # Set up the service to call the progress callback
-        def mock_write_metadata(filepath, metadata, progress_callback=None):
+        def mock_write_metadata(
+            filepath, metadata, progress_callback=None, source_filepath=None
+        ):
             if progress_callback:
                 progress_callback(25)
                 progress_callback(50)
