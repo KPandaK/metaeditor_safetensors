@@ -8,6 +8,7 @@ from PySide6.QtGui import (
     QIcon,
     QPixmap,
 )
+from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -22,7 +23,6 @@ from PySide6.QtWidgets import (
 )
 
 from ..widgets.clickable_image import ClickableImage
-from ..widgets.svg_widget import SvgWidget
 
 
 def create_size_policy_for_widget(
@@ -79,17 +79,14 @@ class Ui_AboutDialog(object):
         horizontal_layout = QHBoxLayout(about_tab)
         horizontal_layout.setSpacing(0)
 
-        # Setup logo
-        logo = SvgWidget(about_tab)
+        logo = QSvgWidget(about_tab)
         logo.setObjectName("aboutLogo")
+        logo.load(":/assets/logo.svg")
         create_size_policy_for_widget(
-            logo,
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Preferred,
+            logo, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
         )
         logo.setMinimumSize(QSize(250, 250))
         logo.setMaximumSize(QSize(250, 250))
-        logo.loadSvg(":/assets/logo.svg")
         horizontal_layout.addWidget(logo)
 
         vertical_layout = QVBoxLayout()
@@ -208,14 +205,14 @@ class Ui_AboutDialog(object):
         horizontal_layout.setSpacing(0)
 
         # Setup logo
-        logo = SvgWidget(credits_tab)
+        logo = QSvgWidget(credits_tab)
         logo.setObjectName("creditsLogo")
+        logo.load(":/assets/logo.svg")
         create_size_policy_for_widget(
             logo, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
         )
         logo.setMinimumSize(QSize(250, 250))
         logo.setMaximumSize(QSize(250, 250))
-        logo.loadSvg(":/assets/logo.svg")
         horizontal_layout.addWidget(logo)
 
         vertical_layout = QVBoxLayout()
@@ -252,14 +249,14 @@ class Ui_AboutDialog(object):
         horizontal_layout.setSpacing(0)
 
         # Setup logo
-        logo = SvgWidget(license_tab)
+        logo = QSvgWidget(license_tab)
         logo.setObjectName("licenseLogo")
+        logo.load(":/assets/logo.svg")
         create_size_policy_for_widget(
             logo, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
         )
         logo.setMinimumSize(QSize(250, 250))
         logo.setMaximumSize(QSize(250, 250))
-        logo.loadSvg(":/assets/logo.svg")
         horizontal_layout.addWidget(logo)
 
         vertical_layout = QVBoxLayout()

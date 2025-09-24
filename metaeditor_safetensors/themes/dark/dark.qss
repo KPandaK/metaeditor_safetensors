@@ -834,7 +834,7 @@ Miscellaneous Elements
 */
 
 QStatusBar {
-    min-height: 22px;
+    min-height: 24px;
     background-color: #007acc;
     color: #ffffff;
     border: none;
@@ -1096,4 +1096,24 @@ CollapsibleSection QToolButton:focus,
 CollapsibleSection QToolButton:checked {
     background-color: transparent;
     color: #cccccc;
+}
+
+/** Status widget styling */
+StatusWidget QLabel {
+    font-size: 12px;
+    font-weight: 400;
+    color: #ffffff;
+}
+
+StatusWidget:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+StatusWidget QSvgIcon {
+    padding: 0px;
+    margin: 0px 0px 0px 0px;
+    background-color: transparent;
+    border: none;
+    qproperty-iconColor: white;    
 }

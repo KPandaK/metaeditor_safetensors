@@ -1,10 +1,6 @@
 import functools
 import logging
 
-from ..services.widget_binding_service import WidgetBindingService
-
-logger = logging.getLogger(__name__)
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import (
     QAction,
@@ -17,7 +13,10 @@ from PySide6.QtWidgets import QMainWindow, QWidget
 
 from ..layouts.main_ui_layout import Ui_EditorPanel
 from ..models.modelspec import ModelType
-from ..widgets.modelspec_status_widget import ModelSpecStatusWidget
+from ..services.widget_binding_service import WidgetBindingService
+from ..widgets.status_widget import StatusWidget
+
+logger = logging.getLogger(__name__)
 
 
 class MainView(QMainWindow):
@@ -36,9 +35,6 @@ class MainView(QMainWindow):
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
     view_thumbnail_requested = Signal()
-
-    # --- ModelSpec Status Widget Signals ---
-    modelspec_status_clicked = Signal()
 
     def __init__(self, config_service):
         super().__init__()
@@ -62,13 +58,8 @@ class MainView(QMainWindow):
         self.setCentralWidget(self.editor_panel)
 
         self._setup_type_combobox()
+        self._setup_status_bar()
         self._connect_signals()
-
-        # TODO: Remove me - this should be added through Qt Designer
-        # Create and add ModelSpec status widget to status bar
-        self._modelspec_status_widget = ModelSpecStatusWidget()
-        self._modelspec_status_widget.clicked.connect(self.modelspec_status_clicked)
-        self.statusBar().addPermanentWidget(self._modelspec_status_widget)
 
     def _setup_window_properties(self):
         # Set window icon from Qt resources
@@ -82,6 +73,11 @@ class MainView(QMainWindow):
 
         # Enable drag and drop
         self.setAcceptDrops(True)
+
+    def _setup_status_bar(self):
+        self.status_widget = StatusWidget()
+        self.statusBar().setSizeGripEnabled(False)
+        self.statusBar().addPermanentWidget(self.status_widget)
 
     def _create_menu_bar(self):
         """Creates the main menu bar and its actions."""
@@ -229,12 +225,6 @@ class MainView(QMainWindow):
         self.ui.set_thumbnail_btn.setEnabled(enabled)
         self.ui.view_thumbnail_btn.setEnabled(enabled)
         self.ui.clear_thumbnail_btn.setEnabled(enabled)
-
-    def update_modelspec_status(self, compliance_result):
-        self._modelspec_status_widget.set_compliance_result(compliance_result)
-
-    def clear_modelspec_status(self):
-        self._modelspec_status_widget.clear_compliance()
 
     def _is_valid_safetensors_file(self, urls):
         for url in urls:

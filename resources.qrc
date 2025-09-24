@@ -5,5 +5,9 @@
     <file>assets/support_me.png</file>
     <file>assets/logo.svg</file>
     <file>assets/icon.ico</file>
+    <file>assets/circle-check.svg</file>
+    <file>assets/circle-empty.svg</file>
+    <file>assets/circle-error.svg</file>
+    <file>assets/triangle-warning.svg</file>
   </qresource>
 </RCC>

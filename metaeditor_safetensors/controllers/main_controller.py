@@ -53,6 +53,11 @@ class MainController(QObject):
         # Register for metadata changes to update UI
         self._model.add_observer(self._on_metadata_changed)
 
+        # Register status widget as ModelSpec observer for automatic updates
+        self._modelspec_service.add_observer(
+            self._view.status_widget.on_compliance_changed
+        )
+
         # Connect the view's signals to the controller's slots.
         self._connect_signals()
 
@@ -77,9 +82,6 @@ class MainController(QObject):
         self._view.set_thumbnail_requested.connect(self.on_set_thumbnail_requested)
         self._view.clear_thumbnail_requested.connect(self.on_clear_thumbnail_requested)
         self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
-
-        # Connect ModelSpec status widget
-        self._view.modelspec_status_clicked.connect(self.on_modelspec_status_clicked)
 
     def run(self):
         self._view.show()
@@ -220,9 +222,6 @@ class MainController(QObject):
             elif source == ChangeSource.PROGRAMMATIC:
                 # Programmatic change - update all widgets for this field (no exclusion needed)
                 binding_service.update_widget_from_metadata(field)
-
-        # Update ModelSpec status whenever metadata changes
-        self._update_modelspec_status()
 
     def _update_window_title(self):
         is_dirty = self._model.is_dirty()
@@ -447,39 +446,3 @@ class MainController(QObject):
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
-
-        # Update ModelSpec compliance status
-        self._update_modelspec_status()
-
-    def _update_modelspec_status(self):
-        """Update the ModelSpec compliance status in the view."""
-        if self._current_file is None:
-            self._view.clear_modelspec_status()
-        else:
-            compliance_result = self._modelspec_service.get_compliance_result()
-            self._view.update_modelspec_status(compliance_result)
-
-    @Slot()
-    def on_modelspec_status_clicked(self):
-        """Handle clicks on the ModelSpec status widget."""
-        if not self._current_file:
-            self._view.set_status_message(
-                "No file loaded. Open a safetensors file to check ModelSpec compliance.",
-                5000,
-            )
-            return
-
-        # For now, just show a status message
-        # In the future, this could open a detailed compliance dialog
-        compliance_result = self._modelspec_service.get_compliance_result()
-
-        if compliance_result.missing_must_fields:
-            missing_count = len(compliance_result.missing_must_fields)
-            self._view.set_status_message(
-                f"ModelSpec: Missing {missing_count} required field(s). See tooltip for details.",
-                7000,
-            )
-        else:
-            self._view.set_status_message(
-                "ModelSpec: All required fields present! Model is compliant.", 5000
-            )
