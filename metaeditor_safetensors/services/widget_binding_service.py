@@ -7,8 +7,6 @@ from PySide6.QtCore import QDateTime, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
 
-from metaeditor_safetensors.services.image_service import ImageService
-
 from ..models.metadata import ChangeSource
 from ..models.modelspec import ModelType
 
@@ -239,12 +237,3 @@ def tags_to_string(tags):
     elif isinstance(tags, str):
         return tags
     return ""
-
-
-def pixmap_to_data_uri(pixmap: Any) -> str:
-    return ImageService.pixmap_to_data_uri(pixmap)
-
-
-def data_uri_to_pixmap(data_uri: Any) -> "QPixmap":
-    pixmap = ImageService.data_uri_to_pixmap(data_uri)
-    return pixmap if isinstance(pixmap, QPixmap) and not pixmap.isNull() else QPixmap()

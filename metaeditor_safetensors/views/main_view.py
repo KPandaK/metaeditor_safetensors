@@ -24,6 +24,7 @@ class MainView(QMainWindow):
     # --- Action Signals ---
     open_file_requested = Signal()
     save_requested = Signal()
+    save_as_requested = Signal()
     settings_requested = Signal()
     about_requested = Signal()
     exit_requested = Signal()
@@ -102,6 +103,11 @@ class MainView(QMainWindow):
         save_action.setShortcut("Ctrl+S")
         save_action.triggered.connect(self.save_requested)
         file_menu.addAction(save_action)
+
+        save_as_action = QAction("Save &As...", self)
+        save_as_action.setShortcut("Ctrl+Shift+S")
+        save_as_action.triggered.connect(self.save_as_requested)
+        file_menu.addAction(save_as_action)
 
         file_menu.addSeparator()
 
@@ -194,7 +200,6 @@ class MainView(QMainWindow):
         super().setWindowTitle(title)
 
     def set_status_message(self, message: str, timeout: int = 0):
-        """Displays a message in the status bar."""
         self.statusBar().showMessage(message, timeout)
 
     def show_progress_bar(self):

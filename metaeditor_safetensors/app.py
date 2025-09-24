@@ -8,7 +8,6 @@ from PySide6.QtWidgets import QApplication
 from .controllers.main_controller import MainController
 from .models.metadata import Metadata
 from .services.config_service import ConfigService
-from .services.image_service import ImageService
 from .services.modelspec_service import ModelSpecService
 from .services.safetensors_service import SafetensorsService
 from .services.theme_service import ThemeService
@@ -37,7 +36,6 @@ def main():
     # Instantiate services.
     config_service = ConfigService()
     safetensors_service = SafetensorsService()
-    image_service = ImageService()
 
     # Instantiate the MVC components.
     model = Metadata()
@@ -60,7 +58,6 @@ def main():
         view,
         config_service,
         safetensors_service,
-        image_service,
         theme_service,
         modelspec_service,
     )

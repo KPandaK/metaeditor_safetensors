@@ -8,7 +8,7 @@ from PySide6.QtCore import QFileSystemWatcher
 
 from ..models.settings import Settings
 from ..models.theme import Theme, ThemeType
-from .file_service import get_package_root
+from .utility import get_package_root
 
 logger = logging.getLogger(__name__)
 

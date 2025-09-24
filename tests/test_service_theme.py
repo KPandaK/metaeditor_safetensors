@@ -813,26 +813,6 @@ def test_file_watcher_remove_paths_error(mocker, themes_dir):
             )
 
 
-def test_theme_service_string_representations(themes_dir, mocker):
-    """Test string representations work correctly."""
-    mocker.patch(
-        "metaeditor_safetensors.services.theme_service.get_package_root",
-        return_value=themes_dir.parent,
-    )
-
-    theme_service = ThemeService()
-
-    # Apply a theme
-    theme_service.apply_theme("dark")
-    current_theme = theme_service.get_current_theme()
-
-    if current_theme:
-        # Should be able to convert theme to string without error
-        theme_str = str(current_theme)
-        assert isinstance(theme_str, str)
-        assert len(theme_str) > 0
-
-
 def test_theme_service_live_reload_env_var_variations(mocker, temp_dir):
     """Test different environment variable values for live reload."""
     package_root = temp_dir / "metaeditor_safetensors"

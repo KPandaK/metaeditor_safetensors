@@ -21,15 +21,14 @@ from PySide6.QtWidgets import (
 from metaeditor_safetensors.widgets.collapsible_section import CollapsibleSection
 from metaeditor_safetensors.widgets.image_widget import ImageWidget
 
+from ..services.utility import data_uri_to_pixmap, pixmap_to_data_uri
 from ..services.widget_binding_service import (
     BindingType,
     FieldBinding,
     WidgetBindingService,
-    data_uri_to_pixmap,
     datetime_to_iso_string,
     iso_string_to_datetime,
     model_type_to_string,
-    pixmap_to_data_uri,
     string_to_model_type,
     string_to_tags,
     tags_to_string,
