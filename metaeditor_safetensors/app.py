@@ -71,5 +71,6 @@ def main():
     finally:
         # Ensure proper cleanup before exit
         controller.shutdown()
+        theme_service.shutdown()
 
     sys.exit(exit_code)

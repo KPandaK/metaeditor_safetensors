@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
@@ -19,6 +20,10 @@ class ThemeService:
         self._current_theme: Optional[Theme] = None
         self._available_themes: Dict[str, Theme] = {}
         self._themes_root: Optional[Path] = None
+
+        # System theme monitoring
+        self._system_theme_thread: Optional[threading.Thread] = None
+        self._system_theme_callbacks: List[Callable[[str], None]] = []
 
         # Determine the themes directory
         try:
@@ -41,6 +46,9 @@ class ThemeService:
         # Setup file watching if in development mode
         if self._enable_live_reload:
             self._setup_file_watchers()
+
+        # Start system theme monitoring
+        self._start_system_theme_monitoring()
 
     def _initialize_themes(self):
         logger.debug("Searching for themes")
@@ -113,6 +121,27 @@ class ThemeService:
                 logger.debug(
                     f"Now watching {len(watch_files)} files for theme '{self._current_theme.config.name}'"
                 )
+
+    def add_system_theme_changed_callback(self, callback: Callable[[str], None]):
+        """Add a callback to be notified of system theme changes.
+
+        Args:
+            callback: Function to call when system theme changes, receives theme name as string
+        """
+        self._system_theme_callbacks.append(callback)
+
+    def remove_system_theme_changed_callback(self, callback: Callable[[str], None]):
+        """Remove a system theme change callback."""
+        if callback in self._system_theme_callbacks:
+            self._system_theme_callbacks.remove(callback)
+
+    def _notify_system_theme_changed(self, system_theme: str):
+        """Notify all registered callbacks of system theme change."""
+        for callback in self._system_theme_callbacks:
+            try:
+                callback(system_theme)
+            except Exception as e:
+                logger.warning(f"Error calling system theme changed callback: {e}")
 
     def add_theme_changed_observer(self, callback: Callable[[Theme], None]):
         self._theme_changed_observers.append(callback)
@@ -215,3 +244,53 @@ class ThemeService:
         except Exception as e:
             logger.error(f"Error applying theme {theme}: {e}")
             return False
+
+    def _start_system_theme_monitoring(self):
+        """Start monitoring system theme changes."""
+        if self._system_theme_thread is not None:
+            return
+
+        try:
+            logger.debug("Starting system theme monitoring")
+
+            # Start monitoring in a separate daemon thread using darkdetect.listener
+            self._system_theme_thread = threading.Thread(
+                target=darkdetect.listener,
+                args=(self._on_system_theme_changed,),
+                daemon=True,
+            )
+            self._system_theme_thread.start()
+            logger.info("System theme monitoring started")
+        except Exception as e:
+            logger.error(f"Error starting system theme monitoring: {e}")
+            self._system_theme_thread = None
+
+    def _stop_system_theme_monitoring(self):
+        """Stop monitoring system theme changes."""
+        if self._system_theme_thread is None:
+            return
+
+        try:
+            logger.debug("Stopping system theme monitoring")
+            self._system_theme_thread = None
+            # Note: darkdetect.listener doesn't provide a clean way to stop,
+            # so we rely on the daemon thread
+            logger.info("System theme monitoring stopped")
+        except Exception as e:
+            logger.error(f"Error stopping system theme monitoring: {e}")
+
+    def _on_system_theme_changed(self, system_theme: str):
+        """Handle system theme change event."""
+        try:
+            logger.info(f"System theme changed to: {system_theme}")
+            # Notify all registered callbacks
+            self._notify_system_theme_changed(system_theme)
+        except Exception as e:
+            logger.error(f"Error handling system theme change: {e}")
+
+    def shutdown(self):
+        """Cleanup and shutdown the theme service."""
+        try:
+            self._stop_system_theme_monitoring()
+        except Exception as e:
+            logger.error(f"Error during theme service shutdown: {e}")

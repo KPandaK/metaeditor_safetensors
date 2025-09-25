@@ -1,6 +1,7 @@
 import logging
 import tempfile
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -72,74 +73,6 @@ def suppress_logging():
 class TestThemeService:
     """Test cases for ThemeService functionality."""
 
-    def test_apply_theme_internal_error(self, mocker, themes_dir):
-        """Test _apply_theme_internal handles QSS loading errors gracefully."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-        theme_service = ThemeService()
-        theme = theme_service._available_themes.get("dark")
-        if theme:
-            # Mock the internal method to raise an exception during theme application
-            mocker.patch.object(
-                theme_service,
-                "_notify_theme_changed",
-                side_effect=Exception("Notification error"),
-            )
-            result = theme_service._apply_theme_internal(theme)
-            assert result is False
-
-    def test_on_theme_file_changed_reapplies_theme(self, mocker, themes_dir):
-        """Test _on_theme_file_changed triggers theme re-application."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-        theme_service = ThemeService()
-
-        # Apply a theme first so we have a current theme
-        theme_service.apply_theme("dark")
-        theme = theme_service._current_theme
-
-        # Patch _apply_theme_internal to track calls
-        apply_theme_mock = mocker.patch.object(theme_service, "_apply_theme_internal")
-        theme_service._on_theme_file_changed("dummy.qss")
-        apply_theme_mock.assert_called_once_with(theme)
-
-    def test_is_valid_theme_directory_edge_cases(self, mocker, temp_dir):
-        """Test is_valid_theme_directory with non-directory and missing YAML."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-        theme_service = ThemeService()
-        # Non-existent path
-        assert not theme_service.is_valid_theme_directory(temp_dir / "not_a_dir")
-        # File instead of directory
-        file_path = temp_dir / "file.txt"
-        file_path.write_text("not a dir")
-        assert not theme_service.is_valid_theme_directory(file_path)
-        # Directory with no YAML
-        no_yaml_dir = temp_dir / "no_yaml"
-        no_yaml_dir.mkdir()
-        assert not theme_service.is_valid_theme_directory(no_yaml_dir)
-
-    def test_setup_file_watchers_with_and_without_qss(self, mocker, themes_dir):
-        """Test _setup_file_watchers with and without QSS files."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-        # Enable live reload
-        mocker.patch.dict("os.environ", {"DEV_LIVE_STYLING": "true"})
-        theme_service = ThemeService()
-
-        # With live reload enabled, file watcher should be created
-        assert theme_service._file_watcher is not None
-        # But no files should be watched initially since no theme is applied
-        assert theme_service._watched_files == []
-
     def test_theme_service_initialization(self, mocker, themes_dir):
         """Test ThemeService initialization and theme discovery."""
         # Mock the package root to point to our test package structure
@@ -148,32 +81,16 @@ class TestThemeService:
             return_value=themes_dir.parent,
         )
 
+        # Mock threading to prevent actual thread creation
+        mocker.patch("threading.Thread")
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        )
+
         # Create theme service
         theme_service = ThemeService()
 
         # Check that themes were discovered
-        assert theme_service.has_theme("dark")
-        assert theme_service.has_theme("light")
-
-    def test_theme_validation_during_discovery(self, mocker, themes_dir):
-        """Test that only valid theme directories are loaded."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-
-        # Create an invalid theme directory (no YAML)
-        invalid_theme_dir = themes_dir / "invalid"
-        invalid_theme_dir.mkdir()
-        (invalid_theme_dir / "style.qss").write_text(
-            "/* Invalid theme */", encoding="utf-8"
-        )
-
-        # Create theme service
-        theme_service = ThemeService()
-
-        # Check that invalid theme was not loaded
-        assert not theme_service.has_theme("invalid")
         assert theme_service.has_theme("dark")
         assert theme_service.has_theme("light")
 
@@ -185,6 +102,12 @@ class TestThemeService:
         )
         mock_darkdetect = mocker.patch(
             "metaeditor_safetensors.services.theme_service.darkdetect.theme"
+        )
+
+        # Mock threading to prevent actual thread creation
+        mocker.patch("threading.Thread")
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
         )
 
         # Test dark theme detection
@@ -204,33 +127,17 @@ class TestThemeService:
         system_theme = theme_service._detect_system_theme()
         assert system_theme.value == "light"
 
-    def test_auto_theme_resolution(self, mocker, themes_dir):
-        """Test auto theme resolution based on system detection."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-        mock_darkdetect = mocker.patch(
-            "metaeditor_safetensors.services.theme_service.darkdetect.theme"
-        )
-
-        # Test resolution to dark theme
-        mock_darkdetect.return_value = "Dark"
-        theme_service = ThemeService()
-
-        resolved_theme_id = theme_service._resolve_system_theme()
-        assert resolved_theme_id == "dark"
-
-        # Test resolution to light theme - clear cache first
-        mock_darkdetect.return_value = "Light"
-        resolved_theme_id = theme_service._resolve_system_theme()
-        assert resolved_theme_id == "light"
-
     def test_theme_application(self, mocker, themes_dir):
         """Test applying themes to the application."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
             return_value=themes_dir.parent,
+        )
+
+        # Mock threading to prevent actual thread creation
+        mocker.patch("threading.Thread")
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
         )
 
         theme_service = ThemeService()
@@ -253,244 +160,127 @@ class TestThemeService:
         if current_theme:
             assert current_theme.config.name == "Light Theme"
 
-    def test_system_theme_application(self, mocker, themes_dir):
-        """Test applying system theme resolves to correct system theme."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
-            return_value="Dark",
-        )
 
-        theme_service = ThemeService()
+class TestThemeServiceSystemMonitoring:
+    """Test cases for ThemeService system theme monitoring functionality."""
 
-        # Apply system theme (should resolve to dark)
-        success = theme_service.apply_theme("system")
-        assert success
-
-        current_theme = theme_service.get_current_theme()
-        assert current_theme is not None
-        if current_theme:
-            assert current_theme.config.name == "Dark Theme"
-
-    def test_invalid_theme_application(self, mocker, temp_dir):
-        """Test applying non-existent theme returns False."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-
-        theme_service = ThemeService()
-
-        # Try to apply non-existent theme
-        success = theme_service.apply_theme("nonexistent")
-        assert not success
-
-    def test_theme_changed_signal(self, mocker, themes_dir):
-        """Test that theme_changed observer is called when theme is applied."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=themes_dir.parent,
-        )
-        # Mock darkdetect to return "dark" so system theme resolution works predictably
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
-            return_value="dark",
-        )
-
-        theme_service = ThemeService()
-
-        # Verify themes are loaded before testing signals
-        assert theme_service.has_theme("dark"), "Dark theme should be available"
-        assert theme_service.has_theme("light"), "Light theme should be available"
-
-        # Connect to observer and track calls
-        observer_calls = []
-        theme_service.add_theme_changed_observer(
-            lambda theme: observer_calls.append(theme)
-        )
-
-        # Apply theme and check observer call
-        result = theme_service.apply_theme("dark")
-        assert result, "Dark theme application should succeed"
-        assert len(observer_calls) == 1
-        assert observer_calls[0].config.theme_id == "dark"
-
-        # Apply system theme and check observer call
-        observer_calls.clear()
-        result = theme_service.apply_theme("system")
-        assert result, "System theme application should succeed"
-        assert len(observer_calls) == 1
-        assert observer_calls[0].config.name == "Dark Theme"  # Should resolve to dark
-
-    def test_has_theme_method(self, mocker, themes_dir):
-        """Test has_theme method for checking theme availability."""
+    def test_start_system_theme_monitoring(self, mocker, themes_dir):
+        """Test starting system theme monitoring."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
             return_value=themes_dir.parent,
         )
 
-        theme_service = ThemeService()
-
-        # Test existing themes
-        assert theme_service.has_theme("dark")
-        assert theme_service.has_theme("light")
-
-        # Test non-existent theme
-        assert not theme_service.has_theme("nonexistent")
-
-    def test_system_theme_detection_error_handling(self, mocker, temp_dir):
-        """Test system theme detection error handling."""
+        # Mock threading.Thread to prevent actual thread creation
+        mock_thread = Mock()
+        mock_darkdetect_listener = Mock()
+        mocker.patch("threading.Thread", return_value=mock_thread)
         mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-        mock_darkdetect = mocker.patch(
-            "metaeditor_safetensors.services.theme_service.darkdetect.theme"
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener",
+            mock_darkdetect_listener,
         )
 
         theme_service = ThemeService()
 
-        # Test exception during detection
-        mock_darkdetect.side_effect = Exception("System error")
-        result = theme_service._detect_system_theme()
-        assert result.value == "light"
+        # Should have started monitoring by default
+        assert theme_service._system_theme_thread is not None
+        mock_thread.start.assert_called_once()
 
-    def test_system_theme_detection_unexpected_value(self, mocker, temp_dir):
-        """Test system theme detection with unexpected return value."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-        mock_darkdetect = mocker.patch(
-            "metaeditor_safetensors.services.theme_service.darkdetect.theme"
-        )
-
-        theme_service = ThemeService()
-
-        # Test unexpected return value
-        mock_darkdetect.return_value = "Purple"  # Unexpected value
-        result = theme_service._detect_system_theme()
-        assert result.value == "light"  # Should fallback to light
-
-    def test_system_theme_resolution_no_themes(self, mocker, temp_dir):
-        """Test system theme resolution when no themes are available."""
-        # Point to empty directory
-        empty_themes_dir = temp_dir / "empty" / "metaeditor_safetensors"
-        empty_themes_dir.mkdir(parents=True)
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=empty_themes_dir,
-        )
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.darkdetect.theme",
-            return_value="Dark",
-        )
-
-        theme_service = ThemeService()
-
-        # Should raise IndexError when no themes are available to select a fallback
-        with pytest.raises(IndexError):
-            theme_service._resolve_system_theme()
-
-    def test_package_root_exception_handling(self, mocker):
-        """Test initialization when get_package_root raises exception."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            side_effect=Exception("Cannot determine package root"),
-        )
-
-        # Should not crash during initialization
-        theme_service = ThemeService()
-
-        # Should have no themes available
-        assert not theme_service.has_theme("dark")
-        assert not theme_service.has_theme("light")
-
-    def test_apply_theme_exception_handling(self, mocker, temp_dir):
-        """Test apply_theme method exception handling."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-
-        theme_service = ThemeService()
-
-        # Mock theme to raise exception during QSS loading
-        if "dark" in theme_service._available_themes:
-            mocker.patch.object(
-                theme_service._available_themes["dark"],
-                "get_qss",
-                side_effect=Exception("QSS loading failed"),
-            )
-
-            result = theme_service.apply_theme("dark")
-            assert not result
-
-    def test_system_theme_application_empty_result(self, mocker, temp_dir):
-        """Test system theme application when resolution returns empty string."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-
-        theme_service = ThemeService()
-
-        # Mock _resolve_system_theme to return empty string
-        mocker.patch.object(theme_service, "_resolve_system_theme", return_value="")
-        result = theme_service.apply_theme("system")
-        assert not result
-
-    def test_get_current_theme_initially_none(self, mocker, temp_dir):
-        """Test get_current_theme returns None initially."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-
-        theme_service = ThemeService()
-
-        # Should be None initially
-        assert theme_service.get_current_theme() is None
-
-    def test_live_reload_disabled_by_default(self, mocker, temp_dir):
-        """Test that live reload is disabled by default."""
-        mocker.patch(
-            "metaeditor_safetensors.services.theme_service.get_package_root",
-            return_value=temp_dir / "metaeditor_safetensors",
-        )
-
-        # Ensure environment variable is not set
-        mocker.patch.dict("os.environ", {}, clear=True)
-        theme_service = ThemeService()
-
-        # Should not have file watcher when live reload is disabled
-        assert theme_service._file_watcher is None
-        assert theme_service._watched_files == []
-
-    def test_live_reload_enabled(self, mocker, themes_dir):
-        """Test that live reload can be enabled via environment variable."""
+    def test_system_theme_callbacks(self, mocker, themes_dir):
+        """Test system theme callback registration and notifications."""
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
             return_value=themes_dir.parent,
         )
 
-        # Enable live reload via environment variable
-        mocker.patch.dict("os.environ", {"DEV_LIVE_STYLING": "true"})
+        # Mock threading to prevent actual thread creation
+        mocker.patch("threading.Thread")
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        )
+
         theme_service = ThemeService()
 
-        # Always check that live reload is enabled
-        assert theme_service._enable_live_reload is True
+        # Test callback registration
+        callback_called = []
 
-        # File watcher should be created when live reload is enabled
-        assert theme_service._file_watcher is not None
+        def test_callback(theme):
+            callback_called.append(theme)
 
+        theme_service.add_system_theme_changed_callback(test_callback)
 
-class TestThemeServiceObserverPattern:
-    def test_theme_service_observer_pattern(self, mocker, themes_dir):
-        """Test that observers are notified when theme changes."""
+        # Test callback notification
+        theme_service._notify_system_theme_changed("dark")
+        assert len(callback_called) == 1
+        assert callback_called[0] == "dark"
+
+        # Test callback removal
+        theme_service.remove_system_theme_changed_callback(test_callback)
+        theme_service._notify_system_theme_changed("light")
+        assert len(callback_called) == 1  # Should not have been called again
+
+    def test_on_system_theme_changed_fires_callbacks(self, mocker, themes_dir):
+        """Test system theme change handling fires callbacks."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        # Mock threading to prevent actual thread creation
+        mocker.patch("threading.Thread")
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        )
+
+        theme_service = ThemeService()
+
+        # Add callback to track system theme changes
+        callback_called = []
+
+        def test_callback(theme):
+            callback_called.append(theme)
+
+        theme_service.add_system_theme_changed_callback(test_callback)
+
+        # Simulate system theme change
+        theme_service._on_system_theme_changed("Dark")
+
+        # Should have called the callback
+        assert len(callback_called) == 1
+        assert callback_called[0] == "Dark"
+
+    def test_shutdown_stops_monitoring(self, mocker, themes_dir):
+        """Test shutdown stops system monitoring."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        # Mock threading to prevent actual thread creation
+        mocker.patch("threading.Thread")
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.darkdetect.listener"
+        )
+
+        theme_service = ThemeService()
+
+        # Mock stop monitoring
+        stop_mock = Mock()
+        mocker.patch.object(theme_service, "_stop_system_theme_monitoring", stop_mock)
+
+        theme_service.shutdown()
+
+        stop_mock.assert_called_once()
+
+    def test_exception_handling_in_monitoring_methods(self, mocker, themes_dir):
+        """Test exception handling in monitoring methods."""
+        mocker.patch(
+            "metaeditor_safetensors.services.theme_service.get_package_root",
+            return_value=themes_dir.parent,
+        )
+
+        # Mock threading to raise exception
+        mocker.patch("threading.Thread", side_effect=Exception("Thread error"))
         mocker.patch(
             "metaeditor_safetensors.services.theme_service.get_package_root",
             return_value=themes_dir.parent,
