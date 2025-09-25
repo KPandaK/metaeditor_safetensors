@@ -1,5 +1,4 @@
 import logging
-from importlib.metadata import PackageNotFoundError, version
 
 from PySide6.QtCore import QEventLoop, QObject, Slot
 from PySide6.QtGui import QGuiApplication
@@ -15,13 +14,6 @@ class ClipboardHelper(QObject):
         clipboard.setText(text)
 
 
-def get_app_version():
-    try:
-        return version("metaeditor_safetensors")
-    except PackageNotFoundError:
-        return "dev"
-
-
 class QmlAboutDialog:
     def __init__(self, engine=None, parent=None, theme_service=None):
         self._engine = engine
@@ -35,8 +27,6 @@ class QmlAboutDialog:
             raise ValueError("QmlAboutDialog requires a QQmlApplicationEngine instance")
 
         context = self._engine.rootContext()
-        app_version = get_app_version()
-        context.setContextProperty("appVersion", app_version)
         context.setContextProperty("clipboardHelper", self._clipboard_helper)
 
         qml_resource_url = "qrc:/qml/views/AboutDialog.qml"

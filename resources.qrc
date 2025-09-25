@@ -9,6 +9,7 @@
     <file>assets/circle-empty.svg</file>
     <file>assets/circle-error.svg</file>
     <file>assets/triangle-warning.svg</file>
+    <file>assets/arrow-right.svg</file>
   </qresource>
   <qresource prefix="/qml">
     <file alias="styles/Style.qml">metaeditor_safetensors/qml/styles/Style.qml</file>
@@ -16,6 +17,9 @@
     <file alias="themes/ThemeManager.qml">metaeditor_safetensors/qml/themes/ThemeManager.qml</file>
     <file alias="themes/qmldir">metaeditor_safetensors/qml/themes/qmldir</file>
     <file alias="components/StyledButton.qml">metaeditor_safetensors/qml/components/StyledButton.qml</file>
+    <file alias="components/ExpandableSection.qml">metaeditor_safetensors/qml/components/ExpandableSection.qml</file>
+    <file alias="components/GeneralSection.qml">metaeditor_safetensors/qml/components/GeneralSection.qml</file>
+    <file alias="views/MainView.qml">metaeditor_safetensors/qml/views/MainView.qml</file>
     <file alias="views/AboutDialog.qml">metaeditor_safetensors/qml/views/AboutDialog.qml</file>
     <file alias="views/AboutTab.qml">metaeditor_safetensors/qml/views/AboutTab.qml</file>
     <file alias="views/CreditsTab.qml">metaeditor_safetensors/qml/views/CreditsTab.qml</file>
