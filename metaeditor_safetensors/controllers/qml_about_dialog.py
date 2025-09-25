@@ -23,12 +23,12 @@ def get_app_version():
 
 
 class QmlAboutDialog:
-    def __init__(self, engine=None, theme_service=None, parent=None):
+    def __init__(self, engine=None, parent=None, theme_service=None):
         self._engine = engine
         self._parent = parent
         self._window = None
         self._event_loop = None
-        self._clipboard_helper = None
+        self._clipboard_helper = ClipboardHelper()
 
     def exec(self):
         if self._engine is None:
@@ -37,8 +37,6 @@ class QmlAboutDialog:
         context = self._engine.rootContext()
         app_version = get_app_version()
         context.setContextProperty("appVersion", app_version)
-
-        self._clipboard_helper = ClipboardHelper()
         context.setContextProperty("clipboardHelper", self._clipboard_helper)
 
         qml_resource_url = "qrc:/qml/views/AboutDialog.qml"

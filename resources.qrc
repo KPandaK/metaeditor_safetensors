@@ -20,5 +20,6 @@
     <file alias="views/AboutTab.qml">metaeditor_safetensors/qml/views/AboutTab.qml</file>
     <file alias="views/CreditsTab.qml">metaeditor_safetensors/qml/views/CreditsTab.qml</file>
     <file alias="views/LicenseTab.qml">metaeditor_safetensors/qml/views/LicenseTab.qml</file>
+    <file alias="views/ThumbnailDialog.qml">metaeditor_safetensors/qml/views/ThumbnailDialog.qml</file>
   </qresource>
 </RCC>
