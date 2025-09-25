@@ -10,4 +10,15 @@
     <file>assets/circle-error.svg</file>
     <file>assets/triangle-warning.svg</file>
   </qresource>
+  <qresource prefix="/qml">
+    <file alias="styles/Style.qml">metaeditor_safetensors/qml/styles/Style.qml</file>
+    <file alias="themes/DarkTheme.qml">metaeditor_safetensors/qml/themes/DarkTheme.qml</file>
+    <file alias="themes/ThemeManager.qml">metaeditor_safetensors/qml/themes/ThemeManager.qml</file>
+    <file alias="themes/qmldir">metaeditor_safetensors/qml/themes/qmldir</file>
+    <file alias="components/StyledButton.qml">metaeditor_safetensors/qml/components/StyledButton.qml</file>
+    <file alias="views/AboutDialog.qml">metaeditor_safetensors/qml/views/AboutDialog.qml</file>
+    <file alias="views/AboutTab.qml">metaeditor_safetensors/qml/views/AboutTab.qml</file>
+    <file alias="views/CreditsTab.qml">metaeditor_safetensors/qml/views/CreditsTab.qml</file>
+    <file alias="views/LicenseTab.qml">metaeditor_safetensors/qml/views/LicenseTab.qml</file>
+  </qresource>
 </RCC>
