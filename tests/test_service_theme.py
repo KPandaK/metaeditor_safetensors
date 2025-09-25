@@ -1,4 +1,5 @@
 import logging
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock
@@ -68,6 +69,26 @@ qss_order:
 def suppress_logging():
     """Suppress debug/info logging during tests for cleaner output."""
     logging.getLogger().setLevel(logging.ERROR)
+
+
+@pytest.fixture(autouse=True)
+def mock_darkdetect_completely(mocker):
+    """Ensure darkdetect is completely mocked to prevent threading issues."""
+    # Create comprehensive mock that prevents any subprocess or threading
+    mock_darkdetect = Mock()
+    mock_darkdetect.theme.return_value = "Light"
+    mock_darkdetect.listener.return_value = None
+    mock_darkdetect.listener.side_effect = None
+
+    # Patch both the module and any direct imports
+    mocker.patch.dict("sys.modules", {"darkdetect": mock_darkdetect})
+    mocker.patch(
+        "metaeditor_safetensors.services.theme_service.darkdetect", mock_darkdetect
+    )
+
+    # Also patch subprocess to prevent darkdetect from spawning processes
+    mocker.patch("subprocess.Popen")
+    mocker.patch("subprocess.run")
 
 
 class TestThemeService:
