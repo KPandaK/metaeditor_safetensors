@@ -2,13 +2,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QDialog
 
-from .thumbnail_dialog_ui import Ui_ThumbnailDialog
+from ..layouts.thumbnail_ui_layout import Ui_ThumbnailDialog
 
 
 class ThumbnailDialog(QDialog, Ui_ThumbnailDialog):
     def __init__(self, pixmap: QPixmap, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        self.setup_ui(self)
 
         screen = QApplication.primaryScreen()
         screen_geometry = screen.availableGeometry()

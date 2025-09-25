@@ -9,7 +9,7 @@ from PySide6.QtCore import QFileSystemWatcher
 
 from ..models.settings import Settings
 from ..models.theme import Theme, ThemeType
-from .file_service import get_package_root
+from .utility import get_package_root
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class ThemeService:
                 try:
                     theme = Theme.from_directory(theme_dir)
                     self._available_themes[theme.config.theme_id] = theme
-                    logger.debug(f"Found theme: {theme}")
+                    logger.debug(f"Found theme: {theme.config.name}")
                 except Exception as e:
                     logger.warning(f"Failed to load theme from {theme_dir}: {e}")
 
@@ -230,8 +230,6 @@ class ThemeService:
 
     def _apply_theme_internal(self, theme: Theme) -> bool:
         try:
-            logger.debug(f"Applying theme: {theme}")
-
             self._current_theme = theme
 
             # Update file watchers to monitor the new theme's files

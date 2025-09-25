@@ -10,13 +10,13 @@ from typing import Any, Dict
 
 import pytest
 
-from metaeditor_safetensors.models.metadata_model import MetadataModel
+from metaeditor_safetensors.models.metadata import Metadata
 
 
 @pytest.fixture
 def model():
-    """Create a fresh MetadataModel instance for each test."""
-    return MetadataModel()
+    """Create a fresh Metadata instance for each test."""
+    return Metadata()
 
 
 @pytest.fixture
@@ -41,11 +41,11 @@ def observer_tracker():
     return ObserverTracker()
 
 
-class TestMetadataModel:
-    """Test cases for MetadataModel class functionality."""
+class TestMetadata:
+    """Test cases for Metadata class functionality."""
 
     def test_initialization(self, model):
-        """Test that MetadataModel initializes correctly."""
+        """Test that Metadata initializes correctly."""
         assert model.get_all_data() == {}
         assert not model.is_dirty()
         assert model.get_dirty_fields() == set()

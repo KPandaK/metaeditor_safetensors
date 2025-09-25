@@ -216,7 +216,8 @@ QSpinBox:disabled {
     color: #999999;
 }
 
-/* QComboBox {
+/** TODO: Down arrow is still missing, only shows as a dash */
+QComboBox {
     min-height: 24px;
     padding: 4px 8px 4px 8px;
     border: 1px solid #454545;
@@ -226,11 +227,6 @@ QSpinBox:disabled {
     font-size: 13px;
 }
 
-QComboBox:focus {
-    border-color: #007acc;
-    background-color: #1e1e1e;
-}
-
 QComboBox:disabled {
     background-color: #2d2d30;
     border-color: #2d2d30;
@@ -238,8 +234,6 @@ QComboBox:disabled {
 }
 
 QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
     width: 20px;
     border-left: 1px solid #454545;
     border-top-right-radius: 2px;
@@ -247,15 +241,9 @@ QComboBox::drop-down {
     background-color: #454545;
 }
 
-QComboBox::drop-down:hover {
-    background-color: #007acc;
-    border-left-color: #007acc;
-}
-
 QComboBox::down-arrow {
-    width: 8px;
-    height: 8px;
-    image: none;
+    width: 16;
+    height: 16;
     border-left: 4px solid transparent;
     border-right: 4px solid transparent;
     border-top: 4px solid #cccccc;
@@ -284,7 +272,7 @@ QComboBox QAbstractItemView::item:hover {
 
 QComboBox QAbstractItemView::item:selected {
     background-color: #094771;
-} */
+}
 
 /* Text areas */
 QTextEdit {
@@ -607,30 +595,6 @@ QToolButton:checked {
     color: #ffffff;
 }
 
-QToolButton[popupMode="1"] { /* MenuButtonPopup */
-    padding-right: 20px;
-}
-
-QToolButton::menu-button {
-    border: 1px solid transparent;
-    border-top-right-radius: 2px;
-    border-bottom-right-radius: 2px;
-    width: 16px;
-}
-
-QToolButton::menu-arrow {
-    width: 8px;
-    height: 8px;
-    image: none;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid #cccccc;
-}
-
-QToolButton::menu-arrow:hover {
-    border-top-color: #ffffff;
-}
-
 /* 
 Data Views
 */
@@ -870,7 +834,7 @@ Miscellaneous Elements
 */
 
 QStatusBar {
-    min-height: 22px;
+    min-height: 26px;
     background-color: #007acc;
     color: #ffffff;
     border: none;
@@ -881,9 +845,14 @@ QStatusBar {
 }
 
 QStatusBar::item {
-    padding: 4px 8px;
+    padding: 0px;
     border: none;
     margin: 0px;
+}
+
+QStatusBar QWidget {
+    margin: 0px;
+    padding: 0px;
 }
 
 QToolTip {
@@ -894,7 +863,7 @@ QToolTip {
     border-radius: 3px;
     font-size: 13px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 400px;
+    max-width: 600px;
 }
 
 QProgressBar {
@@ -1109,4 +1078,59 @@ ImageWidget[hasImage="false"] {
     border: 2px dashed #454545;
     border-radius: 3px;
     background-color: #252526;
+}
+
+CollapsibleSection {
+    border: 1px solid #454545;
+    border-radius: 3px;
+    background-color: #252526;
+}
+
+CollapsibleSection QToolButton {
+    padding: 6px 8px;
+    border: none;
+    border-radius: 0px;
+    background-color: transparent;
+    color: #cccccc;
+    text-align: left;
+}
+
+CollapsibleSection QToolButton:pressed, 
+CollapsibleSection QToolButton:hover,
+CollapsibleSection QToolButton:focus,
+CollapsibleSection QToolButton:checked {
+    background-color: transparent;
+    color: #cccccc;
+}
+
+/** Status widget styling - using QToolButton for proper hover support */
+StatusWidget {
+    border: none;
+    font-size: 12px;
+    font-weight: 400;
+    color: #ffffff;
+    background-color: transparent;
+    min-width: 120px;
+    height: 20px;
+    text-align: right;
+    margin: 0px;
+    border-radius: 2px;
+}
+
+/* Hover state - clean and subtle */
+StatusWidget:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #dddddd;
+}
+
+/* Pressed state - more pronounced feedback */
+StatusWidget:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* Focus state for keyboard navigation */
+StatusWidget:focus {
+    border: 1px solid #007acc;
+    outline: none;
 }
