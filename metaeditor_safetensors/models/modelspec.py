@@ -1,13 +1,21 @@
+import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import (
+    Annotated,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from pydantic import BaseModel, Field, field_validator
 
-
-class ModelCategory(Enum):
-    IMAGE_GENERATION = "image_generation"
-    TEXT_PREDICTION = "text_prediction"
-    UNKNOWN = "unknown"
+from ..services.model_detection_service import ModelDetectionService
+from ..services.utility import ModelType
 
 
 class ComplianceLevel(Enum):
@@ -22,145 +30,182 @@ class FieldRequirement(Enum):
     CAN = "can"
 
 
+class FieldCategory(Enum):
+    GENERAL = 0
+    IMAGE_GENERATION = 1
+    TEXT_PREDICTION = 2
+
+
+class FieldMeta:
+    def __init__(
+        self,
+        requirement: FieldRequirement,
+        category: FieldCategory = FieldCategory.GENERAL,
+    ):
+        self.requirement = requirement
+        self.category = category
+
+
 class ComplianceResult(BaseModel):
     level: ComplianceLevel
     missing_must_fields: List[str]
     missing_should_fields: List[str]
     present_fields: Set[str]
-    model_category: ModelCategory
+    model_category: ModelType
     summary: str
     details: List[str]
 
 
 class ModelSpec(BaseModel):
-    """
-    Data model for safetensors metadata validation and compliance.
-
-    This model handles ONLY modelspec.* fields. Non-ModelSpec metadata
-    is handled separately to avoid interfering with unknown fields.
-    """
-
     class Config:
         # Allow extra fields but don't validate them (for unknown modelspec fields)
         extra = "allow"
         # Use field aliases to map to actual metadata keys (Pydantic V2)
         populate_by_name = True
 
-    # === Core MUST Fields (all models) ===
-    sai_model_spec: Optional[str] = Field(
+    sai_model_spec: Annotated[Optional[str], FieldMeta(FieldRequirement.MUST)] = Field(
         None,
         alias="modelspec.sai_model_spec",
-        description="ModelSpec version identifier",
+        description="ModelSpec version (e.g., 1.0.0)",
     )
-    architecture: Optional[str] = Field(
-        None, alias="modelspec.architecture", description="Model architecture type"
+    architecture: Annotated[Optional[str], FieldMeta(FieldRequirement.MUST)] = Field(
+        None,
+        alias="modelspec.architecture",
+        description="Model architecture (e.g., stable-diffusion-v1, llama-2)",
     )
-    implementation: Optional[str] = Field(
+    implementation: Annotated[Optional[str], FieldMeta(FieldRequirement.MUST)] = Field(
         None,
         alias="modelspec.implementation",
-        description="Implementation codebase identifier",
+        description="Implementation framework (e.g., diffusers, transformers)",
     )
-    title: Optional[str] = Field(
-        None, alias="modelspec.title", description="Human-readable model title"
+    title: Annotated[Optional[str], FieldMeta(FieldRequirement.MUST)] = Field(
+        None, alias="modelspec.title"
     )
-
-    # === SHOULD Fields (recommended) ===
-    description: Optional[str] = Field(
-        None, alias="modelspec.description", description="Detailed model description"
+    description: Annotated[Optional[str], FieldMeta(FieldRequirement.SHOULD)] = Field(
+        None,
+        alias="modelspec.description",
     )
-    author: Optional[str] = Field(
-        None, alias="modelspec.author", description="Model creator/author"
+    author: Annotated[Optional[str], FieldMeta(FieldRequirement.SHOULD)] = Field(
+        None, alias="modelspec.author"
     )
-    date: Optional[str] = Field(
-        None, alias="modelspec.date", description="Creation/publication date (ISO 8601)"
+    date: Annotated[Optional[str], FieldMeta(FieldRequirement.SHOULD)] = Field(
+        None, alias="modelspec.date"
     )
-    hash_sha256: Optional[str] = Field(
-        None, alias="modelspec.hash_sha256", description="SHA256 hash of tensor content"
+    hash_sha256: Annotated[Optional[str], FieldMeta(FieldRequirement.SHOULD)] = Field(
+        None,
+        alias="modelspec.hash_sha256",
     )
-
-    # === General CAN Fields ===
-    license: Optional[str] = Field(
-        None, alias="modelspec.license", description="License information"
+    license: Annotated[Optional[str], FieldMeta(FieldRequirement.CAN)] = Field(
+        None, alias="modelspec.license"
     )
-    usage_hint: Optional[str] = Field(
-        None, alias="modelspec.usage_hint", description="Usage instructions or hints"
+    usage_hint: Annotated[Optional[str], FieldMeta(FieldRequirement.CAN)] = Field(
+        None,
+        alias="modelspec.usage_hint",
     )
-    tags: Optional[str] = Field(
-        None, alias="modelspec.tags", description="Comma-separated category tags"
+    tags: Annotated[Optional[str], FieldMeta(FieldRequirement.CAN)] = Field(
+        None, alias="modelspec.tags"
     )
-    merged_from: Optional[str] = Field(
-        None, alias="modelspec.merged_from", description="Source models if merged"
+    merged_from: Annotated[Optional[str], FieldMeta(FieldRequirement.CAN)] = Field(
+        None, alias="modelspec.merged_from"
     )
-    thumbnail: Optional[str] = Field(
-        None, alias="modelspec.thumbnail", description="Base64-encoded preview image"
+    thumbnail: Annotated[Optional[str], FieldMeta(FieldRequirement.CAN)] = Field(
+        None, alias="modelspec.thumbnail"
     )
-    implementation_version: Optional[str] = Field(
+    implementation_version: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN)
+    ] = Field(
         None,
         alias="modelspec.implementation_version",
         description="Implementation version requirement",
     )
 
     # === Image Generation Fields ===
-    resolution: Optional[str] = Field(
+    resolution: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.resolution",
-        description="Base resolution (e.g., 512x512)",
+        description="Base resolution (e.g., 512x512, 1024x1024)",
     )
-    trigger_phrase: Optional[str] = Field(
+    trigger_phrase: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.trigger_phrase",
-        description="Required trigger phrase for adapters",
+        description="Activation phrase for LoRA/embeddings (leave empty if not needed)",
     )
-    prediction_type: Optional[str] = Field(
+    prediction_type: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.prediction_type",
-        description="Prediction type (v or epsilon)",
+        description="Prediction type: epsilon or v_prediction",
     )
-    timestep_range: Optional[str] = Field(
+    timestep_range: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.timestep_range",
         description="Timestep range (e.g., 0,999)",
     )
-    encoder_layer: Optional[int] = Field(
+    encoder_layer: Annotated[
+        Optional[int], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.encoder_layer",
         ge=1,
         description="Encoder layer for clip skip",
     )
-    preprocessor: Optional[str] = Field(
+    preprocessor: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.preprocessor",
         description="Preprocessor type for ControlNet",
     )
-    is_negative_embedding: Optional[bool] = Field(
+    is_negative_embedding: Annotated[
+        Optional[bool], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None,
         alias="modelspec.is_negative_embedding",
         description="For negative prompt embeddings",
     )
-    unet_dtype: Optional[str] = Field(
+    unet_dtype: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None, alias="modelspec.unet_dtype", description="UNet data type requirements"
     )
-    vae_dtype: Optional[str] = Field(
+    vae_dtype: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.IMAGE_GENERATION)
+    ] = Field(
         None, alias="modelspec.vae_dtype", description="VAE data type requirements"
     )
 
     # === Text Prediction Fields ===
-    data_format: Optional[str] = Field(
+    data_format: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.TEXT_PREDICTION)
+    ] = Field(
         None,
         alias="modelspec.data_format",
         description="Data format (e.g., fp16, gptq-4bit)",
     )
-    format_type: Optional[str] = Field(
+    format_type: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.TEXT_PREDICTION)
+    ] = Field(
         None,
         alias="modelspec.format_type",
         description="Format type (chat, writing, code, etc.)",
     )
-    language: Optional[str] = Field(
+    language: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.TEXT_PREDICTION)
+    ] = Field(
         None,
         alias="modelspec.language",
         description="Primary language(s) (comma-separated)",
     )
-    format_template: Optional[str] = Field(
+    format_template: Annotated[
+        Optional[str], FieldMeta(FieldRequirement.CAN, FieldCategory.TEXT_PREDICTION)
+    ] = Field(
         None,
         alias="modelspec.format_template",
         description="Chat format template with placeholders",
@@ -169,7 +214,6 @@ class ModelSpec(BaseModel):
     @field_validator("hash_sha256")
     @classmethod
     def validate_hash_format(cls, v):
-        """Validate SHA256 hash format."""
         if v is not None:
             import re
 
@@ -182,7 +226,6 @@ class ModelSpec(BaseModel):
     @field_validator("resolution")
     @classmethod
     def validate_resolution_format(cls, v):
-        """Validate resolution format."""
         if v is not None:
             import re
 
@@ -195,7 +238,6 @@ class ModelSpec(BaseModel):
     @field_validator("prediction_type")
     @classmethod
     def validate_prediction_type(cls, v):
-        """Validate prediction type."""
         if v is not None and v not in ["v", "epsilon"]:
             raise ValueError('Prediction type must be "v" or "epsilon"')
         return v
@@ -203,7 +245,6 @@ class ModelSpec(BaseModel):
     @field_validator("timestep_range")
     @classmethod
     def validate_timestep_range(cls, v):
-        """Validate timestep range format."""
         if v is not None:
             import re
 
@@ -213,19 +254,9 @@ class ModelSpec(BaseModel):
                 )
         return v
 
-    @field_validator("format_type")
-    @classmethod
-    def validate_format_type(cls, v):
-        """Validate format type."""
-        valid_types = ["general", "writing", "chat", "code", "technical"]
-        if v is not None and v not in valid_types:
-            raise ValueError(f'Format type must be one of: {", ".join(valid_types)}')
-        return v
-
     @field_validator("thumbnail")
     @classmethod
     def validate_thumbnail_format(cls, v):
-        """Validate thumbnail data URI format."""
         if v is not None:
             import re
 
@@ -237,79 +268,86 @@ class ModelSpec(BaseModel):
 
     @field_validator("date", mode="before")
     @classmethod
-    def validate_date_format(cls, v):
-        """Validate ISO 8601 date format."""
+    def validate_date_format(cls, v: Optional[str]):
         if v is None:
             return v
-        # Basic ISO 8601 validation - in production you'd use dateutil
-        import re
+        try:
+            # allow both date-only and datetime strings
+            if v.endswith("Z"):
+                v = v[:-1] + "+00:00"
+            date_obj = datetime.datetime.fromisoformat(v)
+        except ValueError as exc:
+            raise ValueError("Date must be in ISO 8601 format (YYYY-MM-DD...)") from exc
+        return date_obj.isoformat()
 
-        if not re.match(r"^\d{4}-\d{2}-\d{2}", str(v)):
-            raise ValueError("Date must be in ISO 8601 format (YYYY-MM-DD...)")
-        return v
-
-    def determine_category(self) -> ModelCategory:
-        """Determine model category based on architecture."""
-        if not self.architecture:
-            return ModelCategory.UNKNOWN
-
-        arch_lower = self.architecture.lower()
-
-        # Image generation patterns
-        image_patterns = {
-            "stable-diffusion",
-            "stable-video-diffusion",
-            "stable-cascade",
+    @classmethod
+    def get_all_field_placeholders(cls) -> Dict[str, str]:
+        return {
+            field_name: field_info.description or ""
+            for field_name, field_info in cls.model_fields.items()
+            if field_info.description
         }
-        if any(pattern in arch_lower for pattern in image_patterns):
-            return ModelCategory.IMAGE_GENERATION
 
-        # Text prediction patterns
-        text_patterns = {"gpt-neo-x", "transformer", "llama", "bert"}
-        if any(pattern in arch_lower for pattern in text_patterns):
-            return ModelCategory.TEXT_PREDICTION
+    # TODO: Can we implement this as a bitfield so that we can check for multiple categories at the same time?
+    # Category should also be specified, not queried.
+    # def get_required_fields(self, requirement: FieldRequirement) -> List[str]:
+    # Map ModelType to FieldCategory for filtering
+    # category_to_field_category = {
+    #     ModelType.IMAGE_GENERATION: FieldCategory.IMAGE_GENERATION,
+    #     ModelType.TEXT_PREDICTION: FieldCategory.TEXT_PREDICTION,
+    #     ModelType.UNKNOWN: None,  # Include all categories for unknown models
+    # }
+    # relevant_field_category = category_to_field_category.get(category)
 
-        return ModelCategory.UNKNOWN
+    # # Get fields by requirement level from Annotated type metadata
+    # field_list = []
+    # type_hints = get_type_hints(self.__class__, include_extras=True)
+    # model_fields = type(self).model_fields
 
-    def get_required_fields(self, requirement: FieldRequirement) -> List[str]:
-        """Get required fields based on model category and requirement level."""
-        category = self.determine_category()
+    # for field_name, field_type in type_hints.items():
+    #     # Skip non-field attributes
+    #     if field_name not in model_fields:
+    #         continue
 
-        # Core MUST fields for all models
-        must_fields = [
-            "modelspec.sai_model_spec",
-            "modelspec.architecture",
-            "modelspec.implementation",
-            "modelspec.title",
-        ]
+    #     # Extract metadata from Annotated types
+    #     if get_origin(field_type) is Annotated:
+    #         args = get_args(field_type)
+    #         # Look for FieldMeta in the annotation metadata
+    #         for arg in args[1:]:  # Skip the actual type, check metadata
+    #             if isinstance(arg, FieldMeta):
+    #                 field_meta = arg
+    #                 if field_meta.requirement == requirement:
+    #                     # Check category-specific fields
+    #                     if (
+    #                         field_meta.category == FieldCategory.GENERAL
+    #                         or field_meta.category == relevant_field_category
+    #                         or relevant_field_category
+    #                         is None  # Include all for unknown models
+    #                     ):
+    #                         # Get the alias from the field info
+    #                         field_info = model_fields[field_name]
+    #                         alias = field_info.alias or f"modelspec.{field_name}"
+    #                         field_list.append(alias)
+    #                 break
 
-        # Category-specific MUST fields
-        if category == ModelCategory.IMAGE_GENERATION:
-            must_fields.append("modelspec.resolution")
-        elif category == ModelCategory.TEXT_PREDICTION:
-            must_fields.append("modelspec.data_format")
+    # # Add category-specific MUST fields for special cases
+    # if requirement == FieldRequirement.MUST:
+    #     if category == ModelType.IMAGE_GENERATION:
+    #         # Resolution is MUST for image generation models
+    #         if "modelspec.resolution" not in field_list:
+    #             field_list.append("modelspec.resolution")
+    #     elif category == ModelType.TEXT_PREDICTION:
+    #         # Data format is MUST for text prediction models
+    #         if "modelspec.data_format" not in field_list:
+    #             field_list.append("modelspec.data_format")
 
-        # SHOULD fields (recommended for all)
-        should_fields = [
-            "modelspec.description",
-            "modelspec.author",
-            "modelspec.date",
-            "modelspec.hash_sha256",
-        ]
+    # return field_list
 
-        if requirement == FieldRequirement.MUST:
-            return must_fields
-        elif requirement == FieldRequirement.SHOULD:
-            return should_fields
-        else:  # CAN - return all other defined fields
-            all_fields = set(self.__fields__.keys())
-            defined_fields = set(must_fields + should_fields)
-            return [f for f in all_fields if f not in defined_fields]
-
+    # TODO: The way that compliance is determined should be updated - this seems kind of gross
     def get_present_fields(self) -> Set[str]:
-        """Get all present (non-None) ModelSpec fields."""
         present = set()
-        for field_name, field_info in self.__fields__.items():
+        fields = type(self).model_fields.items()
+        for field_name, field_info in fields:
             value = getattr(self, field_name)
             if value is not None and value != "":
                 # Use the alias (actual metadata key) if available
@@ -317,46 +355,39 @@ class ModelSpec(BaseModel):
                 present.add(key)
         return present
 
-    def analyze_compliance(self) -> ComplianceResult:
-        """
-        Analyze ModelSpec compliance.
+    # def analyze_compliance(self) -> ComplianceResult:
+    #     present_fields = self.get_present_fields()
 
-        This is separate from Pydantic validation - it checks ModelSpec
-        MUST/SHOULD/CAN requirements based on the model category.
-        """
-        category = self.determine_category()
-        present_fields = self.get_present_fields()
+    #     # Get required fields
+    #     must_fields = self.get_required_fields(FieldRequirement.MUST)
+    #     should_fields = self.get_required_fields(FieldRequirement.SHOULD)
 
-        # Get required fields
-        must_fields = self.get_required_fields(FieldRequirement.MUST)
-        should_fields = self.get_required_fields(FieldRequirement.SHOULD)
+    #     # Check for missing fields
+    #     missing_must = [f for f in must_fields if f not in present_fields]
+    #     missing_should = [f for f in should_fields if f not in present_fields]
 
-        # Check for missing fields
-        missing_must = [f for f in must_fields if f not in present_fields]
-        missing_should = [f for f in should_fields if f not in present_fields]
+    #     # Determine compliance level
+    #     if not missing_must:
+    #         level = ComplianceLevel.COMPLIANT
+    #     elif len(missing_must) < len(must_fields):
+    #         level = ComplianceLevel.PARTIAL
+    #     else:
+    #         level = ComplianceLevel.NON_COMPLIANT
 
-        # Determine compliance level
-        if not missing_must:
-            level = ComplianceLevel.COMPLIANT
-        elif len(missing_must) < len(must_fields):
-            level = ComplianceLevel.PARTIAL
-        else:
-            level = ComplianceLevel.NON_COMPLIANT
+    #     # Generate summary and details
+    #     summary, details = self._generate_summary_and_details(
+    #         level, missing_must, missing_should, present_fields, category
+    #     )
 
-        # Generate summary and details
-        summary, details = self._generate_summary_and_details(
-            level, missing_must, missing_should, present_fields, category
-        )
-
-        return ComplianceResult(
-            level=level,
-            missing_must_fields=missing_must,
-            missing_should_fields=missing_should,
-            present_fields=present_fields,
-            model_category=category,
-            summary=summary,
-            details=details,
-        )
+    #     return ComplianceResult(
+    #         level=level,
+    #         missing_must_fields=missing_must,
+    #         missing_should_fields=missing_should,
+    #         present_fields=present_fields,
+    #         model_category=category,
+    #         summary=summary,
+    #         details=details,
+    #     )
 
     def _generate_summary_and_details(
         self,
@@ -364,24 +395,24 @@ class ModelSpec(BaseModel):
         missing_must: List[str],
         missing_should: List[str],
         present: Set[str],
-        category: ModelCategory,
+        category: ModelType,
     ) -> tuple[str, List[str]]:
         """Generate human-readable summary and details."""
         details = []
 
         # Status summary
         if level == ComplianceLevel.COMPLIANT:
-            summary = "✅ ModelSpec Compliant"
+            summary = "ModelSpec Compliant"
             details.append("All required fields are present.")
         elif level == ComplianceLevel.PARTIAL:
-            summary = f"⚠️ Partially Compliant ({len(missing_must)} missing)"
+            summary = f"Partially Compliant ({len(missing_must)} missing)"
             details.append(f"Missing {len(missing_must)} required field(s).")
         else:
-            summary = f"❌ Non-Compliant ({len(missing_must)} missing)"
+            summary = f"Non-Compliant ({len(missing_must)} missing)"
             details.append("Missing critical required fields.")
 
         # Category information
-        if category != ModelCategory.UNKNOWN:
+        if category != ModelType.UNKNOWN:
             category_name = category.value.replace("_", " ").title()
             details.append(f"Detected: {category_name} model")
 
@@ -406,14 +437,9 @@ class ModelSpec(BaseModel):
 
         return summary, details
 
+    # TODO:  If we only extract raw metadata, how are non-modelspec.* fields handled? Especially when we save the safetensors file again.
     @classmethod
     def from_raw_metadata(cls, metadata: Dict[str, Any]) -> "ModelSpec":
-        """
-        Create ModelSpec instance from raw metadata dictionary.
-
-        Extracts only modelspec.* fields and handles missing fields gracefully.
-        Validation errors are caught and stored for later handling.
-        """
         # Extract only ModelSpec fields
         modelspec_data = {
             key: value
@@ -423,50 +449,5 @@ class ModelSpec(BaseModel):
 
         try:
             return cls(**modelspec_data)
-        except Exception:
-            # For invalid data, create instance with minimal data
-            # This allows the app to continue working with partial/invalid ModelSpec
-            minimal_data = {
-                key: value
-                for key, value in modelspec_data.items()
-                if key
-                in [
-                    "modelspec.title",
-                    "modelspec.architecture",
-                    "modelspec.sai_model_spec",
-                ]
-            }
-            try:
-                return cls(**minimal_data)
-            except Exception:
-                # Absolute fallback - empty instance with no required fields
-                return cls.model_construct()
-
-    @classmethod
-    def get_field_name(cls, field: str) -> str:
-        """
-        Get the metadata key name for a model field.
-
-        Args:
-            field: The Pydantic field name (e.g., 'title', 'sai_model_spec')
-
-        Returns:
-            The metadata key (e.g., 'modelspec.title', 'modelspec.sai_model_spec')
-        """
-        if field in cls.__fields__:
-            field_info = cls.__fields__[field]
-            return field_info.alias or f"modelspec.{field}"
-        raise ValueError(f"Unknown ModelSpec field: {field}")
-
-    @classmethod
-    def get_all_field_names(cls) -> Dict[str, str]:
-        """
-        Get mapping of Pydantic field names to metadata keys.
-
-        Returns:
-            Dictionary mapping field names to their metadata keys
-        """
-        return {
-            field_name: field_info.alias or f"modelspec.{field_name}"
-            for field_name, field_info in cls.__fields__.items()
-        }
+        except Exception as exc:
+            raise ValueError(f"Invalid ModelSpec data: {exc}") from exc

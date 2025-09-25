@@ -834,7 +834,7 @@ Miscellaneous Elements
 */
 
 QStatusBar {
-    min-height: 24px;
+    min-height: 26px;
     background-color: #007acc;
     color: #ffffff;
     border: none;
@@ -845,9 +845,14 @@ QStatusBar {
 }
 
 QStatusBar::item {
-    padding: 4px 8px;
+    padding: 0px;
     border: none;
     margin: 0px;
+}
+
+QStatusBar QWidget {
+    margin: 0px;
+    padding: 0px;
 }
 
 QToolTip {
@@ -858,7 +863,7 @@ QToolTip {
     border-radius: 3px;
     font-size: 13px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 400px;
+    max-width: 600px;
 }
 
 QProgressBar {
@@ -1098,22 +1103,34 @@ CollapsibleSection QToolButton:checked {
     color: #cccccc;
 }
 
-/** Status widget styling */
-StatusWidget QLabel {
+/** Status widget styling - using QToolButton for proper hover support */
+StatusWidget {
+    border: none;
     font-size: 12px;
     font-weight: 400;
     color: #ffffff;
-}
-
-StatusWidget:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-StatusWidget QSvgIcon {
-    padding: 0px;
-    margin: 0px 0px 0px 0px;
     background-color: transparent;
-    border: none;
-    qproperty-iconColor: white;    
+    min-width: 120px;
+    height: 20px;
+    text-align: right;
+    margin: 0px;
+    border-radius: 2px;
+}
+
+/* Hover state - clean and subtle */
+StatusWidget:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #dddddd;
+}
+
+/* Pressed state - more pronounced feedback */
+StatusWidget:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* Focus state for keyboard navigation */
+StatusWidget:focus {
+    border: 1px solid #007acc;
+    outline: none;
 }
