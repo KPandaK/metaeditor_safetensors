@@ -1,24 +1,14 @@
 import logging
 from enum import Enum
-from functools import lru_cache
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Iterable, List, Optional
 
 from PySide6.QtCore import QDateTime, Qt
-from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QWidget
 
-from ..models.metadata import ChangeSource
+from ..models.metadata import ChangeSource, Metadata
 from ..models.modelspec import ModelType
 
 logger = logging.getLogger(__name__)
-
-
-def singleton(cls):
-    @lru_cache(maxsize=1)
-    def get_instance(*args, **kwargs):
-        return cls(*args, **kwargs)
-
-    return get_instance
 
 
 class BindingType(Enum):
@@ -51,49 +41,30 @@ class FieldBinding:
         self.from_metadata_converter = from_metadata_converter or (lambda x: x)
 
 
-@singleton
 class WidgetBindingService:
-    def __init__(self):
-        self._metadata_service = None  # Lazy reference - set later
-        self._bindings: List[FieldBinding] = []
-        logger.debug("WidgetBindingService initialized (metadata service not yet set)")
-
-    def set_metadata_service(self, metadata_service):
-        if (
-            self._metadata_service is not None
-            and self._metadata_service is not metadata_service
-        ):
-            logger.warning(
-                "Metadata service is being changed! This might indicate an architectural issue."
-            )
-
+    def __init__(self, metadata_service: Metadata):
         self._metadata_service = metadata_service
-        logger.debug("Metadata service set on WidgetBindingService")
-
-    def _ensure_metadata_service(self):
-        if self._metadata_service is None:
-            raise RuntimeError(
-                "WidgetBindingService: No metadata service set! "
-                "Call set_metadata_service() before using the binding service."
-            )
+        self._bindings: List[FieldBinding] = []
+        logger.debug("WidgetBindingService initialized")
 
     def add_binding(self, binding: FieldBinding) -> None:
         self._bindings.append(binding)
 
-        # Connect widget signal for bindings that widget -> model updates
+        # Connect widget signal for bindings that push widget -> model updates
         if binding.binding_type in [BindingType.TWO_WAY, BindingType.ONE_WAY_TO_SOURCE]:
             signal = getattr(binding.widget, binding.signal)
-            signal.connect(lambda: self._on_widget_changed(binding))
+            signal.connect(lambda *_, _binding=binding: self._on_widget_changed(_binding))
 
         logger.debug(
             f"Added binding: {binding.field_key} -> {binding.widget.__class__.__name__} ({binding.binding_type.value})"
         )
 
+    def add_bindings(self, bindings: Iterable[FieldBinding]) -> None:
+        for binding in bindings:
+            self.add_binding(binding)
+
     def _on_widget_changed(self, binding: FieldBinding) -> None:
         try:
-            # Ensure metadata service is available
-            self._ensure_metadata_service()
-
             # Get value from widget
             getter = getattr(binding.widget, binding.getter)
             raw_value = getter()
@@ -102,7 +73,7 @@ class WidgetBindingService:
             converted_value = binding.to_metadata_converter(raw_value)
 
             # Update metadata with source tracking
-            self._metadata_service.set_value(  # type: ignore
+            self._metadata_service.set_value(
                 binding.field_key,
                 converted_value,
                 source=ChangeSource.USER,
@@ -126,12 +97,9 @@ class WidgetBindingService:
     ) -> None:
         logger.debug(f"Updating widget for field: {field_key}")
 
-        # Ensure metadata service is available
-        self._ensure_metadata_service()
-
         for binding in self._bindings:
             if binding.field_key == field_key:
-                # Only update widgets that allow model → widget updates
+                # Only update widgets that allow model -> widget updates
                 if binding.binding_type == BindingType.ONE_WAY_TO_SOURCE:
                     continue
 
@@ -145,7 +113,7 @@ class WidgetBindingService:
                     binding.widget.blockSignals(True)
 
                     # Get value from metadata
-                    raw_value = self._metadata_service.get_value(binding.field_key, "")  # type: ignore
+                    raw_value = self._metadata_service.get_value(binding.field_key, "")
 
                     # Convert value if needed
                     converted_value = binding.from_metadata_converter(raw_value)
@@ -187,6 +155,9 @@ class WidgetBindingService:
                 logger.error(f"Error clearing widget {binding.field_key}: {e}")
             finally:
                 binding.widget.blockSignals(False)
+
+    def clear_bindings(self) -> None:
+        self._bindings.clear()
 
 
 # Converter functions for common data types
@@ -237,3 +208,4 @@ def tags_to_string(tags):
     elif isinstance(tags, str):
         return tags
     return ""
+

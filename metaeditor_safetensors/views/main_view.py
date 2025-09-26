@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QMainWindow, QWidget
 
 from ..layouts.main_ui_layout import Ui_EditorPanel
 from ..models.modelspec import ModelType
-from ..services.widget_binding_service import WidgetBindingService
+from ..services.widget_binding_service import FieldBinding
 from ..widgets.status_widget import StatusWidget
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,7 @@ class MainView(QMainWindow):
         self.editor_panel = QWidget()
         self.ui = Ui_EditorPanel()
         self.ui.setup_ui(self.editor_panel)
+        self._field_bindings = self.ui.get_field_bindings()
         self.setCentralWidget(self.editor_panel)
 
         self._setup_type_combobox()
@@ -208,9 +209,8 @@ class MainView(QMainWindow):
     def set_progress_value(self, value: int):
         self.ui.progress_bar.setValue(value)
 
-    def clear_all_fields(self):
-        binding_service = WidgetBindingService()
-        binding_service.clear_all_widgets()
+    def get_field_bindings(self) -> list[FieldBinding]:
+        return list(self._field_bindings)
 
     def set_all_fields_enabled(self, enabled: bool):
         self.ui.title_edit.setEnabled(enabled)

@@ -43,6 +43,9 @@ class MainController(QObject):
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
         self._current_file = None
+        self._binding_service = WidgetBindingService(self._model)
+        self._binding_service.add_bindings(self._view.get_field_bindings())
+        self._binding_service.initialize_widgets_from_metadata()
 
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
@@ -211,17 +214,15 @@ class MainController(QObject):
         self._update_window_title()
 
         # Update widgets based on change source and field
-        binding_service = WidgetBindingService()
-
         if field is not None:
             if source == ChangeSource.USER and source_widget is not None:
                 # User change - update other widgets for the same field, excluding source widget
-                binding_service.update_widget_from_metadata(
+                self._binding_service.update_widget_from_metadata(
                     field, exclude_widget=source_widget
                 )
-            elif source == ChangeSource.PROGRAMMATIC:
-                # Programmatic change - update all widgets for this field (no exclusion needed)
-                binding_service.update_widget_from_metadata(field)
+            else:
+                # Programmatic or unspecified change - sync all widgets for this field
+                self._binding_service.update_widget_from_metadata(field)
 
     def _update_window_title(self):
         is_dirty = self._model.is_dirty()
@@ -419,6 +420,7 @@ class MainController(QObject):
         self._safetensor_service.shutdown()
         self._config_service.remove_recent_files_observer(self._on_recent_files_changed)
         self._theme_service.remove_theme_changed_observer(self._on_theme_changed)
+        self._binding_service.clear_bindings()
         self._model.remove_observer(self._on_metadata_changed)
 
     @Slot()
@@ -441,8 +443,7 @@ class MainController(QObject):
 
         self._view.set_window_title(title)
 
-        binding_service = WidgetBindingService()
-        binding_service.initialize_widgets_from_metadata()
+        self._binding_service.initialize_widgets_from_metadata()
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)

@@ -22,7 +22,6 @@ from ..services.utility import data_uri_to_pixmap, pixmap_to_data_uri
 from ..services.widget_binding_service import (
     BindingType,
     FieldBinding,
-    WidgetBindingService,
     datetime_to_iso_string,
     iso_string_to_datetime,
     model_type_to_string,
@@ -409,9 +408,9 @@ class Ui_EditorPanel(object):
         )
 
     def _setup_bindings(self):
-        binding_service = WidgetBindingService()
+        self._field_bindings = []
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.title",
                 self.title_edit,
@@ -421,7 +420,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "metaeditor.model_type",
                 self.type_select,
@@ -433,7 +432,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.description",
                 self.description_edit,
@@ -443,7 +442,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.tags",
                 self.tags_edit,
@@ -455,7 +454,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.author",
                 self.author_edit,
@@ -465,7 +464,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.date",
                 self.date_time_edit,
@@ -477,7 +476,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.merged_from",
                 self.merged_from_edit,
@@ -487,7 +486,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.usage_hint",
                 self.usage_hint_edit,
@@ -497,7 +496,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.license",
                 self.license_edit,
@@ -507,7 +506,7 @@ class Ui_EditorPanel(object):
             )
         )
 
-        binding_service.add_binding(
+        self._field_bindings.append(
             FieldBinding(
                 "modelspec.thumbnail",
                 self.thumbnail_display,
@@ -519,3 +518,6 @@ class Ui_EditorPanel(object):
                 from_metadata_converter=data_uri_to_pixmap,
             )
         )
+
+    def get_field_bindings(self) -> list[FieldBinding]:
+        return list(self._field_bindings)

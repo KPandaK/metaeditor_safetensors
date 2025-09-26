@@ -11,7 +11,6 @@ from .services.config_service import ConfigService
 from .services.modelspec_service import ModelSpecService
 from .services.safetensors_service import SafetensorsService
 from .services.theme_service import ThemeService
-from .services.widget_binding_service import WidgetBindingService
 from .views.main_view import MainView
 
 
@@ -39,9 +38,6 @@ def main():
 
     # Instantiate the MVC components.
     model = Metadata()
-
-    widget_binding_service = WidgetBindingService()
-    widget_binding_service.set_metadata_service(model)
 
     # Initialize modelspec service with metadata dependency
     modelspec_service = ModelSpecService(model)
