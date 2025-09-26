@@ -1,5 +1,12 @@
-from PySide6.QtCore import QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QPainter, QPixmap
+from pathlib import Path
+
+from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from PySide6.QtGui import (
+    QDragEnterEvent,
+    QDragMoveEvent,
+    QDropEvent,
+    QPainter,
+)
 from PySide6.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
 
 # Qt's maximum widget size constant
@@ -9,9 +16,26 @@ QWIDGETSIZE_MAX = 16777215
 class ImageWidget(QGraphicsView):
     # Signal emitted when the pixmap changes
     pixmapChanged = Signal()
+    imageDropped = Signal(str)
+
+    _SUPPORTED_EXTENSIONS = {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".bmp",
+        ".gif",
+        ".tiff",
+        ".tif",
+        ".webp",
+        ".ico",
+        ".svg",
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # Enable drag and drop for image files
+        self.setAcceptDrops(True)
 
         # Create scene and pixmap item
         self._scene = QGraphicsScene(self)
@@ -174,6 +198,49 @@ class ImageWidget(QGraphicsView):
 
         # Update size for current state (empty or image)
         self._update_size()
+
+    def dragEnterEvent(
+        self, event: QDragEnterEvent
+    ) -> None:  # pragma: no cover - Qt behaviour
+        if self.isEnabled() and self._extract_image_path(event.mimeData()):
+            event.acceptProposedAction()
+            return
+        event.ignore()
+
+    def dragMoveEvent(
+        self, event: QDragMoveEvent
+    ) -> None:  # pragma: no cover - Qt behaviour
+        if self.isEnabled() and self._extract_image_path(event.mimeData()):
+            event.acceptProposedAction()
+            return
+        event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        if not self.isEnabled():
+            event.ignore()
+            return
+
+        filepath = self._extract_image_path(event.mimeData())
+        if filepath:
+            event.acceptProposedAction()
+            self.imageDropped.emit(filepath)
+            return
+        event.ignore()
+
+    def _extract_image_path(self, mime_data) -> str | None:
+        if not mime_data or not mime_data.hasUrls():
+            return None
+
+        for url in mime_data.urls():
+            if not isinstance(url, QUrl) or not url.isLocalFile():
+                continue
+
+            file_path = url.toLocalFile()
+            suffix = Path(file_path).suffix.lower()
+            if suffix in self._SUPPORTED_EXTENSIONS:
+                return file_path
+
+        return None
 
     def hasPixmap(self):
         return self._original_pixmap is not None and not self._original_pixmap.isNull()

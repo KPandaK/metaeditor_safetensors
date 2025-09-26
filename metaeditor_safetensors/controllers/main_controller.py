@@ -3,7 +3,7 @@ import os
 from typing import List
 
 from PySide6.QtCore import QObject, Slot
-from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
+from PySide6.QtWidgets import QDialog, QFileDialog
 
 from ..bindings.main_view_bindings import build_main_view_bindings
 from ..models.metadata import ChangeSource, Metadata
@@ -12,12 +12,11 @@ from ..services.file_workflow import FileWorkflow, LoadResult
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
-from ..services.utility import data_uri_to_pixmap, filepath_to_data_uri
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
-from ..views.thumbnail_dialog import ThumbnailDialog
+from .thumbnail_controller import ThumbnailController
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +48,8 @@ class MainController(QObject):
             self._safetensor_service,
             self._config_service,
         )
+
+        self._thumbnail_controller = ThumbnailController(self._model, self._view)
 
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
@@ -85,9 +86,18 @@ class MainController(QObject):
         self._view.clear_recent_requested.connect(self.on_clear_recent_requested)
 
         # Connect thumbnail actions
-        self._view.set_thumbnail_requested.connect(self.on_set_thumbnail_requested)
-        self._view.clear_thumbnail_requested.connect(self.on_clear_thumbnail_requested)
-        self._view.view_thumbnail_requested.connect(self.on_view_thumbnail_requested)
+        self._view.set_thumbnail_requested.connect(
+            self._thumbnail_controller.on_set_thumbnail_requested
+        )
+        self._view.clear_thumbnail_requested.connect(
+            self._thumbnail_controller.on_clear_thumbnail_requested
+        )
+        self._view.view_thumbnail_requested.connect(
+            self._thumbnail_controller.on_view_thumbnail_requested
+        )
+        self._view.thumbnail_dropped.connect(
+            self._thumbnail_controller.on_thumbnail_dropped
+        )
 
     def run(self):
         self._view.show()
@@ -214,73 +224,6 @@ class MainController(QObject):
             title += " *"  # Add an asterisk to indicate unsaved changes
 
         self._view.set_window_title(title)
-
-    @Slot()
-    def on_set_thumbnail_requested(self):
-        filepath, _ = QFileDialog.getOpenFileName(
-            self._view,
-            "Select Thumbnail Image",
-            "",
-            "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp *.svg *.ico);;All Files (*)",
-        )
-        if not filepath:
-            return
-
-        try:
-            self._model.set_value(
-                "modelspec.thumbnail",
-                filepath_to_data_uri(filepath),
-                source=ChangeSource.PROGRAMMATIC,
-            )
-            self._view.set_status_message("Thumbnail set.", 3000)
-        except Exception as exc:
-            self._view.set_status_message(f"Error setting thumbnail: {exc}")
-
-    @Slot()
-    def on_clear_thumbnail_requested(self):
-        self._model.set_value(
-            "modelspec.thumbnail", "", source=ChangeSource.PROGRAMMATIC
-        )
-
-        self._view.set_status_message("Thumbnail cleared.", 3000)
-
-    @Slot()
-    def on_view_thumbnail_requested(self):
-        data_uri = self._model.get_value("modelspec.thumbnail")
-        if data_uri:
-            pixmap = data_uri_to_pixmap(data_uri)
-            if pixmap and not pixmap.isNull():
-                dialog = ThumbnailDialog(pixmap, self._view)
-
-                # Center the dialog over the main window
-                main_window_geometry = self._view.geometry()
-                dialog_geometry = dialog.geometry()
-                x = int(
-                    main_window_geometry.x()
-                    + (main_window_geometry.width() - dialog_geometry.width()) / 2
-                )
-                y = int(
-                    main_window_geometry.y()
-                    + (main_window_geometry.height() - dialog_geometry.height()) / 2
-                )
-
-                # Ensure the dialog is not off-screen
-                screen_geometry = QApplication.primaryScreen().availableGeometry()
-                if x < screen_geometry.x():
-                    x = screen_geometry.x()
-                if y < screen_geometry.y():
-                    y = screen_geometry.y()
-                if x + dialog_geometry.width() > screen_geometry.right():
-                    x = screen_geometry.right() - dialog_geometry.width()
-                if y + dialog_geometry.height() > screen_geometry.bottom():
-                    y = screen_geometry.bottom() - dialog_geometry.height()
-
-                dialog.move(int(x), int(y))
-                dialog.exec()
-            else:
-                self._view.set_status_message("Invalid or empty thumbnail image.")
-        else:
-            self._view.set_status_message("No thumbnail to view.")
 
     @Slot()
     def on_save_requested(self):

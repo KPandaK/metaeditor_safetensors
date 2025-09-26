@@ -34,6 +34,7 @@ class MainView(QMainWindow):
     set_thumbnail_requested = Signal()
     clear_thumbnail_requested = Signal()
     view_thumbnail_requested = Signal()
+    thumbnail_dropped = Signal(str)
 
     def __init__(self, config_service):
         super().__init__()
@@ -79,7 +80,6 @@ class MainView(QMainWindow):
         self.statusBar().addPermanentWidget(self.status_widget)
 
     def _create_menu_bar(self):
-        """Creates the main menu bar and its actions."""
         menu_bar = self.menuBar()
 
         # File Menu
@@ -177,6 +177,7 @@ class MainView(QMainWindow):
         self.ui.set_thumbnail_btn.clicked.connect(self.set_thumbnail_requested)
         self.ui.clear_thumbnail_btn.clicked.connect(self.clear_thumbnail_requested)
         self.ui.view_thumbnail_btn.clicked.connect(self.view_thumbnail_requested)
+        self.ui.thumbnail_display.imageDropped.connect(self.thumbnail_dropped.emit)
 
     # TODO: Initial state isn't being set up correctly. Initial value is always UNKNOWN
     def _setup_type_combobox(self):
@@ -217,6 +218,7 @@ class MainView(QMainWindow):
         self.ui.usage_hint_edit.setEnabled(enabled)
         self.ui.tags_edit.setEnabled(enabled)
         self.ui.merged_from_edit.setEnabled(enabled)
+        self.ui.thumbnail_display.setEnabled(enabled)
         self.ui.set_thumbnail_btn.setEnabled(enabled)
         self.ui.view_thumbnail_btn.setEnabled(enabled)
         self.ui.clear_thumbnail_btn.setEnabled(enabled)

@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from metaeditor_safetensors.models.metadata import Metadata
 from metaeditor_safetensors.services.file_workflow import FileWorkflow
