@@ -162,7 +162,6 @@ class StatusWidget(QToolButton):
         return "".join(html_parts)
 
     def _handle_click(self):
-        """Handle button click - manage tooltip pinning."""
         self.setFocus()  # Take focus
 
         # Pin/unpin tooltip behavior
@@ -172,7 +171,6 @@ class StatusWidget(QToolButton):
             self._pin_tooltip()
 
     def _pin_tooltip(self):
-        """Pin the tooltip to stay visible."""
         self._tooltip_pinned = True
         # Show tooltip at widget position
         if hasattr(self, "toolTip") and self.toolTip():
@@ -183,18 +181,15 @@ class StatusWidget(QToolButton):
         self._pinned_tooltip_timer.start(5000)
 
     def _unpin_tooltip(self):
-        """Unpin the tooltip."""
         self._tooltip_pinned = False
         self._pinned_tooltip_timer.stop()
         QToolTip.hideText()
 
     def _hide_pinned_tooltip(self):
-        """Hide the pinned tooltip after timeout."""
         if self._tooltip_pinned:
             self._unpin_tooltip()
 
     def focusOutEvent(self, event):
-        """Handle focus lost - unpin tooltip."""
         if self._tooltip_pinned:
             self._unpin_tooltip()
         super().focusOutEvent(event)

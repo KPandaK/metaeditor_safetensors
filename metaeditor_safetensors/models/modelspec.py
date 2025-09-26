@@ -397,7 +397,6 @@ class ModelSpec(BaseModel):
         present: Set[str],
         category: ModelType,
     ) -> tuple[str, List[str]]:
-        """Generate human-readable summary and details."""
         details = []
 
         # Status summary

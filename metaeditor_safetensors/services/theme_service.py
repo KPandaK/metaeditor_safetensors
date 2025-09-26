@@ -123,20 +123,13 @@ class ThemeService:
                 )
 
     def add_system_theme_changed_callback(self, callback: Callable[[str], None]):
-        """Add a callback to be notified of system theme changes.
-
-        Args:
-            callback: Function to call when system theme changes, receives theme name as string
-        """
         self._system_theme_callbacks.append(callback)
 
     def remove_system_theme_changed_callback(self, callback: Callable[[str], None]):
-        """Remove a system theme change callback."""
         if callback in self._system_theme_callbacks:
             self._system_theme_callbacks.remove(callback)
 
     def _notify_system_theme_changed(self, system_theme: str):
-        """Notify all registered callbacks of system theme change."""
         for callback in self._system_theme_callbacks:
             try:
                 callback(system_theme)
@@ -246,7 +239,6 @@ class ThemeService:
             return False
 
     def _start_system_theme_monitoring(self):
-        """Start monitoring system theme changes."""
         if self._system_theme_thread is not None:
             return
 
@@ -266,7 +258,6 @@ class ThemeService:
             self._system_theme_thread = None
 
     def _stop_system_theme_monitoring(self):
-        """Stop monitoring system theme changes."""
         if self._system_theme_thread is None:
             return
 
@@ -280,7 +271,6 @@ class ThemeService:
             logger.error(f"Error stopping system theme monitoring: {e}")
 
     def _on_system_theme_changed(self, system_theme: str):
-        """Handle system theme change event."""
         try:
             logger.info(f"System theme changed to: {system_theme}")
             # Notify all registered callbacks
@@ -289,7 +279,6 @@ class ThemeService:
             logger.error(f"Error handling system theme change: {e}")
 
     def shutdown(self):
-        """Cleanup and shutdown the theme service."""
         try:
             self._stop_system_theme_monitoring()
         except Exception as e:
