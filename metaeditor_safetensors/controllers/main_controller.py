@@ -11,6 +11,7 @@ from ..services.config_service import ConfigService
 from ..services.file_workflow import FileWorkflow, LoadResult
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
+from ..services.status_message_service import StatusMessageService
 from ..services.theme_service import ThemeService
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
@@ -30,6 +31,7 @@ class MainController(QObject):
         safetensors_service: SafetensorsService,
         theme_service: ThemeService,
         modelspec_service: ModelSpecService,
+        status_message_service: StatusMessageService,
     ):
         super().__init__()
         self._model = model
@@ -38,6 +40,7 @@ class MainController(QObject):
         self._safetensor_service = safetensors_service
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
+        self._status_messages = status_message_service
 
         self._binding_service = WidgetBindingService(
             self._model, build_main_view_bindings(self._view.ui)
@@ -49,7 +52,11 @@ class MainController(QObject):
             self._config_service,
         )
 
-        self._thumbnail_controller = ThumbnailController(self._model, self._view)
+        self._thumbnail_controller = ThumbnailController(
+            self._model,
+            self._view,
+            self._status_messages,
+        )
 
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
@@ -102,7 +109,9 @@ class MainController(QObject):
     def run(self):
         self._view.show()
         self._view.set_all_fields_enabled(False)
-        self._view.set_status_message("Ready. Please open a safetensors file to begin.")
+        self._status_messages.info(
+            "Ready. Please open a safetensors file to begin.", timeout_ms=None
+        )
 
         self._on_recent_files_changed(self._config_service.get_recent_files())
 
@@ -129,7 +138,7 @@ class MainController(QObject):
     def _handle_load_result(self, result: LoadResult) -> None:
         if result.success:
             self.update_view()
-            self._view.set_status_message(result.message, 5000)
+            self._status_messages.success(result.message)
             return
 
         if result.error:
@@ -137,13 +146,13 @@ class MainController(QObject):
 
         self._file_workflow.clear_current_file()
         self.update_view()
-        self._view.set_status_message(result.message)
+        self._status_messages.error(result.message)
 
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
         # Check if file still exists
         if not os.path.exists(filepath):
-            self._view.set_status_message(f"File no longer exists: {filepath}")
+            self._status_messages.warning(f"File no longer exists: {filepath}")
             # Remove from recent files list
             self._config_service.remove_recent_file(filepath)
             return
@@ -153,11 +162,12 @@ class MainController(QObject):
     @Slot()
     def on_clear_recent_requested(self):
         self._config_service.clear_recent_files()
-        self._view.set_status_message("Recent files cleared.", 3000)
+        self._status_messages.info("Recent files cleared.")
 
+    # TODO: Rework settings, make it a real thing instead of a stub
     def on_settings_requested(self):
         if not self._theme_service:
-            self._view.set_status_message("Theme service not available", 3000)
+            self._status_messages.warning("Theme service not available")
             return
 
         # Create and configure settings dialog
@@ -171,11 +181,11 @@ class MainController(QObject):
         result = settings_dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            self._view.set_status_message("Settings saved successfully", 2000)
+            self._status_messages.success("Settings saved successfully")
 
     def on_about_requested(self):
         if not self._theme_service:
-            self._view.set_status_message("Theme service not available", 3000)
+            self._status_messages.warning("Theme service not available")
             return
 
         # Create and configure about dialog
@@ -187,7 +197,7 @@ class MainController(QObject):
     def _on_settings_theme_changed(self, theme_id: str):
         success = self._theme_service.apply_theme(theme_id)
         if success:
-            self._view.set_status_message(f"Theme changed to: {theme_id}", 2000)
+            self._status_messages.success(f"Theme changed to: {theme_id}")
 
     def _on_recent_files_changed(self, recent_files: List[str]):
         self._view.update_recent_files_menu(recent_files)
@@ -228,11 +238,11 @@ class MainController(QObject):
     @Slot()
     def on_save_requested(self):
         if not self._file_workflow.current_file:
-            self._view.set_status_message("Please open a file first.")
+            self._status_messages.warning("Please open a file first.")
             return
 
         if not self._model.is_dirty():
-            self._view.set_status_message("No changes to save.")
+            self._status_messages.info("No changes to save.")
             return
 
         dispatch = self._file_workflow.save(
@@ -242,17 +252,17 @@ class MainController(QObject):
         )
 
         if not dispatch.started:
-            self._view.set_status_message(dispatch.message)
+            self._status_messages.error(dispatch.message)
             return
 
         self._view.set_all_fields_enabled(False)
         self._view.show_progress_bar()
-        self._view.set_status_message(dispatch.message)
+        self._status_messages.info(dispatch.message)
 
     @Slot()
     def on_save_as_requested(self):
         if not self._model.get_all_data():
-            self._view.set_status_message("Please open a file first.")
+            self._status_messages.warning("Please open a file first.")
             return
 
         initial_dir = ""
@@ -280,25 +290,25 @@ class MainController(QObject):
         )
 
         if not dispatch.started:
-            self._view.set_status_message(dispatch.message)
+            self._status_messages.error(dispatch.message)
             return
 
         self._view.set_all_fields_enabled(False)
         self._view.show_progress_bar()
-        self._view.set_status_message(dispatch.message)
+        self._status_messages.info(dispatch.message)
 
     def _on_save_progress(self, progress: int):
         self._view.set_progress_value(progress)
 
     def _on_save_success(self, filepath: str):
-        self._view.set_status_message(f"Successfully saved to {filepath}", 5000)
+        self._status_messages.success(f"Successfully saved to {filepath}")
         self._model.mark_saved()
         self.update_view()
         self._view.set_all_fields_enabled(True)
         self._view.hide_progress_bar()
 
     def _on_save_error(self, error_message: str):
-        self._view.set_status_message(f"Save failed: {error_message}")
+        self._status_messages.error(f"Save failed: {error_message}")
         self._view.set_all_fields_enabled(True)
         self._view.hide_progress_bar()
 

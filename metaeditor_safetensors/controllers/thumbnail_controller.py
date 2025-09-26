@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
@@ -7,6 +7,7 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication, QFileDialog, QWidget
 
 from ..models.metadata import ChangeSource, Metadata
+from ..services.status_message_service import StatusMessageService
 from ..services.utility import data_uri_to_pixmap, filepath_to_data_uri
 from ..views.thumbnail_dialog import ThumbnailDialog
 
@@ -21,6 +22,7 @@ class ThumbnailController(QObject):
         self,
         metadata: Metadata,
         view: MainView,
+        status_messages: StatusMessageService,
         *,
         file_dialog_getter: Callable[..., tuple[str, str]] | None = None,
         dialog_factory: DialogFactory = ThumbnailDialog,
@@ -28,6 +30,7 @@ class ThumbnailController(QObject):
         super().__init__()
         self._metadata = metadata
         self._view = view
+        self._status_messages = status_messages
         self._get_open_file_name = file_dialog_getter or QFileDialog.getOpenFileName
         self._dialog_factory = dialog_factory
 
@@ -49,18 +52,18 @@ class ThumbnailController(QObject):
         self._metadata.set_value(
             "modelspec.thumbnail", "", source=ChangeSource.PROGRAMMATIC
         )
-        self._view.set_status_message("Thumbnail cleared.", 3000)
+        self._status_messages.info("Thumbnail cleared.")
 
     @Slot()
     def on_view_thumbnail_requested(self) -> None:
         data_uri = self._metadata.get_value("modelspec.thumbnail")
         if not data_uri:
-            self._view.set_status_message("No thumbnail to view.")
+            self._status_messages.info("No thumbnail to view.")
             return
 
         pixmap = data_uri_to_pixmap(data_uri)
         if pixmap is None or pixmap.isNull():
-            self._view.set_status_message("Invalid or empty thumbnail image.")
+            self._status_messages.warning("Invalid or empty thumbnail image.")
             return
 
         dialog = self._dialog_factory(pixmap, self._view)
@@ -81,9 +84,9 @@ class ThumbnailController(QObject):
                 data_uri,
                 source=ChangeSource.PROGRAMMATIC,
             )
-            self._view.set_status_message("Thumbnail set.", 3000)
+            self._status_messages.success("Thumbnail set.")
         except Exception as exc:  # pragma: no cover - defensive
-            self._view.set_status_message(f"Error setting thumbnail: {exc}")
+            self._status_messages.error(f"Error setting thumbnail: {exc}")
 
     def _center_dialog(self, dialog: ThumbnailDialog) -> None:
         main_geometry = self._view.geometry()

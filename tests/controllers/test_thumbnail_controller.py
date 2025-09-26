@@ -4,6 +4,11 @@ import pytest
 
 from metaeditor_safetensors.controllers.thumbnail_controller import ThumbnailController
 from metaeditor_safetensors.models.metadata import ChangeSource, Metadata
+from metaeditor_safetensors.services.status_message_service import (
+    StatusLevel,
+    StatusMessage,
+    StatusMessageService,
+)
 from metaeditor_safetensors.views.thumbnail_dialog import ThumbnailDialog
 
 
@@ -52,11 +57,7 @@ class DummyDialog:
 
 class DummyView:
     def __init__(self):
-        self.messages: list[tuple[str, int]] = []
         self._geometry = DummyGeometry()
-
-    def set_status_message(self, message: str, timeout: int = 0):
-        self.messages.append((message, timeout))
 
     def geometry(self):
         return self._geometry
@@ -72,98 +73,129 @@ def view():
     return DummyView()
 
 
-def test_set_thumbnail_uses_dialog_and_updates_metadata(metadata, view, mocker):
+@pytest.fixture
+def status_service():
+    service = StatusMessageService()
+    messages: list[StatusMessage] = []
+    service.add_listener(messages.append)
+    return service, messages
+
+
+def test_set_thumbnail_uses_dialog_and_updates_metadata(
+    metadata, view, status_service, mocker
+):
     mocker.patch(
         "metaeditor_safetensors.controllers.thumbnail_controller.filepath_to_data_uri",
         return_value="data-uri",
     )
+    service, messages = status_service
     controller = ThumbnailController(
         metadata,
         view,
+        service,
         file_dialog_getter=lambda *_, **__: ("image.png", ""),
     )
 
     controller.on_set_thumbnail_requested()
 
     assert metadata.get_value("modelspec.thumbnail") == "data-uri"
-    assert view.messages[-1] == ("Thumbnail set.", 3000)
+    assert messages[-1].text == "Thumbnail set."
+    assert messages[-1].timeout_ms == 3000
+    assert messages[-1].level == StatusLevel.SUCCESS
 
 
-def test_set_thumbnail_handles_dialog_cancel(metadata, view):
+def test_set_thumbnail_handles_dialog_cancel(metadata, view, status_service):
+    service, messages = status_service
     controller = ThumbnailController(
         metadata,
         view,
+        service,
         file_dialog_getter=lambda *_, **__: ("", ""),
     )
 
     controller.on_set_thumbnail_requested()
 
     assert metadata.get_value("modelspec.thumbnail") in (None, "")
-    assert view.messages == []
+    assert messages == []
 
 
-def test_set_thumbnail_reports_errors(metadata, view, mocker):
+def test_set_thumbnail_reports_errors(metadata, view, status_service, mocker):
     mocker.patch(
         "metaeditor_safetensors.controllers.thumbnail_controller.filepath_to_data_uri",
         side_effect=ValueError("bad image"),
     )
+    service, messages = status_service
     controller = ThumbnailController(
         metadata,
         view,
+        service,
         file_dialog_getter=lambda *_, **__: ("broken.png", ""),
     )
 
     controller.on_set_thumbnail_requested()
 
     assert metadata.get_value("modelspec.thumbnail") in (None, "")
-    assert view.messages[-1][0].startswith("Error setting thumbnail")
+    assert messages[-1].text.startswith("Error setting thumbnail")
+    assert messages[-1].level == StatusLevel.ERROR
 
 
-def test_clear_thumbnail(metadata, view):
+def test_clear_thumbnail(metadata, view, status_service):
     metadata.set_value("modelspec.thumbnail", "data", source=ChangeSource.PROGRAMMATIC)
-    controller = ThumbnailController(metadata, view)
+    service, messages = status_service
+    controller = ThumbnailController(metadata, view, service)
 
     controller.on_clear_thumbnail_requested()
 
     assert metadata.get_value("modelspec.thumbnail") == ""
-    assert view.messages[-1] == ("Thumbnail cleared.", 3000)
+    assert messages[-1].text == "Thumbnail cleared."
+    assert messages[-1].timeout_ms == 3000
+    assert messages[-1].level == StatusLevel.INFO
 
 
-def test_thumbnail_drop_delegates_to_set(metadata, view, mocker):
+def test_thumbnail_drop_delegates_to_set(metadata, view, status_service, mocker):
     mocker.patch(
         "metaeditor_safetensors.controllers.thumbnail_controller.filepath_to_data_uri",
         return_value="drop-uri",
     )
-    controller = ThumbnailController(metadata, view)
+    service, messages = status_service
+    controller = ThumbnailController(metadata, view, service)
 
     controller.on_thumbnail_dropped("drop.png")
 
     assert metadata.get_value("modelspec.thumbnail") == "drop-uri"
-    assert view.messages[-1] == ("Thumbnail set.", 3000)
+    assert messages[-1].text == "Thumbnail set."
+    assert messages[-1].timeout_ms == 3000
+    assert messages[-1].level == StatusLevel.SUCCESS
 
 
-def test_view_thumbnail_without_data(metadata, view):
-    controller = ThumbnailController(metadata, view)
+def test_view_thumbnail_without_data(metadata, view, status_service):
+    service, messages = status_service
+    controller = ThumbnailController(metadata, view, service)
 
     controller.on_view_thumbnail_requested()
 
-    assert view.messages[-1] == ("No thumbnail to view.", 0)
+    assert messages[-1].text == "No thumbnail to view."
+    assert messages[-1].timeout_ms == 0
+    assert messages[-1].level == StatusLevel.INFO
 
 
-def test_view_thumbnail_with_invalid_pixmap(metadata, view, mocker):
+def test_view_thumbnail_with_invalid_pixmap(metadata, view, status_service, mocker):
     metadata.set_value("modelspec.thumbnail", "data", source=ChangeSource.PROGRAMMATIC)
     mocker.patch(
         "metaeditor_safetensors.controllers.thumbnail_controller.data_uri_to_pixmap",
         return_value=None,
     )
-    controller = ThumbnailController(metadata, view)
+    service, messages = status_service
+    controller = ThumbnailController(metadata, view, service)
 
     controller.on_view_thumbnail_requested()
 
-    assert view.messages[-1] == ("Invalid or empty thumbnail image.", 0)
+    assert messages[-1].text == "Invalid or empty thumbnail image."
+    assert messages[-1].timeout_ms == 0
+    assert messages[-1].level == StatusLevel.WARNING
 
 
-def test_view_thumbnail_opens_dialog(metadata, view, mocker):
+def test_view_thumbnail_opens_dialog(metadata, view, status_service, mocker):
     metadata.set_value("modelspec.thumbnail", "data", source=ChangeSource.PROGRAMMATIC)
     pixmap = mocker.Mock()
     pixmap.isNull.return_value = False
@@ -186,9 +218,11 @@ def test_view_thumbnail_opens_dialog(metadata, view, mocker):
         created_dialogs.append(dlg)
         return cast(ThumbnailDialog, dlg)
 
+    service, messages = status_service
     controller = ThumbnailController(
         metadata,
         view,
+        service,
         dialog_factory=dialog_factory,
     )
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import QMainWindow, QWidget
 
 from ..layouts.main_ui_layout import Ui_EditorPanel
 from ..models.modelspec import ModelType
+from ..services.status_message_service import StatusMessage, StatusMessageService
 from ..widgets.status_widget import StatusWidget
 
 logger = logging.getLogger(__name__)
@@ -36,11 +39,12 @@ class MainView(QMainWindow):
     view_thumbnail_requested = Signal()
     thumbnail_dropped = Signal(str)
 
-    def __init__(self, config_service):
+    def __init__(self, config_service, status_message_service: StatusMessageService):
         super().__init__()
 
         # Store config service reference
         self._config_service = config_service
+        self._status_messages = status_message_service
 
         # Set window size from config
         width, height = self._config_service.get_window_size()
@@ -59,6 +63,7 @@ class MainView(QMainWindow):
 
         self._setup_type_combobox()
         self._setup_status_bar()
+        self._status_messages.add_listener(self._on_status_message)
         self._connect_signals()
 
     def _setup_window_properties(self):
@@ -195,8 +200,13 @@ class MainView(QMainWindow):
     def set_window_title(self, title: str):
         super().setWindowTitle(title)
 
-    def set_status_message(self, message: str, timeout: int = 0):
-        self.statusBar().showMessage(message, timeout)
+    def _on_status_message(self, status_message: StatusMessage) -> None:
+        timeout = 0 if status_message.timeout_ms is None else status_message.timeout_ms
+        self.set_status_message(status_message.text, timeout)
+
+    def set_status_message(self, message: str, timeout: int | None = 0):
+        resolved_timeout = 0 if timeout is None else timeout
+        self.statusBar().showMessage(message, resolved_timeout)
 
     def show_progress_bar(self):
         self.ui.progress_bar.setValue(0)
@@ -259,4 +269,5 @@ class MainView(QMainWindow):
         # Save current window size
         geometry = self.geometry()
         self._config_service.set_window_size(geometry.width(), geometry.height())
+        self._status_messages.remove_listener(self._on_status_message)
         super().closeEvent(event)

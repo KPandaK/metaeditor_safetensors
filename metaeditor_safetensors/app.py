@@ -10,6 +10,7 @@ from .models.metadata import Metadata
 from .services.config_service import ConfigService
 from .services.modelspec_service import ModelSpecService
 from .services.safetensors_service import SafetensorsService
+from .services.status_message_service import StatusMessageService
 from .services.theme_service import ThemeService
 from .views.main_view import MainView
 
@@ -35,6 +36,7 @@ def main():
     # Instantiate services.
     config_service = ConfigService()
     safetensors_service = SafetensorsService()
+    status_message_service = StatusMessageService()
 
     # Instantiate the MVC components.
     model = Metadata()
@@ -48,7 +50,7 @@ def main():
         lambda theme: app.setStyleSheet(theme.get_qss())
     )
 
-    view = MainView(config_service)
+    view = MainView(config_service, status_message_service)
     controller = MainController(
         model,
         view,
@@ -56,6 +58,7 @@ def main():
         safetensors_service,
         theme_service,
         modelspec_service,
+        status_message_service,
     )
 
     # Run the application.
