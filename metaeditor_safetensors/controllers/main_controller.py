@@ -3,8 +3,10 @@ import os
 from typing import List, Optional
 
 from PySide6.QtCore import QObject, Slot
+from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
+from .. import resources_rc
 from ..models.metadata import ChangeSource, Metadata
 from ..models.modelspec import ModelSpec
 from ..services.config_service import ConfigService
@@ -12,12 +14,12 @@ from ..services.model_detection_service import ModelDetectionService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
-from ..services.utility import ModelType, data_uri_to_pixmap, filepath_to_data_uri
+from ..services.utility import ModelType, filepath_to_data_uri
 from ..services.widget_binding_service import WidgetBindingService
-from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
-from ..views.thumbnail_dialog import ThumbnailDialog
+from .qml_about_dialog import QmlAboutDialog
+from .qml_thumbnail_dialog import QmlThumbnailDialog
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,9 @@ class MainController(QObject):
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
         self._current_file = None
+
+        # Shared QML engine for all QML components
+        self._qml_engine = QQmlApplicationEngine()
 
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
@@ -184,14 +189,7 @@ class MainController(QObject):
             self._view.set_status_message("Settings saved successfully", 2000)
 
     def on_about_requested(self):
-        if not self._theme_service:
-            self._view.set_status_message("Theme service not available", 3000)
-            return
-
-        # Create and configure about dialog
-        about_dialog = AboutDialog(self._theme_service, self._view)
-
-        # Show dialog
+        about_dialog = QmlAboutDialog(self._qml_engine, self._view, self._theme_service)
         about_dialog.exec()
 
     def _on_settings_theme_changed(self, theme_id: str):
@@ -269,39 +267,8 @@ class MainController(QObject):
     def on_view_thumbnail_requested(self):
         data_uri = self._model.get_value("modelspec.thumbnail")
         if data_uri:
-            pixmap = data_uri_to_pixmap(data_uri)
-            if pixmap and not pixmap.isNull():
-                dialog = ThumbnailDialog(pixmap, self._view)
-
-                # Center the dialog over the main window
-                main_window_geometry = self._view.geometry()
-                dialog_geometry = dialog.geometry()
-                x = int(
-                    main_window_geometry.x()
-                    + (main_window_geometry.width() - dialog_geometry.width()) / 2
-                )
-                y = int(
-                    main_window_geometry.y()
-                    + (main_window_geometry.height() - dialog_geometry.height()) / 2
-                )
-
-                # Ensure the dialog is not off-screen
-                screen_geometry = QApplication.primaryScreen().availableGeometry()
-                if x < screen_geometry.x():
-                    x = screen_geometry.x()
-                if y < screen_geometry.y():
-                    y = screen_geometry.y()
-                if x + dialog_geometry.width() > screen_geometry.right():
-                    x = screen_geometry.right() - dialog_geometry.width()
-                if y + dialog_geometry.height() > screen_geometry.bottom():
-                    y = screen_geometry.bottom() - dialog_geometry.height()
-
-                dialog.move(int(x), int(y))
-                dialog.exec()
-            else:
-                self._view.set_status_message("Invalid or empty thumbnail image.")
-        else:
-            self._view.set_status_message("No thumbnail to view.")
+            dialog = QmlThumbnailDialog(self._qml_engine, self._view, data_uri)
+            dialog.exec()
 
     @Slot()
     def on_save_requested(self):
