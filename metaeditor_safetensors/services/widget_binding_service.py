@@ -9,7 +9,6 @@ from ..models.metadata import ChangeSource, Metadata
 from ..models.modelspec import ModelType
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class BindingType(Enum):

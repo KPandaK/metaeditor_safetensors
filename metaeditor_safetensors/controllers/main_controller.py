@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Optional
+from typing import List
 
 from PySide6.QtCore import QObject, Slot
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
@@ -8,7 +8,6 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 from ..bindings.main_view_bindings import build_main_view_bindings
 from ..models.metadata import ChangeSource, Metadata
 from ..services.config_service import ConfigService
-from ..services.model_detection_service import ModelDetectionService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
@@ -18,14 +17,12 @@ from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
 from ..views.thumbnail_dialog import ThumbnailDialog
+from ..workflows.file_workflow import FileWorkflow, LoadResult
 
 logger = logging.getLogger(__name__)
 
 
 class MainController(QObject):
-    # Type annotations for instance attributes
-    _current_file: Optional[str]
-
     def __init__(
         self,
         model: Metadata,
@@ -42,10 +39,15 @@ class MainController(QObject):
         self._safetensor_service = safetensors_service
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
-        self._current_file = None
 
         self._binding_service = WidgetBindingService(
             self._model, build_main_view_bindings(self._view.ui)
+        )
+
+        self._file_workflow = FileWorkflow(
+            self._model,
+            self._safetensor_service,
+            self._config_service,
         )
 
         # Register for recent files changes
@@ -110,48 +112,20 @@ class MainController(QObject):
         if filepath:
             self._load_file(filepath)
 
-    def _load_file(self, filepath: str):
-        self._current_file = filepath
-        try:
-            self._view.set_status_message(f"Reading metadata from {filepath}...")
-            metadata = self._safetensor_service.read_metadata(filepath)
-            self._model.load_data(metadata)
+    def _load_file(self, filepath: str) -> None:
+        result = self._file_workflow.load_file(filepath)
+        self._handle_load_result(result)
 
-            # Auto-detect model type
-            self._initialize_model_type()
-
+    def _handle_load_result(self, result: LoadResult) -> None:
+        if result.success:
             self.update_view()
-            self._view.set_status_message(f"Loaded file: {filepath}", 5000)
-
-            # Add to recent files
-            self._config_service.add_recent_file(filepath)
-
-        except Exception as e:
-            self._view.set_status_message(f"Error loading file: {e}")
-            self._current_file = None
-            self._model.load_data({})
-            self.update_view()
-
-    def _initialize_model_type(self):
-        # Check if model type is already set
-        model_type = self._model.get_value("metaeditor.model_type")
-        if model_type:
-            # Model type already exists, don't override user's choice
+            self._view.set_status_message(result.message, 5000)
             return
 
-        # Use model detection service to make a best guess
-        detection_service = ModelDetectionService()
-
-        # Try to detect based on existing metadata fields
-        detected_type = detection_service.detect_model_type(self._model.get_all_data())
-
-        # Set the model type as a programmatic change (not user change)
-        self._model.set_value(
-            "metaeditor.model_type",
-            detected_type.value,
-            source=ChangeSource.PROGRAMMATIC,
-        )
-        logger.info(f"Auto-detected model type: {detected_type.value}")
+        if result.error:
+            logger.error("Failed to load file: %s", result.error)
+        self.update_view()
+        self._view.set_status_message(result.message)
 
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
@@ -229,8 +203,8 @@ class MainController(QObject):
         is_dirty = self._model.is_dirty()
         title = ""
 
-        if self._current_file:
-            filename = os.path.basename(self._current_file)
+        if self._file_workflow.current_file:
+            filename = os.path.basename(self._file_workflow.current_file)
             title += f"{filename}"
 
         # Show dirty indicator if there are unsaved changes
@@ -247,17 +221,18 @@ class MainController(QObject):
             "",
             "Image Files (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp *.svg *.ico);;All Files (*)",
         )
-        if filepath:
-            try:
-                self._model.set_value(
-                    "modelspec.thumbnail",
-                    filepath_to_data_uri(filepath),
-                    source=ChangeSource.PROGRAMMATIC,
-                )
+        if not filepath:
+            return
 
-                self._view.set_status_message("Thumbnail set.", 3000)
-            except Exception as e:
-                self._view.set_status_message(f"Error setting thumbnail: {e}")
+        try:
+            self._model.set_value(
+                "modelspec.thumbnail",
+                filepath_to_data_uri(filepath),
+                source=ChangeSource.PROGRAMMATIC,
+            )
+            self._view.set_status_message("Thumbnail set.", 3000)
+        except Exception as exc:
+            self._view.set_status_message(f"Error setting thumbnail: {exc}")
 
     @Slot()
     def on_clear_thumbnail_requested(self):
@@ -307,7 +282,7 @@ class MainController(QObject):
 
     @Slot()
     def on_save_requested(self):
-        if not self._current_file:
+        if not self._file_workflow.current_file:
             self._view.set_status_message("Please open a file first.")
             return
 
@@ -323,11 +298,11 @@ class MainController(QObject):
         # Disable UI elements during save
         self._view.set_all_fields_enabled(False)
         self._view.show_progress_bar()
-        self._view.set_status_message(f"Saving {self._current_file}...")
+        self._view.set_status_message(f"Saving {self._file_workflow.current_file}...")
 
         # Start async save operation
         success = self._safetensor_service.write_metadata_async(
-            filepath=self._current_file,
+            filepath=self._file_workflow.current_file,
             metadata=self._model.get_all_data(),
             progress_callback=self._on_save_progress,
             success_callback=self._on_save_success,
@@ -345,12 +320,10 @@ class MainController(QObject):
             self._view.set_status_message("Please open a file first.")
             return
 
-        # Get the directory of current file (if any) for initial dialog location
         initial_dir = ""
-        if self._current_file:
-            initial_dir = os.path.dirname(self._current_file)
+        if self._file_workflow.current_file:
+            initial_dir = os.path.dirname(self._file_workflow.current_file)
 
-        # Show save file dialog
         filepath, _ = QFileDialog.getSaveFileName(
             self._view,
             "Save As",
@@ -359,29 +332,21 @@ class MainController(QObject):
         )
 
         if not filepath:
-            return  # User cancelled dialog
+            return
 
-        # Ensure file has .safetensors extension
         if not filepath.lower().endswith(".safetensors"):
             filepath += ".safetensors"
 
-        # Prevent multiple save operations
         if self._safetensor_service.is_saving():
             self._view.set_status_message("Save operation already in progress.")
             return
 
-        # Store the original file path as source for Save As operation
-        source_file = self._current_file
+        source_file = self._file_workflow.current_file
 
-        # Update current file path to new location
-        self._current_file = filepath
-
-        # Disable UI elements during save
         self._view.set_all_fields_enabled(False)
         self._view.show_progress_bar()
         self._view.set_status_message(f"Saving to {filepath}...")
 
-        # Start async save operation
         success = self._safetensor_service.write_metadata_async(
             filepath=filepath,
             metadata=self._model.get_all_data(),
@@ -397,10 +362,9 @@ class MainController(QObject):
             self._view.hide_progress_bar()
 
     def _on_save_as_success(self, filepath: str):
-        self._on_save_success(filepath)
-
-        # Add new file to recent files
+        self._file_workflow.current_file = filepath
         self._config_service.add_recent_file(filepath)
+        self._on_save_success(filepath)
 
     def _on_save_progress(self, progress: int):
         self._view.set_progress_value(progress)
@@ -434,8 +398,8 @@ class MainController(QObject):
         is_dirty = self._model.is_dirty()
         title = ""
 
-        if self._current_file:
-            filename = os.path.basename(self._current_file)
+        if self._file_workflow.current_file:
+            filename = os.path.basename(self._file_workflow.current_file)
             title += f"{filename}"
 
         # Show dirty indicator if there are unsaved changes
@@ -447,4 +411,4 @@ class MainController(QObject):
         self._binding_service.initialize_widgets()
 
         # Enable fields only if a file is loaded
-        self._view.set_all_fields_enabled(self._current_file is not None)
+        self._view.set_all_fields_enabled(self._file_workflow.current_file is not None)
