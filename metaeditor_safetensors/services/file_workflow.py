@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, Signal, Slot
 
 from ..models.metadata import Metadata
 from .config_service import ConfigService
@@ -28,7 +28,16 @@ class SaveDispatch:
     filepath: Optional[str] = None
 
 
+@dataclass
+class PreparedCallbacks:
+    progress: Optional[Callable[[int], None]]
+    success: Callable[[str], None]
+    error: Optional[Callable[[str], None]]
+
+
 class FileWorkflow(QObject):
+    _invoke_signal = Signal(object)
+
     def __init__(
         self,
         metadata: Metadata,
@@ -44,6 +53,7 @@ class FileWorkflow(QObject):
             model_detection_service or ModelDetectionService()
         )
         self._current_file: Optional[str] = None
+        self._invoke_signal.connect(self._execute_on_main)
 
     @property
     def current_file(self) -> Optional[str]:
@@ -81,35 +91,24 @@ class FileWorkflow(QObject):
         success_callback: Callable[[str], None],
         error_callback: Callable[[str], None],
     ) -> SaveDispatch:
-        if not self._current_file:
-            return SaveDispatch(started=False, message="Please open a file first.")
+        guard = self._ensure_ready(require_current_file=True)
+        if guard:
+            return guard
 
-        if self._safetensors.is_saving():
-            return SaveDispatch(
-                started=False, message="Save operation already in progress."
-            )
+        assert self._current_file is not None
 
-        def wrapped_success(filepath: str) -> None:
-            self._config_service.add_recent_file(filepath)
-            success_callback(filepath)
-
-        started = self._safetensors.write_metadata_async(
-            filepath=self._current_file,
-            metadata=self._metadata.get_all_data(),
-            progress_callback=progress_callback,
-            success_callback=wrapped_success,
-            error_callback=error_callback,
+        callbacks = self._prepare_callbacks(
+            progress_cb=progress_callback,
+            success_cb=success_callback,
+            error_cb=error_callback,
+            success_actions=(self._config_service.add_recent_file,),
         )
 
-        if not started:
-            return SaveDispatch(
-                started=False, message="Save operation already in progress."
-            )
-
-        return SaveDispatch(
-            started=True,
-            message=f"Saving {self._current_file}...",
-            filepath=self._current_file,
+        return self._start_save(
+            target_path=self._current_file,
+            callbacks=callbacks,
+            source_path=None,
+            started_message=f"Saving {self._current_file}...",
         )
 
     def save_as(
@@ -119,23 +118,98 @@ class FileWorkflow(QObject):
         success_callback: Callable[[str], None],
         error_callback: Callable[[str], None],
     ) -> SaveDispatch:
+        guard = self._ensure_ready(require_current_file=False)
+        if guard:
+            return guard
+
+        callbacks = self._prepare_callbacks(
+            progress_cb=progress_callback,
+            success_cb=success_callback,
+            error_cb=error_callback,
+            success_actions=(
+                self._update_current_file,
+                self._config_service.add_recent_file,
+            ),
+        )
+
+        return self._start_save(
+            target_path=filepath,
+            callbacks=callbacks,
+            source_path=self._current_file,
+            started_message=f"Saving to {filepath}...",
+        )
+
+    @Slot(object)
+    def _execute_on_main(self, fn: Callable[[], None]) -> None:
+        fn()
+
+    def _dispatch(self, fn: Optional[Callable[[], None]]) -> None:
+        if fn is None:
+            return
+        self._invoke_signal.emit(fn)
+
+    def _ensure_ready(self, *, require_current_file: bool) -> Optional[SaveDispatch]:
+        if require_current_file and not self._current_file:
+            return SaveDispatch(started=False, message="Please open a file first.")
+
         if self._safetensors.is_saving():
             return SaveDispatch(
                 started=False, message="Save operation already in progress."
             )
 
-        def wrapped_success(completed_path: str) -> None:
-            self._current_file = completed_path
-            self._config_service.add_recent_file(completed_path)
-            success_callback(completed_path)
+        return None
 
+    def _prepare_callbacks(
+        self,
+        *,
+        progress_cb: Optional[Callable[[int], None]],
+        success_cb: Callable[[str], None],
+        error_cb: Optional[Callable[[str], None]],
+        success_actions: Tuple[Callable[[str], None], ...] = (),
+    ) -> PreparedCallbacks:
+        progress: Optional[Callable[[int], None]] = None
+        if progress_cb:
+
+            def progress_wrapper(value: int, cb=progress_cb) -> None:
+                self._dispatch(lambda: cb(value))
+
+            progress = progress_wrapper
+
+        actions: Tuple[Callable[[str], None], ...] = success_actions or tuple()
+
+        def success(filepath: str, cb=success_cb, actions=actions) -> None:
+            def runner() -> None:
+                for action in actions:
+                    action(filepath)
+                cb(filepath)
+
+            self._dispatch(runner)
+
+        error: Optional[Callable[[str], None]] = None
+        if error_cb:
+
+            def error_wrapper(message: str, cb=error_cb) -> None:
+                self._dispatch(lambda: cb(message))
+
+            error = error_wrapper
+
+        return PreparedCallbacks(progress=progress, success=success, error=error)
+
+    def _start_save(
+        self,
+        *,
+        target_path: str,
+        callbacks: PreparedCallbacks,
+        source_path: Optional[str],
+        started_message: str,
+    ) -> SaveDispatch:
         started = self._safetensors.write_metadata_async(
-            filepath=filepath,
+            filepath=target_path,
             metadata=self._metadata.get_all_data(),
-            progress_callback=progress_callback,
-            success_callback=wrapped_success,
-            error_callback=error_callback,
-            source_filepath=self._current_file,
+            progress_callback=callbacks.progress,
+            success_callback=callbacks.success,
+            error_callback=callbacks.error,
+            source_filepath=source_path,
         )
 
         if not started:
@@ -145,9 +219,12 @@ class FileWorkflow(QObject):
 
         return SaveDispatch(
             started=True,
-            message=f"Saving to {filepath}...",
-            filepath=filepath,
+            message=started_message,
+            filepath=target_path,
         )
+
+    def _update_current_file(self, filepath: str) -> None:
+        self._current_file = filepath
 
     def _auto_detect_model_type(self) -> None:
         model_type_value = self._metadata.get_value("metaeditor.model_type")

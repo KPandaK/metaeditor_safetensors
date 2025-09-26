@@ -8,8 +8,6 @@ from ..services.widget_binding_service import (
     FieldBinding,
     datetime_to_iso_string,
     iso_string_to_datetime,
-    model_type_to_string,
-    string_to_model_type,
     string_to_tags,
     tags_to_string,
 )
@@ -30,8 +28,6 @@ def build_main_view_bindings(ui: Any) -> List[FieldBinding]:
             "currentText",
             "setCurrentText",
             "currentTextChanged",
-            to_metadata_converter=string_to_model_type,
-            from_metadata_converter=model_type_to_string,
         ),
         FieldBinding(
             "modelspec.description",

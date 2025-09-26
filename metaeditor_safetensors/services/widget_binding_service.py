@@ -143,20 +143,6 @@ def iso_string_to_datetime(value: Any) -> QDateTime:
     return QDateTime.currentDateTime()
 
 
-def model_type_to_string(model_type: ModelType) -> str:
-    if isinstance(model_type, ModelType):
-        return model_type.value
-    return str(model_type)
-
-
-def string_to_model_type(value: Any) -> ModelType:
-    if isinstance(value, str):
-        for model_type in ModelType:
-            if model_type.value == value:
-                return model_type
-    return ModelType.UNKNOWN
-
-
 def string_to_tags(value: Any) -> List[str]:
     if isinstance(value, str):
         return [tag.strip() for tag in value.split(",") if tag.strip()]

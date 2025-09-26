@@ -14,7 +14,6 @@ from typing import (
 
 from pydantic import BaseModel, Field, field_validator
 
-from ..services.model_detection_service import ModelDetectionService
 from ..services.utility import ModelType
 
 
