@@ -5,14 +5,14 @@ from typing import List, Optional
 from PySide6.QtCore import QObject, Slot
 from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 
+from ..bindings.main_view_bindings import build_main_view_bindings
 from ..models.metadata import ChangeSource, Metadata
-from ..models.modelspec import ModelSpec
 from ..services.config_service import ConfigService
 from ..services.model_detection_service import ModelDetectionService
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
-from ..services.utility import ModelType, data_uri_to_pixmap, filepath_to_data_uri
+from ..services.utility import data_uri_to_pixmap, filepath_to_data_uri
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
@@ -43,9 +43,10 @@ class MainController(QObject):
         self._theme_service = theme_service
         self._modelspec_service = modelspec_service
         self._current_file = None
-        self._binding_service = WidgetBindingService(self._model)
-        self._binding_service.add_bindings(self._view.get_field_bindings())
-        self._binding_service.initialize_widgets_from_metadata()
+
+        self._binding_service = WidgetBindingService(
+            self._model, build_main_view_bindings(self._view.ui)
+        )
 
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
@@ -443,7 +444,7 @@ class MainController(QObject):
 
         self._view.set_window_title(title)
 
-        self._binding_service.initialize_widgets_from_metadata()
+        self._binding_service.initialize_widgets()
 
         # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._current_file is not None)
