@@ -3,7 +3,7 @@ import os
 from typing import List
 
 from PySide6.QtCore import QObject, Slot
-from PySide6.QtWidgets import QDialog, QFileDialog
+from PySide6.QtWidgets import QFileDialog
 
 from ..bindings.main_view_bindings import build_main_view_bindings
 from ..models.metadata import ChangeSource, Metadata
@@ -12,11 +12,10 @@ from ..services.file_workflow import FileWorkflow, LoadResult
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.status_message_service import StatusMessageService
-from ..services.theme_service import ThemeService
+from ..services.theme_coordinator import ThemeCoordinator
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
-from ..views.settings_dialog import SettingsDialog
 from .thumbnail_controller import ThumbnailController
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class MainController(QObject):
         view: MainView,
         config_service: ConfigService,
         safetensors_service: SafetensorsService,
-        theme_service: ThemeService,
+        theme_coordinator: ThemeCoordinator,
         modelspec_service: ModelSpecService,
         status_message_service: StatusMessageService,
     ):
@@ -38,7 +37,7 @@ class MainController(QObject):
         self._view = view
         self._config_service = config_service
         self._safetensor_service = safetensors_service
-        self._theme_service = theme_service
+        self._theme_coordinator = theme_coordinator
         self._modelspec_service = modelspec_service
         self._status_messages = status_message_service
 
@@ -61,9 +60,6 @@ class MainController(QObject):
         # Register for recent files changes
         self._config_service.add_recent_files_observer(self._on_recent_files_changed)
 
-        # Register for theme changes
-        self._theme_service.add_theme_changed_observer(self._on_theme_changed)
-
         # Register for metadata changes to update UI
         self._model.add_observer(self._on_metadata_changed)
 
@@ -74,10 +70,6 @@ class MainController(QObject):
 
         # Connect the view's signals to the controller's slots.
         self._connect_signals()
-
-        # Apply initial theme preference
-        preferred_theme = config_service.get_theme_preference()
-        self._theme_service.apply_theme(preferred_theme)
 
     def _connect_signals(self):
         self._view.open_file_requested.connect(self.on_open_file_requested)
@@ -166,44 +158,16 @@ class MainController(QObject):
 
     # TODO: Rework settings, make it a real thing instead of a stub
     def on_settings_requested(self):
-        if not self._theme_service:
-            self._status_messages.warning("Theme service not available")
-            return
-
-        # Create and configure settings dialog
-        settings_dialog = SettingsDialog(self._view)
-        settings_dialog.set_services(self._theme_service, self._config_service)
-
-        # Connect settings dialog signals
-        settings_dialog.theme_changed.connect(self._on_settings_theme_changed)
-
-        # Show dialog
-        result = settings_dialog.exec()
-
-        if result == QDialog.DialogCode.Accepted:
-            self._status_messages.success("Settings saved successfully")
+        self._status_messages.info(
+            "Settings dialog is not available yet.", timeout_ms=3000
+        )
 
     def on_about_requested(self):
-        if not self._theme_service:
-            self._status_messages.warning("Theme service not available")
-            return
-
-        # Create and configure about dialog
-        about_dialog = AboutDialog(self._theme_service, self._view)
-
-        # Show dialog
+        about_dialog = AboutDialog(parent=self._view)
         about_dialog.exec()
-
-    def _on_settings_theme_changed(self, theme_id: str):
-        success = self._theme_service.apply_theme(theme_id)
-        if success:
-            self._status_messages.success(f"Theme changed to: {theme_id}")
 
     def _on_recent_files_changed(self, recent_files: List[str]):
         self._view.update_recent_files_menu(recent_files)
-
-    def _on_theme_changed(self, theme):
-        self._config_service.set_theme_preference(theme.config.theme_id)
 
     def _on_metadata_changed(
         self, field=None, source=ChangeSource.PROGRAMMATIC, source_widget=None
@@ -314,8 +278,8 @@ class MainController(QObject):
 
     def shutdown(self):
         self._safetensor_service.shutdown()
+        self._theme_coordinator.shutdown()
         self._config_service.remove_recent_files_observer(self._on_recent_files_changed)
-        self._theme_service.remove_theme_changed_observer(self._on_theme_changed)
         self._binding_service.clear_bindings()
         self._model.remove_observer(self._on_metadata_changed)
 

@@ -166,7 +166,6 @@ class Ui_AboutDialog(object):
         self.kofi_link.setObjectName("kofiLink")
         self.kofi_link.setMaximumSize(QSize(100, 56))
         self.kofi_link.setFrameShadow(QFrame.Shadow.Sunken)
-        self.kofi_link.setPixmap(QPixmap(":/assets/support_me.png"))
         self.kofi_link.setScaledContents(True)
         self.kofi_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self.kofi_link.setProperty("class", "clickable-image")
@@ -175,12 +174,7 @@ class Ui_AboutDialog(object):
         self.github_link = ClickableImage(about_tab)
         self.github_link.setObjectName("githubLink")
         self.github_link.setMaximumSize(QSize(163, 40))
-        self.github_link.setPixmap(QPixmap(":/assets/GitHub_Lockup_Dark.png"))
         self.github_link.setScaledContents(True)
-        self.github_link.setImages(
-            light_image_path=":/assets/GitHub_Lockup_Dark.png",
-            dark_image_path=":/assets/GitHub_Lockup_Light.png",
-        )
         self.github_link.setCursor(Qt.CursorShape.PointingHandCursor)
         self.github_link.setProperty("class", "clickable-image")
         links_layout.addWidget(self.github_link)

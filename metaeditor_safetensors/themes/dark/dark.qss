@@ -1134,3 +1134,15 @@ StatusWidget:focus {
     border: 1px solid #007acc;
     outline: none;
 }
+
+QLabel#kofiLink {
+    min-width: 100px;
+    min-height: 56px;
+    image: url(:/assets/support_me.png);
+}
+
+QLabel#githubLink {
+    min-width: 163px;
+    min-height: 40px;
+    image: url(:/assets/GitHub_Lockup_Light.png);
+}
