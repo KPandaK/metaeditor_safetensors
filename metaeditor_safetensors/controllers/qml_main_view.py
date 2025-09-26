@@ -174,10 +174,10 @@ class QmlMainView(QObject):
 
     def show(self):
         """Show the main view."""
-        if hasattr(self._window, 'show'):
+        if hasattr(self._window, "show"):
             self._window.show()
 
     def close(self):
         """Close the main view."""
-        if hasattr(self._window, 'close'):
+        if hasattr(self._window, "close"):
             self._window.close()
