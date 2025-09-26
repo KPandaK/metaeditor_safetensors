@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -54,7 +53,6 @@ class DummyDialog:
 class DummyView:
     def __init__(self):
         self.messages: list[tuple[str, int]] = []
-        self.ui = SimpleNamespace(thumbnail_display=None)
         self._geometry = DummyGeometry()
 
     def set_status_message(self, message: str, timeout: int = 0):
