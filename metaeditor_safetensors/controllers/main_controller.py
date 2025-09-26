@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QFileDialog
 from ..bindings.main_view_bindings import build_main_view_bindings
 from ..models.metadata import ChangeSource, Metadata
 from ..services.config_service import ConfigService
+from ..services.file_workflow import FileWorkflow, LoadResult
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.theme_service import ThemeService
@@ -17,7 +18,6 @@ from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
 from ..views.settings_dialog import SettingsDialog
 from ..views.thumbnail_dialog import ThumbnailDialog
-from ..workflows.file_workflow import FileWorkflow, LoadResult
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +124,8 @@ class MainController(QObject):
 
         if result.error:
             logger.error("Failed to load file: %s", result.error)
+
+        self._file_workflow.clear_current_file()
         self.update_view()
         self._view.set_status_message(result.message)
 
@@ -290,29 +292,19 @@ class MainController(QObject):
             self._view.set_status_message("No changes to save.")
             return
 
-        # Prevent multiple save operations
-        if self._safetensor_service.is_saving():
-            self._view.set_status_message("Save operation already in progress.")
-            return
-
-        # Disable UI elements during save
-        self._view.set_all_fields_enabled(False)
-        self._view.show_progress_bar()
-        self._view.set_status_message(f"Saving {self._file_workflow.current_file}...")
-
-        # Start async save operation
-        success = self._safetensor_service.write_metadata_async(
-            filepath=self._file_workflow.current_file,
-            metadata=self._model.get_all_data(),
+        dispatch = self._file_workflow.save(
             progress_callback=self._on_save_progress,
             success_callback=self._on_save_success,
             error_callback=self._on_save_error,
         )
 
-        if not success:
-            self._view.set_status_message("Save operation already in progress.")
-            self._view.set_all_fields_enabled(True)
-            self._view.hide_progress_bar()
+        if not dispatch.started:
+            self._view.set_status_message(dispatch.message)
+            return
+
+        self._view.set_all_fields_enabled(False)
+        self._view.show_progress_bar()
+        self._view.set_status_message(dispatch.message)
 
     @Slot()
     def on_save_as_requested(self):
@@ -337,34 +329,20 @@ class MainController(QObject):
         if not filepath.lower().endswith(".safetensors"):
             filepath += ".safetensors"
 
-        if self._safetensor_service.is_saving():
-            self._view.set_status_message("Save operation already in progress.")
-            return
+        dispatch = self._file_workflow.save_as(
+            filepath=filepath,
+            progress_callback=self._on_save_progress,
+            success_callback=self._on_save_success,
+            error_callback=self._on_save_error,
+        )
 
-        source_file = self._file_workflow.current_file
+        if not dispatch.started:
+            self._view.set_status_message(dispatch.message)
+            return
 
         self._view.set_all_fields_enabled(False)
         self._view.show_progress_bar()
-        self._view.set_status_message(f"Saving to {filepath}...")
-
-        success = self._safetensor_service.write_metadata_async(
-            filepath=filepath,
-            metadata=self._model.get_all_data(),
-            progress_callback=self._on_save_progress,
-            success_callback=self._on_save_as_success,
-            error_callback=self._on_save_error,
-            source_filepath=source_file,
-        )
-
-        if not success:
-            self._view.set_status_message("Save operation already in progress.")
-            self._view.set_all_fields_enabled(True)
-            self._view.hide_progress_bar()
-
-    def _on_save_as_success(self, filepath: str):
-        self._file_workflow.current_file = filepath
-        self._config_service.add_recent_file(filepath)
-        self._on_save_success(filepath)
+        self._view.set_status_message(dispatch.message)
 
     def _on_save_progress(self, progress: int):
         self._view.set_progress_value(progress)
