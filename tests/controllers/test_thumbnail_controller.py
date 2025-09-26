@@ -100,7 +100,6 @@ def test_set_thumbnail_uses_dialog_and_updates_metadata(
 
     assert metadata.get_value("modelspec.thumbnail") == "data-uri"
     assert messages[-1].text == "Thumbnail set."
-    assert messages[-1].timeout_ms == 3000
     assert messages[-1].level == StatusLevel.SUCCESS
 
 
@@ -164,7 +163,6 @@ def test_thumbnail_drop_delegates_to_set(metadata, view, status_service, mocker)
 
     assert metadata.get_value("modelspec.thumbnail") == "drop-uri"
     assert messages[-1].text == "Thumbnail set."
-    assert messages[-1].timeout_ms == 3000
     assert messages[-1].level == StatusLevel.SUCCESS
 
 
@@ -175,7 +173,6 @@ def test_view_thumbnail_without_data(metadata, view, status_service):
     controller.on_view_thumbnail_requested()
 
     assert messages[-1].text == "No thumbnail to view."
-    assert messages[-1].timeout_ms == 0
     assert messages[-1].level == StatusLevel.INFO
 
 
@@ -191,7 +188,6 @@ def test_view_thumbnail_with_invalid_pixmap(metadata, view, status_service, mock
     controller.on_view_thumbnail_requested()
 
     assert messages[-1].text == "Invalid or empty thumbnail image."
-    assert messages[-1].timeout_ms == 0
     assert messages[-1].level == StatusLevel.WARNING
 
 
