@@ -11,8 +11,7 @@ from .services.config_service import ConfigService
 from .services.modelspec_service import ModelSpecService
 from .services.safetensors_service import SafetensorsService
 from .services.status_message_service import StatusMessageService
-from .services.theme_coordinator import ThemeCoordinator
-from .services.theme_service import ThemeService
+from .services.theme_manager import ThemeManager
 from .views.main_view import MainView
 
 
@@ -46,14 +45,12 @@ def main():
     modelspec_service = ModelSpecService(model)
 
     # Initialize theme service
-    theme_service = ThemeService()
-    theme_coordinator = ThemeCoordinator(
-        theme_service,
+    theme_manager = ThemeManager(
         config_service,
         status_message_service,
     )
-    theme_coordinator.connect_app(app)
-    theme_coordinator.apply_startup_theme()
+    theme_manager.attach_app(app)
+    theme_manager.apply_startup_theme()
 
     view = MainView(config_service, status_message_service)
     controller = MainController(
@@ -61,7 +58,7 @@ def main():
         view,
         config_service,
         safetensors_service,
-        theme_coordinator,
+        theme_manager,
         modelspec_service,
         status_message_service,
     )
@@ -75,7 +72,6 @@ def main():
     finally:
         # Ensure proper cleanup before exit
         controller.shutdown()
-        theme_coordinator.shutdown()
-        theme_service.shutdown()
+        theme_manager.shutdown()
 
     sys.exit(exit_code)

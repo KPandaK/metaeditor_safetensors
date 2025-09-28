@@ -18,9 +18,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..models.theme import ThemeType
 from ..services.config_service import ConfigService
-from ..services.theme_service import ThemeService
+from ..services.theme_manager import ThemeManager, ThemeType
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
 
         # Store references
-        self._theme_service: Optional[ThemeService] = None
+        self._theme_service: Optional[ThemeManager] = None
         self._config_service: Optional[ConfigService] = None
         self._original_settings = {}
 
@@ -159,7 +158,7 @@ class SettingsDialog(QDialog):
         # Button box
         self.button_box.clicked.connect(self._on_button_clicked)
 
-    def set_services(self, theme_service: ThemeService, config_service: ConfigService):
+    def set_services(self, theme_service: ThemeManager, config_service: ConfigService):
         self._theme_service = theme_service
         self._config_service = config_service
         self._populate_theme_options()
@@ -210,7 +209,7 @@ class SettingsDialog(QDialog):
         system_theme = self._theme_service._detect_system_theme()
 
         if current_theme:
-            self.current_theme_value.setText(current_theme.config.name)
+            self.current_theme_value.setText(current_theme.name)
         else:
             self.current_theme_value.setText("Unknown")
 
@@ -239,7 +238,7 @@ class SettingsDialog(QDialog):
         if theme_identifier:
             self._theme_service.apply_theme(
                 theme_identifier.value
-            )  # Use string value for ThemeService
+            )  # Use string value for ThemeManager
             self._update_theme_info()
 
     def _get_selected_theme_identifier(self) -> Optional[ThemeType]:
@@ -269,7 +268,6 @@ class SettingsDialog(QDialog):
             self.reject()
 
     def _save_settings(self):
-        """Save the current preview settings as permanent."""
         if not self._config_service:
             return
 
@@ -277,11 +275,13 @@ class SettingsDialog(QDialog):
         if theme_identifier:
             self.theme_changed.emit(
                 theme_identifier.value
-            )  # Emit string value for ThemeService
+            )  # Emit string value for ThemeManager
             self.settings_applied.emit()
 
             # Update original settings for future cancel operations
-            self._original_settings["theme_preference"] = theme_identifier
+            self._original_settings["theme_preference"] = (
+                theme_identifier.value if theme_identifier else None
+            )
 
             logger.info(f"Saved theme preference: {theme_identifier}")
 

@@ -12,7 +12,7 @@ from ..services.file_workflow import FileWorkflow, LoadResult
 from ..services.modelspec_service import ModelSpecService
 from ..services.safetensors_service import SafetensorsService
 from ..services.status_message_service import StatusMessageService
-from ..services.theme_coordinator import ThemeCoordinator
+from ..services.theme_manager import ThemeManager
 from ..services.widget_binding_service import WidgetBindingService
 from ..views.about_dialog import AboutDialog
 from ..views.main_view import MainView
@@ -28,7 +28,7 @@ class MainController(QObject):
         view: MainView,
         config_service: ConfigService,
         safetensors_service: SafetensorsService,
-        theme_coordinator: ThemeCoordinator,
+        theme_manager: ThemeManager,
         modelspec_service: ModelSpecService,
         status_message_service: StatusMessageService,
     ):
@@ -37,7 +37,7 @@ class MainController(QObject):
         self._view = view
         self._config_service = config_service
         self._safetensor_service = safetensors_service
-        self._theme_coordinator = theme_coordinator
+        self._theme_manager = theme_manager
         self._modelspec_service = modelspec_service
         self._status_messages = status_message_service
 
@@ -278,7 +278,6 @@ class MainController(QObject):
 
     def shutdown(self):
         self._safetensor_service.shutdown()
-        self._theme_coordinator.shutdown()
         self._config_service.remove_recent_files_observer(self._on_recent_files_changed)
         self._binding_service.clear_bindings()
         self._model.remove_observer(self._on_metadata_changed)

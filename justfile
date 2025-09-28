@@ -7,8 +7,8 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 python := "poetry run python"
 rcc := "poetry run pyside6-rcc"
 
-rcc_input_path := env("RCC_INPUT_PATH")
-rcc_output_path := env("RCC_OUTPUT_PATH")
+rcc_input_path := "resources.qrc"
+rcc_output_path := "metaeditor_safetensors/resources_rc.py"
 
 default: run
 
