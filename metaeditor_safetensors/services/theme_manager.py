@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 import darkdetect
 from PySide6.QtCore import QFileSystemWatcher
@@ -129,6 +129,8 @@ class ThemeManager:
 
     def has_theme(self, theme_id: str) -> bool:
         canonical_id, _ = self._resolve_theme_identifier(theme_id)
+        if canonical_id is None:
+            return False
         return canonical_id in self._available_themes
 
     def detect_system_theme(self) -> ThemeType:
@@ -193,13 +195,6 @@ class ThemeManager:
         self, requested_id: str
     ) -> tuple[Optional[str], Optional[str]]:
         request = (requested_id or ThemeType.SYSTEM.value).lower()
-
-        alias_map = {
-            "dark": ThemeType.DARK.value,
-            "light": ThemeType.LIGHT.value,
-        }
-
-        request = alias_map.get(request, request)
 
         if request == ThemeType.SYSTEM.value:
             detected = self.detect_system_theme().value
