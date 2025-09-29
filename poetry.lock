@@ -669,7 +669,7 @@ version = "25.0"
 description = "Core utilities for Python packages"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "packaging-25.0-py3-none-any.whl", hash = "sha256:29572ef2b1f17581046b3a2227d5c611fb25ec70ca1ba8554b24b0e69331a484"},
     {file = "packaging-25.0.tar.gz", hash = "sha256:d443872c98d677bf60f6a1f2f8c1cb748e8fe762d2bf9d3148b5599295b0fc4f"},
@@ -951,7 +951,7 @@ version = "2.19.2"
 description = "Pygments is a syntax highlighting package written in Python."
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"},
     {file = "pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"},
@@ -1177,6 +1177,24 @@ files = [
 ]
 
 [[package]]
+name = "qtpy"
+version = "2.4.3"
+description = "Provides an abstraction layer on top of the various Qt bindings (PyQt5/6 and PySide2/6)."
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "QtPy-2.4.3-py3-none-any.whl", hash = "sha256:72095afe13673e017946cc258b8d5da43314197b741ed2890e563cf384b51aa1"},
+    {file = "qtpy-2.4.3.tar.gz", hash = "sha256:db744f7832e6d3da90568ba6ccbca3ee2b3b4a890c3d6fbbc63142f6e4cdf5bb"},
+]
+
+[package.dependencies]
+packaging = "*"
+
+[package.extras]
+test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
+
+[[package]]
 name = "requests"
 version = "2.32.5"
 description = "Python HTTP for Humans."
@@ -1346,6 +1364,36 @@ files = [
 ]
 
 [[package]]
+name = "superqt"
+version = "0.7.6"
+description = "Missing widgets and components for PyQt/PySide"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "superqt-0.7.6-py3-none-any.whl", hash = "sha256:6961833acd67df62b12918ded9945c5e7b17d75452c0159a121d799d65e2f0c2"},
+    {file = "superqt-0.7.6.tar.gz", hash = "sha256:822fdba71dc391929c9d3db839f78ca2a861e2f2876926f969a288dfb2a9787e"},
+]
+
+[package.dependencies]
+pygments = ">=2.4.0"
+qtpy = ">=2.4.0"
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+cmap = ["cmap (>=0.2)"]
+font-fa5 = ["fonticon-fontawesome5 (>=5.15.4)"]
+font-fa6 = ["fonticon-fontawesome6 (>=6.4.0)"]
+font-mi6 = ["fonticon-materialdesignicons6 (>=6.9.96)"]
+font-mi7 = ["fonticon-materialdesignicons7 (>=7.2.96)"]
+iconify = ["pyconify (>=0.1.4)"]
+pyqt5 = ["pyqt5 (>=5.15.10)", "pyqt5-qt5 (==5.15.2) ; sys_platform == \"win32\"", "pyqt5-qt5 (>=5.15.16) ; sys_platform != \"win32\""]
+pyqt6 = ["pyqt6 (>=6.4.0,!=6.6)", "pyqt6 (>=6.7.0) ; python_version >= \"3.12\""]
+pyside2 = ["numpy (>=1.19,<2) ; python_version < \"3.11\"", "numpy (>=1.26,<2) ; python_version >= \"3.11\" and python_version < \"3.13\"", "pyside2 (>=5.15)"]
+pyside6 = ["pyside6 (>=6.4.0,!=6.5.0,!=6.5.1,!=6.6.2)", "pyside6 (>=6.7.0) ; python_version >= \"3.12\""]
+quantity = ["pint (>=0.21)"]
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -1460,4 +1508,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "9f8670dd8f87e3e813304a9f4047ef5e6794de6d5980f5e0f8b0566cfd241299"
+content-hash = "1b65263208adc93c9ad242ee7a0060792aae2abca015214a8a3b2ae95523a2be"

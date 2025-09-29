@@ -59,18 +59,17 @@ class Ui_EditorPanel(object):
 
         # Left column
         left_column = QVBoxLayout()
-        left_column.setContentsMargins(0, 8, 0, 0)
 
         self.general_section = build_general_section(self, panel)
-        self.general_section.setExpanded(True)
+        self.general_section.expand(animate=False)
         left_column.addWidget(self.general_section)
 
         self.source_section = build_source_section(self, panel)
-        self.source_section.setExpanded(True)
+        self.source_section.expand(animate=False)
         left_column.addWidget(self.source_section)
 
         self.usage_section = build_usage_section(self, panel)
-        self.usage_section.setExpanded(True)
+        self.usage_section.expand(animate=False)
         left_column.addWidget(self.usage_section)
 
         left_column.addItem(
@@ -130,7 +129,7 @@ class Ui_EditorPanel(object):
         self.tags_edit.setPlaceholderText(
             QCoreApplication.translate("EditorPanel", "comma, separated, tags", None)
         )
-        self.general_section.setTitle(
+        self.general_section.setText(
             QCoreApplication.translate("EditorPanel", "General", None)
         )
         self.author_label.setText(
@@ -155,10 +154,10 @@ class Ui_EditorPanel(object):
                 "EditorPanel", "Source models, if merged from other models.", None
             )
         )
-        self.source_section.setTitle(
+        self.source_section.setText(
             QCoreApplication.translate("EditorPanel", "Source", None)
         )
-        self.usage_section.setTitle(
+        self.usage_section.setText(
             QCoreApplication.translate("EditorPanel", "Usage", None)
         )
         self.usage_hint_label.setText(

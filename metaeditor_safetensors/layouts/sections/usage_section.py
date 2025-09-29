@@ -1,34 +1,38 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize
-from PySide6.QtWidgets import QLabel, QLineEdit, QTextEdit, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QLineEdit, QTextEdit, QVBoxLayout, QWidget
+from superqt.collapsible import QCollapsible
 
-from ...widgets.collapsible_section import CollapsibleSection
 
+def build_usage_section(ui, parent) -> QCollapsible:
+    section = QCollapsible(parent)
+    section.layout().setSpacing(0)
 
-def build_usage_section(ui, parent) -> CollapsibleSection:
-    section = CollapsibleSection(parent)
-    section.setMinimumSize(QSize(0, 0))
+    content_widget = QWidget(section)
+    content_layout = QVBoxLayout(content_widget)
 
     usage_hint_layout = QVBoxLayout()
-    ui.usage_hint_label = QLabel(section)
+    ui.usage_hint_label = QLabel(content_widget)
     ui.usage_hint_label.setObjectName("usageHintLabel")
     usage_hint_layout.addWidget(ui.usage_hint_label)
 
-    ui.usage_hint_edit = QTextEdit(section)
+    ui.usage_hint_edit = QTextEdit(content_widget)
     ui.usage_hint_edit.setObjectName("usageHintEdit")
     ui.usage_hint_edit.setMaximumSize(QSize(16777215, 100))
     usage_hint_layout.addWidget(ui.usage_hint_edit)
-    section.add_layout(usage_hint_layout)
+    content_layout.addLayout(usage_hint_layout)
 
     license_layout = QVBoxLayout()
-    ui.license_label = QLabel(section)
+    ui.license_label = QLabel(content_widget)
     ui.license_label.setObjectName("licenseLabel")
     license_layout.addWidget(ui.license_label)
 
-    ui.license_edit = QLineEdit(section)
+    ui.license_edit = QLineEdit(content_widget)
     ui.license_edit.setObjectName("licenseEdit")
     license_layout.addWidget(ui.license_edit)
-    section.add_layout(license_layout)
+    content_layout.addLayout(license_layout)
+
+    section.setContent(content_widget)
 
     return section

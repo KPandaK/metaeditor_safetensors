@@ -1076,26 +1076,20 @@ ImageWidget[hasImage="false"] {
     background-color: #252526;
 }
 
-CollapsibleSection {
+QCollapsible {
+    background-color: transparent;
+    margin: 0px;
+    padding: 0px;
+}
+
+QCollapsible QPushButton,
+QCollapsible QPushButton:pressed,
+QCollapsible QPushButton:hover,
+QCollapsible QPushButton:focus {
     border: 1px solid #454545;
     border-radius: 3px;
-    background-color: #252526;
-}
-
-CollapsibleSection QToolButton {
-    padding: 6px 8px;
-    border: none;
-    border-radius: 0px;
-    background-color: transparent;
-    color: #cccccc;
-    text-align: left;
-}
-
-CollapsibleSection QToolButton:pressed, 
-CollapsibleSection QToolButton:hover,
-CollapsibleSection QToolButton:focus,
-CollapsibleSection QToolButton:checked {
-    background-color: transparent;
+    border-color: #454545;
+    background-color: #007acc;
     color: #cccccc;
 }
 
