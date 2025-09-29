@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import tempfile
+from typing import Any, Dict
 
 import numpy as np
 import pytest
@@ -313,6 +314,94 @@ class TestSafetensorsService:
 
 class TestSafetensorsServiceAsync:
     """Test async functionality of SafetensorsService."""
+
+    def test_read_metadata_async_success(
+        self, service, dummy_tensors, dummy_metadata, test_filepath, qtbot
+    ):
+        """Ensure async metadata load invokes callbacks and cleans up."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        progress_values = []
+        successes = []
+        errors = []
+
+        def progress_callback(value: int) -> None:
+            progress_values.append(value)
+
+        def success_callback(metadata: Dict[str, Any]) -> None:
+            successes.append(metadata)
+
+        def error_callback(message: str) -> None:
+            errors.append(message)
+
+        result = service.read_metadata_async(
+            test_filepath,
+            progress_callback=progress_callback,
+            success_callback=success_callback,
+            error_callback=error_callback,
+        )
+
+        assert result is True
+
+        qtbot.waitUntil(lambda: len(successes) > 0 or len(errors) > 0, timeout=5000)
+
+        assert errors == []
+        assert len(successes) == 1
+        loaded_metadata = successes[0]
+        for key, value in dummy_metadata.items():
+            if key != "modelspec.hash_sha256":
+                assert loaded_metadata[key] == value
+        assert "modelspec.hash_sha256" in loaded_metadata
+        assert progress_values
+        assert progress_values[0] == 0
+        assert progress_values[-1] == 100
+        assert not service.is_loading()
+
+    def test_read_metadata_async_error(self, service, qtbot, tmp_path):
+        """Async load should report errors when read_metadata fails."""
+        missing_file = tmp_path / "missing.safetensors"
+
+        progress_values = []
+        successes = []
+        errors = []
+
+        def progress_callback(value: int) -> None:
+            progress_values.append(value)
+
+        def success_callback(metadata: Dict[str, Any]) -> None:
+            successes.append(metadata)
+
+        def error_callback(message: str) -> None:
+            errors.append(message)
+
+        result = service.read_metadata_async(
+            str(missing_file),
+            progress_callback=progress_callback,
+            success_callback=success_callback,
+            error_callback=error_callback,
+        )
+
+        assert result is True
+
+        qtbot.waitUntil(lambda: len(errors) > 0, timeout=5000)
+
+        assert successes == []
+        assert errors
+        assert "missing" in errors[0].lower() or "no such" in errors[0].lower()
+        assert progress_values and progress_values[0] == 0
+        assert not service.is_loading()
+
+    def test_read_metadata_async_already_running(self, service, mocker):
+        """Starting a second load while one is active should return False."""
+        busy_thread = mocker.MagicMock()
+        busy_thread.isRunning.return_value = True
+        service._load_thread = busy_thread
+
+        result = service.read_metadata_async("/fake/path.safetensors")
+
+        assert result is False
+        busy_thread.isRunning.assert_called_once()
+        service._load_thread = None
 
     def test_write_metadata_async_success(
         self, service, dummy_tensors, dummy_metadata, test_filepath, qtbot

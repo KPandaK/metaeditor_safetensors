@@ -93,7 +93,6 @@ class Ui_EditorPanel(object):
 
         self.progress_bar = QProgressBar(panel)
         self.progress_bar.setObjectName("progressBar")
-        self.progress_bar.setMaximumSize(QSize(16777215, 6))
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)

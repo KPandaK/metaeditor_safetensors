@@ -21,6 +21,8 @@ def config_service(mocker):
 def safetensors_service(mocker):
     service = mocker.Mock()
     service.is_saving.return_value = False
+    service.is_loading.return_value = False
+    service.read_metadata_async.return_value = True
     return service
 
 
@@ -31,44 +33,107 @@ def detection_service(mocker):
     return service
 
 
-def test_load_file_success_updates_state(
-    metadata, safetensors_service, config_service, detection_service
+def test_load_file_async_success(
+    metadata, safetensors_service, config_service, detection_service, mocker
 ):
-    filepath = "example.safetensors"
-    safetensors_service.read_metadata.return_value = {"modelspec.title": "Demo"}
     detection_service.detect_model_type.return_value = ModelType.IMAGE_GENERATION
 
     workflow = FileWorkflow(
         metadata, safetensors_service, config_service, detection_service
     )
 
-    result = workflow.load_file(filepath)
+    progress_cb = mocker.Mock()
+    success_cb = mocker.Mock()
+    error_cb = mocker.Mock()
 
-    assert result.success
-    assert workflow.current_file == filepath
-    config_service.add_recent_file.assert_called_once_with(filepath)
+    dispatch = workflow.load_file(
+        "async.safetensors",
+        progress_callback=progress_cb,
+        success_callback=success_cb,
+        error_callback=error_cb,
+    )
+
+    assert dispatch.started
+    call = safetensors_service.read_metadata_async.call_args
+    assert call.args[0] == "async.safetensors"
+    progress_wrapper = call.kwargs["progress_callback"]
+    success_wrapper = call.kwargs["success_callback"]
+    error_wrapper = call.kwargs["error_callback"]
+
+    assert callable(progress_wrapper)
+    assert callable(success_wrapper)
+    assert callable(error_wrapper)
+
+    progress_wrapper(25)
+    progress_cb.assert_called_once_with(25)
+
+    success_wrapper({"modelspec.title": "Async Demo"})
+
+    assert workflow.current_file == "async.safetensors"
+    config_service.add_recent_file.assert_called_once_with("async.safetensors")
     detection_service.detect_model_type.assert_called_once()
+    success_cb.assert_called_once()
+    success_result = success_cb.call_args[0][0]
+    assert success_result.success
+    assert success_result.filepath == "async.safetensors"
+    assert metadata.get_value("modelspec.title") == "Async Demo"
     assert (
         metadata.get_value("metaeditor.model_type") == ModelType.IMAGE_GENERATION.value
     )
+    error_cb.assert_not_called()
 
 
-def test_load_file_failure_clears_state(
-    metadata, safetensors_service, config_service, detection_service
+def test_load_file_async_error(
+    metadata, safetensors_service, config_service, detection_service, mocker
 ):
-    safetensors_service.read_metadata.side_effect = RuntimeError("boom")
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+
+    error_cb = mocker.Mock()
+    progress_cb = mocker.Mock()
+
+    dispatch = workflow.load_file(
+        "async.safetensors",
+        progress_callback=progress_cb,
+        success_callback=None,
+        error_callback=error_cb,
+    )
+
+    assert dispatch.started
+    call = safetensors_service.read_metadata_async.call_args
+    error_wrapper = call.kwargs["error_callback"]
+
+    error_wrapper("boom")
+
+    assert workflow.current_file is None
+    assert metadata.get_all_data() == {}
+    error_cb.assert_called_once()
+    error_result = error_cb.call_args[0][0]
+    assert not error_result.success
+    assert error_result.error == "boom"
+    config_service.add_recent_file.assert_not_called()
+
+
+def test_load_file_async_when_service_busy(
+    metadata, safetensors_service, config_service, detection_service, mocker
+):
+    safetensors_service.is_loading.return_value = True
 
     workflow = FileWorkflow(
         metadata, safetensors_service, config_service, detection_service
     )
 
-    result = workflow.load_file("broken.safetensors")
+    dispatch = workflow.load_file(
+        "example.safetensors",
+        progress_callback=mocker.Mock(),
+        success_callback=mocker.Mock(),
+        error_callback=mocker.Mock(),
+    )
 
-    assert not result.success
-    assert workflow.current_file is None
-    config_service.add_recent_file.assert_not_called()
-    detection_service.detect_model_type.assert_not_called()
-    assert metadata.get_all_data() == {}
+    assert not dispatch.started
+    assert dispatch.message == "Load operation already in progress."
+    safetensors_service.read_metadata_async.assert_not_called()
 
 
 def test_save_dispatches_write(
@@ -187,27 +252,6 @@ def test_save_error_callback_invoked(
     error_cb.assert_called_once_with("boom")
     success_cb.assert_not_called()
     config_service.add_recent_file.assert_not_called()
-
-
-def test_save_as_when_service_busy_returns_message(
-    metadata, safetensors_service, config_service, detection_service, mocker
-):
-    safetensors_service.is_saving.return_value = True
-
-    workflow = FileWorkflow(
-        metadata, safetensors_service, config_service, detection_service
-    )
-
-    dispatch = workflow.save_as(
-        "new.safetensors",
-        mocker.Mock(),
-        mocker.Mock(),
-        mocker.Mock(),
-    )
-
-    assert not dispatch.started
-    assert dispatch.message == "Save operation already in progress."
-    safetensors_service.write_metadata_async.assert_not_called()
 
 
 def test_save_when_service_busy_returns_message(

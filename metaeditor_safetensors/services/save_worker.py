@@ -25,8 +25,8 @@ class SaveWorker(QObject):
     def run(self):
         try:
 
-            def progress_callback(progress_value: int):
-                self.progress.emit(progress_value)
+            def progress_callback(value: int):
+                self.progress.emit(value)
 
             result = self._service.write_metadata(
                 self._filepath,

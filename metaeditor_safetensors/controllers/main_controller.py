@@ -124,28 +124,46 @@ class MainController(QObject):
             self._load_file(filepath)
 
     def _load_file(self, filepath: str) -> None:
-        result = self._file_workflow.load_file(filepath)
-        self._handle_load_result(result)
+        dispatch = self._file_workflow.load_file(
+            filepath,
+            progress_callback=self._on_load_progress,
+            success_callback=self._on_load_success,
+            error_callback=self._on_load_error,
+        )
 
-    def _handle_load_result(self, result: LoadResult) -> None:
-        if result.success:
-            self.update_view()
-            self._status_messages.success(result.message)
+        if not dispatch.started:
+            self._status_messages.error(dispatch.message)
             return
 
+        self._view.set_all_fields_enabled(False)
+        self._view.show_progress_bar()
+        self._view.set_progress_value(0)
+        self._status_messages.info(dispatch.message, timeout_ms=None)
+
+    def _on_load_progress(self, progress: int) -> None:
+        self._view.set_progress_value(progress)
+
+    def _on_load_success(self, result: LoadResult) -> None:
+        self._view.hide_progress_bar()
+        self.update_view()
+        self._view.set_all_fields_enabled(True)
+        self._status_messages.success(result.message)
+
+    def _on_load_error(self, result: LoadResult) -> None:
         if result.error:
             logger.error("Failed to load file: %s", result.error)
-
+        self._view.hide_progress_bar()
         self._file_workflow.clear_current_file()
         self.update_view()
         self._status_messages.error(result.message)
 
+    def _on_recent_files_changed(self, recent_files: List[str]):
+        self._view.update_recent_files_menu(recent_files)
+
     @Slot(str)
     def on_recent_file_triggered(self, filepath: str):
-        # Check if file still exists
         if not os.path.exists(filepath):
             self._status_messages.warning(f"File no longer exists: {filepath}")
-            # Remove from recent files list
             self._config_service.remove_recent_file(filepath)
             return
 
@@ -166,23 +184,17 @@ class MainController(QObject):
         about_dialog = AboutDialog(parent=self._view)
         about_dialog.exec()
 
-    def _on_recent_files_changed(self, recent_files: List[str]):
-        self._view.update_recent_files_menu(recent_files)
-
     def _on_metadata_changed(
         self, field=None, source=ChangeSource.PROGRAMMATIC, source_widget=None
     ):
         self._update_window_title()
 
-        # Update widgets based on change source and field
         if field is not None:
             if source == ChangeSource.USER and source_widget is not None:
-                # User change - update other widgets for the same field, excluding source widget
                 self._binding_service.update_widget_from_metadata(
                     field, exclude_widget=source_widget
                 )
             else:
-                # Programmatic or unspecified change - sync all widgets for this field
                 self._binding_service.update_widget_from_metadata(field)
 
     def _update_window_title(self):
@@ -193,9 +205,8 @@ class MainController(QObject):
             filename = os.path.basename(self._file_workflow.current_file)
             title += f"{filename}"
 
-        # Show dirty indicator if there are unsaved changes
         if is_dirty:
-            title += " *"  # Add an asterisk to indicate unsaved changes
+            title += " *"
 
         self._view.set_window_title(title)
 
@@ -296,13 +307,11 @@ class MainController(QObject):
             filename = os.path.basename(self._file_workflow.current_file)
             title += f"{filename}"
 
-        # Show dirty indicator if there are unsaved changes
         if is_dirty:
-            title += " *"  # Add an asterisk to indicate unsaved changes
+            title += " *"
 
         self._view.set_window_title(title)
 
         self._binding_service.initialize_widgets()
 
-        # Enable fields only if a file is loaded
         self._view.set_all_fields_enabled(self._file_workflow.current_file is not None)

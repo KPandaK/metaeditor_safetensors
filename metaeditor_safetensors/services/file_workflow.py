@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from PySide6.QtCore import QObject, Signal, Slot
 
@@ -21,6 +21,14 @@ class LoadResult:
 
 
 @dataclass
+class LoadDispatch:
+    started: bool
+    message: str
+    error: Optional[str] = None
+    filepath: Optional[str] = None
+
+
+@dataclass
 class SaveDispatch:
     started: bool
     message: str
@@ -29,9 +37,16 @@ class SaveDispatch:
 
 
 @dataclass
-class PreparedCallbacks:
+class PreparedSaveCallbacks:
     progress: Optional[Callable[[int], None]]
     success: Callable[[str], None]
+    error: Optional[Callable[[str], None]]
+
+
+@dataclass
+class PreparedLoadCallbacks:
+    progress: Optional[Callable[[int], None]]
+    success: Callable[[Dict[str, Any]], None]
     error: Optional[Callable[[str], None]]
 
 
@@ -66,24 +81,42 @@ class FileWorkflow(QObject):
     def clear_current_file(self) -> None:
         self._current_file = None
 
-    def load_file(self, filepath: str) -> LoadResult:
-        try:
-            metadata = self._safetensors.read_metadata(filepath)
-            self._metadata.load_data(metadata)
-            self._auto_detect_model_type()
-            self._config_service.add_recent_file(filepath)
-            self._current_file = filepath
-            return LoadResult(
-                success=True, message=f"Loaded file: {filepath}", filepath=filepath
+    def load_file(
+        self,
+        filepath: str,
+        *,
+        progress_callback: Optional[Callable[[int], None]] = None,
+        success_callback: Optional[Callable[[LoadResult], None]] = None,
+        error_callback: Optional[Callable[[LoadResult], None]] = None,
+    ) -> LoadDispatch:
+        guard = self._ensure_load_ready()
+        if guard:
+            return guard
+
+        callbacks = self._prepare_load_callbacks(
+            filepath=filepath,
+            progress_cb=progress_callback,
+            success_cb=success_callback,
+            error_cb=error_callback,
+        )
+
+        started = self._safetensors.read_metadata_async(
+            filepath,
+            progress_callback=callbacks.progress,
+            success_callback=callbacks.success,
+            error_callback=callbacks.error,
+        )
+
+        if not started:
+            return LoadDispatch(
+                started=False, message="Load operation already in progress."
             )
-        except Exception as exc:  # pragma: no cover - defensive logging
-            self._metadata.load_data({})
-            self._current_file = None
-            return LoadResult(
-                success=False,
-                message=f"Error loading file: {exc}",
-                error=str(exc),
-            )
+
+        return LoadDispatch(
+            started=True,
+            message=f"Loading {filepath}...",
+            filepath=filepath,
+        )
 
     def save(
         self,
@@ -91,20 +124,20 @@ class FileWorkflow(QObject):
         success_callback: Callable[[str], None],
         error_callback: Callable[[str], None],
     ) -> SaveDispatch:
-        guard = self._ensure_ready(require_current_file=True)
+        guard = self._ensure_save_ready(require_current_file=True)
         if guard:
             return guard
 
         assert self._current_file is not None
 
-        callbacks = self._prepare_callbacks(
+        callbacks = self._prepare_save_callbacks(
             progress_cb=progress_callback,
             success_cb=success_callback,
             error_cb=error_callback,
             success_actions=(self._config_service.add_recent_file,),
         )
 
-        return self._start_save(
+        return self._start_save_internal(
             target_path=self._current_file,
             callbacks=callbacks,
             source_path=None,
@@ -118,11 +151,11 @@ class FileWorkflow(QObject):
         success_callback: Callable[[str], None],
         error_callback: Callable[[str], None],
     ) -> SaveDispatch:
-        guard = self._ensure_ready(require_current_file=False)
+        guard = self._ensure_save_ready(require_current_file=False)
         if guard:
             return guard
 
-        callbacks = self._prepare_callbacks(
+        callbacks = self._prepare_save_callbacks(
             progress_cb=progress_callback,
             success_cb=success_callback,
             error_cb=error_callback,
@@ -132,7 +165,7 @@ class FileWorkflow(QObject):
             ),
         )
 
-        return self._start_save(
+        return self._start_save_internal(
             target_path=filepath,
             callbacks=callbacks,
             source_path=self._current_file,
@@ -148,7 +181,9 @@ class FileWorkflow(QObject):
             return
         self._invoke_signal.emit(fn)
 
-    def _ensure_ready(self, *, require_current_file: bool) -> Optional[SaveDispatch]:
+    def _ensure_save_ready(
+        self, *, require_current_file: bool
+    ) -> Optional[SaveDispatch]:
         if require_current_file and not self._current_file:
             return SaveDispatch(started=False, message="Please open a file first.")
 
@@ -159,14 +194,21 @@ class FileWorkflow(QObject):
 
         return None
 
-    def _prepare_callbacks(
+    def _ensure_load_ready(self) -> Optional[LoadDispatch]:
+        if self._safetensors.is_loading():
+            return LoadDispatch(
+                started=False, message="Load operation already in progress."
+            )
+        return None
+
+    def _prepare_save_callbacks(
         self,
         *,
         progress_cb: Optional[Callable[[int], None]],
         success_cb: Callable[[str], None],
         error_cb: Optional[Callable[[str], None]],
         success_actions: Tuple[Callable[[str], None], ...] = (),
-    ) -> PreparedCallbacks:
+    ) -> PreparedSaveCallbacks:
         progress: Optional[Callable[[int], None]] = None
         if progress_cb:
 
@@ -193,13 +235,63 @@ class FileWorkflow(QObject):
 
             error = error_wrapper
 
-        return PreparedCallbacks(progress=progress, success=success, error=error)
+        return PreparedSaveCallbacks(progress=progress, success=success, error=error)
 
-    def _start_save(
+    def _prepare_load_callbacks(
+        self,
+        *,
+        filepath: str,
+        progress_cb: Optional[Callable[[int], None]],
+        success_cb: Optional[Callable[[LoadResult], None]],
+        error_cb: Optional[Callable[[LoadResult], None]],
+    ) -> PreparedLoadCallbacks:
+        progress: Optional[Callable[[int], None]] = None
+        if progress_cb:
+
+            def progress_wrapper(value: int, cb=progress_cb) -> None:
+                self._dispatch(lambda: cb(value))
+
+            progress = progress_wrapper
+
+        def success(metadata: Dict[str, Any]) -> None:
+            def runner() -> None:
+                self._metadata.load_data(metadata)
+                self._auto_detect_model_type()
+                self._config_service.add_recent_file(filepath)
+                self._current_file = filepath
+                if success_cb:
+                    success_cb(
+                        LoadResult(
+                            success=True,
+                            message=f"Loaded file: {filepath}",
+                            filepath=filepath,
+                        )
+                    )
+
+            self._dispatch(runner)
+
+        def error(message: str) -> None:
+            def runner() -> None:
+                self._metadata.load_data({})
+                self._current_file = None
+                if error_cb:
+                    error_cb(
+                        LoadResult(
+                            success=False,
+                            message=f"Error loading file: {message}",
+                            error=message,
+                        )
+                    )
+
+            self._dispatch(runner)
+
+        return PreparedLoadCallbacks(progress=progress, success=success, error=error)
+
+    def _start_save_internal(
         self,
         *,
         target_path: str,
-        callbacks: PreparedCallbacks,
+        callbacks: PreparedSaveCallbacks,
         source_path: Optional[str],
         started_message: str,
     ) -> SaveDispatch:
