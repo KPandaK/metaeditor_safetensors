@@ -1,8 +1,10 @@
+import json
 import logging
 import os
 import shutil
+import struct
 import tempfile
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import numpy as np
 import pytest
@@ -311,6 +313,145 @@ class TestSafetensorsService:
         assert service._worker_thread is None
         assert service._save_worker is None
 
+    def test_read_metadata_progress_callbacks_on_success(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Progress callback should receive 0 at start and 100 at completion."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        progress_values: List[int] = []
+
+        metadata = service.read_metadata(
+            test_filepath, progress_callback=lambda value: progress_values.append(value)
+        )
+
+        assert progress_values, "Progress callback should be invoked."
+        assert progress_values[0] == 0
+        assert progress_values[-1] == 100
+        assert metadata["author"] == dummy_metadata["author"]
+
+    def test_read_metadata_progress_callback_on_hash_error(
+        self, mocker, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """When hash computation fails, progress callback still finishes at 100."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        mocker.patch.object(
+            service, "_calculate_hash", side_effect=RuntimeError("hash boom")
+        )
+
+        progress_values: List[int] = []
+
+        metadata = service.read_metadata(
+            test_filepath, progress_callback=lambda value: progress_values.append(value)
+        )
+
+        assert progress_values[0] == 0
+        assert progress_values[-1] == 100
+        assert "modelspec.hash_sha256" not in metadata
+
+    def test_write_metadata_progress_callback_handles_zero_denominator(
+        self, mocker, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Ensure progress callback handles files where denominator becomes zero."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        with open(test_filepath, "rb") as f:
+            header_len = struct.unpack("<Q", f.read(8))[0]
+
+        tensor_data_start = 8 + header_len
+        real_getsize = os.path.getsize
+
+        def fake_getsize(path: str) -> int:
+            size = real_getsize(path)
+            if os.path.samefile(path, test_filepath):
+                return tensor_data_start
+            return size
+
+        mocker.patch(
+            "metaeditor_safetensors.services.safetensors_service.os.path.getsize",
+            side_effect=fake_getsize,
+        )
+
+        progress_values: List[int] = []
+
+        result = service.write_metadata(
+            test_filepath,
+            {"patched": True},
+            progress_callback=lambda value: progress_values.append(value),
+        )
+
+        assert result == test_filepath
+        assert progress_values
+        assert progress_values[-1] == 100
+
+    def test_write_metadata_cleanup_handles_remove_error(
+        self, mocker, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Temp file cleanup errors should be suppressed."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        temp_filepath = test_filepath + ".tmp"
+
+        mocker.patch(
+            "metaeditor_safetensors.services.safetensors_service.os.path.exists",
+            side_effect=lambda path: path == temp_filepath,
+        )
+        remove_mock = mocker.patch(
+            "metaeditor_safetensors.services.safetensors_service.os.remove",
+            side_effect=[None, OSError("cleanup failure")],
+        )
+        mocker.patch(
+            "metaeditor_safetensors.services.safetensors_service.open",
+            side_effect=IOError("Simulated failure"),
+            create=True,
+        )
+
+        with pytest.raises(IOError) as exc_info:
+            service.write_metadata(test_filepath, {"new": "data"})
+        assert "Simulated failure" in str(exc_info.value)
+        assert remove_mock.call_count == 2
+
+    def test_calculate_hash_invalid_header_length(self, service, test_dir):
+        """_calculate_hash should raise on invalid header length."""
+        bad_file = os.path.join(test_dir, "bad_hash.safetensors")
+        with open(bad_file, "wb") as f:
+            f.write(b"1234")
+
+        with pytest.raises(ValueError) as exc_info:
+            service._calculate_hash(bad_file)
+
+        assert "Invalid safetensors file" in str(exc_info.value)
+
+    def test_calculate_hash_progress_reporting(
+        self, service, dummy_tensors, dummy_metadata, test_filepath
+    ):
+        """Progress callback should be notified during hash computation with data."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        progress_values: List[int] = []
+        service._calculate_hash(
+            test_filepath, progress_callback=lambda value: progress_values.append(value)
+        )
+        assert progress_values
+        assert progress_values[-1] == 100
+
+    def test_calculate_hash_progress_for_empty_tensor_data(self, service, test_dir):
+        """Hashing files with no tensor data should immediately report completion."""
+        header = json.dumps({"__metadata__": {}}).encode("utf-8")
+        filepath = os.path.join(test_dir, "header_only.safetensors")
+        with open(filepath, "wb") as f:
+            f.write(struct.pack("<Q", len(header)))
+            f.write(header)
+
+        progress_values: List[int] = []
+        computed_hash = service._calculate_hash(
+            filepath, progress_callback=lambda value: progress_values.append(value)
+        )
+
+        assert computed_hash.startswith("0x")
+        assert progress_values == [100]
+
 
 class TestSafetensorsServiceAsync:
     """Test async functionality of SafetensorsService."""
@@ -529,6 +670,50 @@ class TestSafetensorsServiceAsync:
 
         # Verify hash was added
         assert "modelspec.hash_sha256" in updated_metadata
+
+    def test_write_metadata_async_progress_callback_invoked(
+        self, service, dummy_tensors, dummy_metadata, test_filepath, qtbot
+    ):
+        """Progress callback provided to async write should receive updates."""
+        save_file(dummy_tensors, test_filepath, metadata=dummy_metadata)
+
+        progress_values: List[int] = []
+        success_calls: List[str] = []
+        error_calls: List[str] = []
+
+        result = service.write_metadata_async(
+            test_filepath,
+            {"updated": True},
+            progress_callback=lambda value: progress_values.append(value),
+            success_callback=lambda path: success_calls.append(path),
+            error_callback=lambda message: error_calls.append(message),
+        )
+
+        assert result is True
+
+        qtbot.waitUntil(lambda: bool(success_calls or error_calls), timeout=5000)
+
+        assert error_calls == []
+        assert success_calls == [test_filepath]
+        assert progress_values
+        assert progress_values[-1] == 100
+
+    def test_shutdown_waits_for_running_threads(self, service, mocker):
+        """Shutdown should call quit/wait on active threads."""
+        load_thread = mocker.Mock()
+        load_thread.isRunning.return_value = True
+        worker_thread = mocker.Mock()
+        worker_thread.isRunning.return_value = True
+
+        service._load_thread = load_thread
+        service._worker_thread = worker_thread
+
+        service.shutdown()
+
+        load_thread.quit.assert_called_once()
+        load_thread.wait.assert_called_once_with(5000)
+        worker_thread.quit.assert_called_once()
+        worker_thread.wait.assert_called_once_with(5000)
 
 
 class TestSafetensorsServiceHashFunctionality:

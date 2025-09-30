@@ -272,3 +272,99 @@ def test_save_when_service_busy_returns_message(
     assert not dispatch.started
     assert dispatch.message == "Save operation already in progress."
     safetensors_service.write_metadata_async.assert_not_called()
+
+
+def test_clear_current_file_resets_state(
+    metadata, safetensors_service, config_service, detection_service
+):
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+    workflow.current_file = "example.safetensors"
+
+    workflow.clear_current_file()
+
+    assert workflow.current_file is None
+
+
+def test_load_file_start_failure_returns_dispatch(
+    metadata, safetensors_service, config_service, detection_service, mocker
+):
+    safetensors_service.read_metadata_async.return_value = False
+
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+
+    dispatch = workflow.load_file(
+        "failed.safetensors",
+        progress_callback=mocker.Mock(),
+        success_callback=mocker.Mock(),
+        error_callback=mocker.Mock(),
+    )
+
+    assert not dispatch.started
+    assert dispatch.message == "Load operation already in progress."
+
+
+def test_save_requires_current_file(
+    metadata, safetensors_service, config_service, detection_service, mocker
+):
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+
+    dispatch = workflow.save(mocker.Mock(), mocker.Mock(), mocker.Mock())
+
+    assert not dispatch.started
+    assert dispatch.message == "Please open a file first."
+    safetensors_service.write_metadata_async.assert_not_called()
+
+
+def test_dispatch_noop_when_callback_missing(
+    metadata, safetensors_service, config_service, detection_service
+):
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+
+    calls = []
+
+    def slot(fn):
+        calls.append(fn)
+
+    workflow._invoke_signal.connect(slot)
+
+    workflow._dispatch(None)
+
+    assert calls == []
+    workflow._invoke_signal.disconnect(slot)
+
+
+def test_save_start_failure_returns_message(
+    metadata, safetensors_service, config_service, detection_service, mocker
+):
+    metadata.load_data({"modelspec.title": "Demo"})
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+    workflow.current_file = "current.safetensors"
+    safetensors_service.write_metadata_async.return_value = False
+
+    dispatch = workflow.save(mocker.Mock(), mocker.Mock(), mocker.Mock())
+
+    assert not dispatch.started
+    assert dispatch.message == "Save operation already in progress."
+
+
+def test_auto_detect_model_type_skips_when_already_set(
+    metadata, safetensors_service, config_service, detection_service
+):
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+    metadata.set_value("metaeditor.model_type", ModelType.TEXT_PREDICTION.value)
+
+    workflow._auto_detect_model_type()
+
+    detection_service.detect_model_type.assert_not_called()

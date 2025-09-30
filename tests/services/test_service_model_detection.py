@@ -6,6 +6,8 @@ Tests for the ModelDetectionService class which handles configurable
 model type detection based on architecture patterns.
 """
 
+import logging
+
 import pytest
 
 from metaeditor_safetensors.services.model_detection_service import (
@@ -257,3 +259,48 @@ class TestModelDetectionService:
             service.detect_model_type({"modelspec.architecture": "custom-gpt-variant"})
             == ModelType.TEXT_PREDICTION
         )
+
+    def test_load_config_failure_sets_defaults(self, mocker, caplog):
+        """Configuration load failures should log a warning and fall back to defaults."""
+        mocker.patch(
+            "metaeditor_safetensors.services.model_detection_service.open",
+            side_effect=OSError("missing config"),
+            create=True,
+        )
+
+        with caplog.at_level(logging.WARNING):
+            service = ModelDetectionService()
+
+        assert service._config == {}
+        assert any(
+            "Error loading model detection config" in record.message
+            for record in caplog.records
+        )
+        assert (
+            service.detect_model_type({"modelspec.architecture": "stable-diffusion"})
+            == ModelType.UNKNOWN
+        )
+
+    def test_exact_match_when_substring_disabled(self):
+        """Exact equality matching should be honored when substring checks are disabled."""
+        service = ModelDetectionService()
+        service._image_patterns = {"ExactMatch"}
+        service._text_patterns = set()
+        service._image_hints = set()
+        service._text_hints = set()
+        service._case_insensitive = False
+        service._substring_match = False
+
+        result = service.detect_model_type({"modelspec.architecture": "ExactMatch"})
+        assert result == ModelType.IMAGE_GENERATION
+
+    def test_unknown_return_when_no_patterns_match(self):
+        """Should return UNKNOWN when no patterns or hints match."""
+        service = ModelDetectionService()
+        service._image_patterns = set()
+        service._text_patterns = set()
+        service._image_hints = set()
+        service._text_hints = set()
+
+        result = service.detect_model_type({"modelspec.architecture": "no-match"})
+        assert result == ModelType.UNKNOWN
