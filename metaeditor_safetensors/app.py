@@ -72,6 +72,8 @@ def main():
     finally:
         # Ensure proper cleanup before exit
         controller.shutdown()
+        modelspec_service.shutdown()
+        safetensors_service.shutdown()
         theme_manager.shutdown()
 
     sys.exit(exit_code)

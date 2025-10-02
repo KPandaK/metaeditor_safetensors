@@ -21,6 +21,7 @@ class ComplianceLevel(Enum):
     COMPLIANT = "compliant"
     PARTIAL = "partial"
     NON_COMPLIANT = "non_compliant"
+    UNKNOWN = "unknown"
 
 
 class FieldRequirement(Enum):
@@ -49,7 +50,6 @@ class ComplianceResult(BaseModel):
     level: ComplianceLevel
     missing_must_fields: List[str]
     missing_should_fields: List[str]
-    present_fields: Set[str]
     model_category: ModelType
     summary: str
     details: List[str]
@@ -280,120 +280,112 @@ class ModelSpec(BaseModel):
         return date_obj.isoformat()
 
     @classmethod
-    def get_all_field_placeholders(cls) -> Dict[str, str]:
-        return {
-            field_name: field_info.description or ""
-            for field_name, field_info in cls.model_fields.items()
-            if field_info.description
-        }
+    def _iter_field_metadata(cls):
+        type_hints = get_type_hints(cls, include_extras=True)
+        for field_name, field_type in type_hints.items():
+            if field_name not in cls.model_fields:
+                continue
 
-    # TODO: Can we implement this as a bitfield so that we can check for multiple categories at the same time?
-    # Category should also be specified, not queried.
-    # def get_required_fields(self, requirement: FieldRequirement) -> List[str]:
-    # Map ModelType to FieldCategory for filtering
-    # category_to_field_category = {
-    #     ModelType.IMAGE_GENERATION: FieldCategory.IMAGE_GENERATION,
-    #     ModelType.TEXT_PREDICTION: FieldCategory.TEXT_PREDICTION,
-    #     ModelType.UNKNOWN: None,  # Include all categories for unknown models
-    # }
-    # relevant_field_category = category_to_field_category.get(category)
+            field_info = cls.model_fields[field_name]
+            alias = field_info.alias or f"modelspec.{field_name}"
 
-    # # Get fields by requirement level from Annotated type metadata
-    # field_list = []
-    # type_hints = get_type_hints(self.__class__, include_extras=True)
-    # model_fields = type(self).model_fields
+            if get_origin(field_type) is Annotated:
+                for arg in get_args(field_type)[1:]:
+                    if isinstance(arg, FieldMeta):
+                        yield field_name, alias, arg
+                        break
 
-    # for field_name, field_type in type_hints.items():
-    #     # Skip non-field attributes
-    #     if field_name not in model_fields:
-    #         continue
+    @classmethod
+    def get_filtered_fields(
+        cls, requirement: FieldRequirement, model_type: ModelType
+    ) -> List[tuple[str, str]]:
+        filtered_categories = {FieldCategory.GENERAL}
+        if model_type == ModelType.IMAGE_GENERATION:
+            filtered_categories.add(FieldCategory.IMAGE_GENERATION)
+        elif model_type == ModelType.TEXT_PREDICTION:
+            filtered_categories.add(FieldCategory.TEXT_PREDICTION)
 
-    #     # Extract metadata from Annotated types
-    #     if get_origin(field_type) is Annotated:
-    #         args = get_args(field_type)
-    #         # Look for FieldMeta in the annotation metadata
-    #         for arg in args[1:]:  # Skip the actual type, check metadata
-    #             if isinstance(arg, FieldMeta):
-    #                 field_meta = arg
-    #                 if field_meta.requirement == requirement:
-    #                     # Check category-specific fields
-    #                     if (
-    #                         field_meta.category == FieldCategory.GENERAL
-    #                         or field_meta.category == relevant_field_category
-    #                         or relevant_field_category
-    #                         is None  # Include all for unknown models
-    #                     ):
-    #                         # Get the alias from the field info
-    #                         field_info = model_fields[field_name]
-    #                         alias = field_info.alias or f"modelspec.{field_name}"
-    #                         field_list.append(alias)
-    #                 break
+        fields: List[tuple[str, str]] = []
+        for field_name, alias, meta in cls._iter_field_metadata():
+            if meta.requirement == requirement and meta.category in filtered_categories:
+                fields.append((alias, field_name))
+        return fields
 
-    # # Add category-specific MUST fields for special cases
-    # if requirement == FieldRequirement.MUST:
-    #     if category == ModelType.IMAGE_GENERATION:
-    #         # Resolution is MUST for image generation models
-    #         if "modelspec.resolution" not in field_list:
-    #             field_list.append("modelspec.resolution")
-    #     elif category == ModelType.TEXT_PREDICTION:
-    #         # Data format is MUST for text prediction models
-    #         if "modelspec.data_format" not in field_list:
-    #             field_list.append("modelspec.data_format")
+    @staticmethod
+    def create_error_compliance_result(error_message: str) -> ComplianceResult:
+        return ComplianceResult(
+            level=ComplianceLevel.NON_COMPLIANT,
+            missing_must_fields=[],
+            missing_should_fields=[],
+            model_category=ModelType.UNKNOWN,
+            summary="Validation Error",
+            details=[f"ModelSpec validation failed: {error_message}"],
+        )
 
-    # return field_list
+    def analyze_compliance(self, model_type: ModelType) -> ComplianceResult:
+        if model_type == ModelType.UNKNOWN:
+            summary, details = self._generate_summary_and_details(
+                ComplianceLevel.UNKNOWN,
+                [],
+                [],
+                model_type,
+            )
+            return ComplianceResult(
+                level=ComplianceLevel.UNKNOWN,
+                missing_must_fields=[],
+                missing_should_fields=[],
+                model_category=model_type,
+                summary=summary,
+                details=details,
+            )
 
-    # TODO: The way that compliance is determined should be updated - this seems kind of gross
-    def get_present_fields(self) -> Set[str]:
-        present = set()
-        fields = type(self).model_fields.items()
-        for field_name, field_info in fields:
-            value = getattr(self, field_name)
-            if value is not None and value != "":
-                # Use the alias (actual metadata key) if available
-                key = field_info.alias or f"modelspec.{field_name}"
-                present.add(key)
-        return present
+        must_fields = self.get_filtered_fields(FieldRequirement.MUST, model_type)
+        should_fields = self.get_filtered_fields(FieldRequirement.SHOULD, model_type)
 
-    # def analyze_compliance(self) -> ComplianceResult:
-    #     present_fields = self.get_present_fields()
+        missing_must = [
+            alias
+            for alias, field_name in must_fields
+            if not self._field_has_value(field_name)
+        ]
+        missing_should = [
+            alias
+            for alias, field_name in should_fields
+            if not self._field_has_value(field_name)
+        ]
 
-    #     # Get required fields
-    #     must_fields = self.get_required_fields(FieldRequirement.MUST)
-    #     should_fields = self.get_required_fields(FieldRequirement.SHOULD)
+        if not missing_must:
+            level = ComplianceLevel.COMPLIANT
+        elif len(missing_must) < len(must_fields):
+            level = ComplianceLevel.PARTIAL
+        else:
+            level = ComplianceLevel.NON_COMPLIANT
 
-    #     # Check for missing fields
-    #     missing_must = [f for f in must_fields if f not in present_fields]
-    #     missing_should = [f for f in should_fields if f not in present_fields]
+        summary, details = self._generate_summary_and_details(
+            level, missing_must, missing_should, model_type
+        )
 
-    #     # Determine compliance level
-    #     if not missing_must:
-    #         level = ComplianceLevel.COMPLIANT
-    #     elif len(missing_must) < len(must_fields):
-    #         level = ComplianceLevel.PARTIAL
-    #     else:
-    #         level = ComplianceLevel.NON_COMPLIANT
+        return ComplianceResult(
+            level=level,
+            missing_must_fields=missing_must,
+            missing_should_fields=missing_should,
+            model_category=model_type,
+            summary=summary,
+            details=details,
+        )
 
-    #     # Generate summary and details
-    #     summary, details = self._generate_summary_and_details(
-    #         level, missing_must, missing_should, present_fields, category
-    #     )
-
-    #     return ComplianceResult(
-    #         level=level,
-    #         missing_must_fields=missing_must,
-    #         missing_should_fields=missing_should,
-    #         present_fields=present_fields,
-    #         model_category=category,
-    #         summary=summary,
-    #         details=details,
-    #     )
+    def _field_has_value(self, field_name: str) -> bool:
+        value = getattr(self, field_name)
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return value.strip() != ""
+        return True
 
     def _generate_summary_and_details(
         self,
         level: ComplianceLevel,
         missing_must: List[str],
         missing_should: List[str],
-        present: Set[str],
         category: ModelType,
     ) -> tuple[str, List[str]]:
         details = []
@@ -405,9 +397,12 @@ class ModelSpec(BaseModel):
         elif level == ComplianceLevel.PARTIAL:
             summary = f"Partially Compliant ({len(missing_must)} missing)"
             details.append(f"Missing {len(missing_must)} required field(s).")
-        else:
+        elif level == ComplianceLevel.NON_COMPLIANT:
             summary = f"Non-Compliant ({len(missing_must)} missing)"
             details.append("Missing critical required fields.")
+        else:
+            summary = "Model type not set"
+            details.append("Select a model type to evaluate ModelSpec compliance.")
 
         # Category information
         if category != ModelType.UNKNOWN:
@@ -430,22 +425,11 @@ class ModelSpec(BaseModel):
             if len(missing_should) > 3:
                 details.append(f"  • ... and {len(missing_should) - 3} more")
 
-        # Present fields count
-        details.append(f"Present: {len(present)} ModelSpec field(s)")
-
         return summary, details
 
-    # TODO:  If we only extract raw metadata, how are non-modelspec.* fields handled? Especially when we save the safetensors file again.
     @classmethod
     def from_raw_metadata(cls, metadata: Dict[str, Any]) -> "ModelSpec":
-        # Extract only ModelSpec fields
-        modelspec_data = {
-            key: value
-            for key, value in metadata.items()
-            if key.startswith("modelspec.")
-        }
-
         try:
-            return cls(**modelspec_data)
+            return cls(**metadata)
         except Exception as exc:
             raise ValueError(f"Invalid ModelSpec data: {exc}") from exc

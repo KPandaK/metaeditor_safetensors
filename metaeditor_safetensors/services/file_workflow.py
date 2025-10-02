@@ -7,7 +7,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 from ..models.metadata import Metadata
 from .config_service import ConfigService
-from .model_detection_service import ModelDetectionService
+from .detection_service import ModelDetectionService
 from .safetensors_service import SafetensorsService
 from .utility import ModelType
 

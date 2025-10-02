@@ -359,11 +359,11 @@ class TestSafetensorsService:
         with open(test_filepath, "rb") as f:
             header_len = struct.unpack("<Q", f.read(8))[0]
 
-        tensor_data_start = 8 + header_len
+        tensor_data_start: int = 8 + header_len
         real_getsize = os.path.getsize
 
         def fake_getsize(path: str) -> int:
-            size = real_getsize(path)
+            size: int = real_getsize(path)
             if os.path.samefile(path, test_filepath):
                 return tensor_data_start
             return size

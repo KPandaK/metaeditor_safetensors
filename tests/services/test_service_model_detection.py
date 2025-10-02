@@ -10,9 +10,7 @@ import logging
 
 import pytest
 
-from metaeditor_safetensors.services.model_detection_service import (
-    ModelDetectionService,
-)
+from metaeditor_safetensors.services.detection_service import ModelDetectionService
 from metaeditor_safetensors.services.utility import ModelType
 
 
@@ -263,7 +261,7 @@ class TestModelDetectionService:
     def test_load_config_failure_sets_defaults(self, mocker, caplog):
         """Configuration load failures should log a warning and fall back to defaults."""
         mocker.patch(
-            "metaeditor_safetensors.services.model_detection_service.open",
+            "metaeditor_safetensors.services.detection_service.open",
             side_effect=OSError("missing config"),
             create=True,
         )

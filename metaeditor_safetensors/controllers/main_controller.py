@@ -148,6 +148,7 @@ class MainController(QObject):
         self.update_view()
         self._view.set_all_fields_enabled(True)
         self._status_messages.success(result.message)
+        self._modelspec_service.trigger_validation()
 
     def _on_load_error(self, result: LoadResult) -> None:
         if result.error:
@@ -236,7 +237,7 @@ class MainController(QObject):
 
     @Slot()
     def on_save_as_requested(self):
-        if not self._model.get_all_data():
+        if self._file_workflow.current_file is None:
             self._status_messages.warning("Please open a file first.")
             return
 
@@ -288,10 +289,12 @@ class MainController(QObject):
         self._view.hide_progress_bar()
 
     def shutdown(self):
-        self._safetensor_service.shutdown()
         self._config_service.remove_recent_files_observer(self._on_recent_files_changed)
         self._binding_service.clear_bindings()
         self._model.remove_observer(self._on_metadata_changed)
+        self._modelspec_service.remove_observer(
+            self._view.status_widget.on_compliance_changed
+        )
 
     @Slot()
     def on_exit_requested(self):

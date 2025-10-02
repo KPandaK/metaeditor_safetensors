@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Set
 
 import yaml
 
-from ..services.utility import ModelType, get_package_root
+from .utility import ModelType, get_package_root
 
 
 class ModelDetectionService:

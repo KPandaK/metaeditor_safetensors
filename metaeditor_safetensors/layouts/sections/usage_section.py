@@ -7,7 +7,10 @@ from superqt.collapsible import QCollapsible
 
 def build_usage_section(ui, parent) -> QCollapsible:
     section = QCollapsible(parent)
-    section.layout().setSpacing(0)
+
+    layout = section.layout()
+    if layout is not None:
+        layout.setSpacing(0)
 
     content_widget = QWidget(section)
     content_layout = QVBoxLayout(content_widget)

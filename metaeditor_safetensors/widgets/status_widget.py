@@ -86,6 +86,7 @@ class StatusWidget(QToolButton):
             icon_color = QColor("#89d185")  # Success green
             icon_pixmap = svg_to_pixmap(":/assets/circle-check.svg", 16, 16, icon_color)
             self.setText(" Status: Compliant")
+            self._current_status = "compliant"
         elif level == ComplianceLevel.PARTIAL:
             icon_color = QColor("#ffcc02")  # Warning yellow
             icon_pixmap = svg_to_pixmap(
@@ -93,6 +94,11 @@ class StatusWidget(QToolButton):
             )
             self.setText(" Status: Partially Compliant")
             self._current_status = "partial"
+        elif level == ComplianceLevel.UNKNOWN:
+            icon_color = QColor("#cccccc")
+            icon_pixmap = svg_to_pixmap(":/assets/circle-empty.svg", 16, 16, icon_color)
+            self.setText(" Status: Model Type Needed")
+            self._current_status = "unknown"
         else:  # NON_COMPLIANT
             icon_color = QColor("#f14c4c")  # Error red
             icon_pixmap = svg_to_pixmap(":/assets/circle-error.svg", 16, 16, icon_color)
