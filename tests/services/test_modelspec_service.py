@@ -124,3 +124,73 @@ def test_validation_returns_unknown_when_model_type_missing(qtbot, metadata):
         assert result.summary == "Model type not set"
     finally:
         service.shutdown()
+
+
+def test_get_compliance_result_raises_when_not_ready(metadata):
+    service = ModelSpecService(metadata, validation_interval_ms=100)
+
+    try:
+        with pytest.raises(RuntimeError):
+            service.get_compliance_result()
+    finally:
+        service.shutdown()
+
+
+def test_removed_observer_not_notified(qtbot, metadata, mocker):
+    result = _make_result("observer-test")
+    mocker.patch(
+        "metaeditor_safetensors.services.validation_worker.compute_compliance_result",
+        return_value=result,
+    )
+    service = ModelSpecService(metadata, validation_interval_ms=25)
+
+    try:
+        active_observer = mocker.Mock()
+        removed_observer = mocker.Mock()
+
+        service.add_observer(active_observer)
+        service.add_observer(removed_observer)
+        service.remove_observer(removed_observer)
+
+        metadata.load_data({"modelspec.title": "Title"})
+        service.trigger_validation()
+
+        qtbot.waitUntil(lambda: active_observer.call_count == 1, timeout=2000)
+
+        active_observer.assert_called_once_with(result)
+        removed_observer.assert_not_called()
+    finally:
+        service.shutdown()
+
+
+def test_trigger_validation_skips_when_result_current(qtbot, metadata, mocker):
+    result = _make_result("cached")
+    call_count = {"value": 0}
+
+    def compute(_snapshot):
+        call_count["value"] += 1
+        return result
+
+    mocker.patch(
+        "metaeditor_safetensors.services.validation_worker.compute_compliance_result",
+        side_effect=compute,
+    )
+    service = ModelSpecService(metadata, validation_interval_ms=25)
+
+    try:
+        observer = mocker.Mock()
+        service.add_observer(observer)
+
+        metadata.load_data({"modelspec.title": "Title"})
+        service.trigger_validation()
+
+        qtbot.waitUntil(lambda: call_count["value"] == 1, timeout=2000)
+
+        service.trigger_validation()
+        qtbot.wait(100)
+
+        assert call_count["value"] == 1
+        observer.assert_called_once_with(result)
+        assert service.is_validation_current()
+    finally:
+        service.shutdown()
