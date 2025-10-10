@@ -976,6 +976,21 @@ files = [
 diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
+name = "pyqttooltip"
+version = "1.0.0"
+description = "A modern and fully customizable tooltip library for PyQt and PySide"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "pyqttooltip-1.0.0-py3-none-any.whl", hash = "sha256:a2d81b0544baea3cb8f171d908c5976125322de7721a634e5bd5f9d713bb442f"},
+    {file = "pyqttooltip-1.0.0.tar.gz", hash = "sha256:4f6056c3c8d53a9873b3337905d669ba5632729ace8935d55d45fec2614a9f01"},
+]
+
+[package.dependencies]
+QtPy = ">=2.4.1"
+
+[[package]]
 name = "pyside6"
 version = "6.9.2"
 description = "Python bindings for the Qt cross-platform application and UI framework"
@@ -1508,4 +1523,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "1b65263208adc93c9ad242ee7a0060792aae2abca015214a8a3b2ae95523a2be"
+content-hash = "3a34258ba31904f2c02e0b43f55ecedfb9306e4c82e29ae1d9403adc53ad4a28"

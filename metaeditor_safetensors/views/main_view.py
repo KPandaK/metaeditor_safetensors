@@ -11,7 +11,7 @@ from PySide6.QtGui import (
     QDropEvent,
     QIcon,
 )
-from PySide6.QtWidgets import QMainWindow, QWidget
+from PySide6.QtWidgets import QLabel, QMainWindow, QWidget
 
 from ..layouts.main_ui_layout import Ui_EditorPanel
 from ..models.modelspec import ModelType
@@ -83,6 +83,12 @@ class MainView(QMainWindow):
         self.status_widget = StatusWidget()
         self.statusBar().setSizeGripEnabled(False)
         self.statusBar().addPermanentWidget(self.status_widget)
+
+        # add model spec version label
+        version_label = QLabel()
+        version_label.setObjectName("VersionLabel")
+        version_label.setText("Model Spec Version: 1.0.1")
+        self.statusBar().addPermanentWidget(version_label)
 
     def _create_menu_bar(self):
         menu_bar = self.menuBar()

@@ -216,7 +216,6 @@ QSpinBox:disabled {
     color: #999999;
 }
 
-/** TODO: Down arrow is still missing, only shows as a dash */
 QComboBox {
     min-height: 24px;
     padding: 4px 8px 4px 8px;
@@ -231,22 +230,6 @@ QComboBox:disabled {
     background-color: #2d2d30;
     border-color: #2d2d30;
     color: #999999;
-}
-
-QComboBox::drop-down {
-    width: 20px;
-    border-left: 1px solid #454545;
-    border-top-right-radius: 2px;
-    border-bottom-right-radius: 2px;
-    background-color: #454545;
-}
-
-QComboBox::down-arrow {
-    width: 16;
-    height: 16;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-top: 4px solid #cccccc;
 }
 
 QComboBox QAbstractItemView {
@@ -835,12 +818,14 @@ Miscellaneous Elements
 
 QStatusBar {
     min-height: 26px;
+    max-height: 26px;
+    height: 26px;
     background-color: #007acc;
     color: #ffffff;
     border: none;
     font-size: 12px;
     font-weight: 400;
-    padding: 0px;
+    padding: 0px 12px 0px 12px;
     margin: 0px;
 }
 
@@ -853,6 +838,17 @@ QStatusBar::item {
 QStatusBar QWidget {
     margin: 0px;
     padding: 0px;
+}
+
+QStatusBar QLabel {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 400;
+    background-color: transparent;
+}
+
+QStatusBar #VersionLabel {
+    padding-right: 12px;
 }
 
 QToolTip {
@@ -1098,13 +1094,11 @@ StatusWidget {
     border: none;
     font-size: 12px;
     font-weight: 400;
-    color: #ffffff;
+    color: #ffffff; 
     background-color: transparent;
     min-width: 120px;
     height: 20px;
-    text-align: right;
     margin: 0px;
-    border-radius: 2px;
 }
 
 /* Hover state - clean and subtle */
@@ -1112,8 +1106,6 @@ StatusWidget:hover {
     background-color: rgba(255, 255, 255, 0.1);
     color: #dddddd;
 }
-
-/* Pressed state - more pronounced feedback */
 StatusWidget:pressed {
     background-color: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.35);
