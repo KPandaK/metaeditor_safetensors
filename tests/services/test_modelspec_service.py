@@ -194,3 +194,36 @@ def test_trigger_validation_skips_when_result_current(qtbot, metadata, mocker):
         assert service.is_validation_current()
     finally:
         service.shutdown()
+
+
+def test_trigger_validation_skips_while_inflight(metadata, mocker):
+    service = ModelSpecService(metadata, validation_interval_ms=25)
+
+    try:
+        dispatch_spy = mocker.spy(service, "_dispatch_validation")
+
+        service._validation_in_flight = True
+        service.trigger_validation()
+
+        dispatch_spy.assert_not_called()
+    finally:
+        service.shutdown()
+
+
+def test_shutdown_clears_observers_and_workers(qtbot, metadata):
+    service = ModelSpecService(metadata, validation_interval_ms=25)
+
+    try:
+        service.add_observer(lambda _result: None)
+        service._ensure_timer_running()
+
+        assert service._validation_timer.isActive()
+        assert service._observers
+        assert service._on_metadata_changed in metadata._observers
+    finally:
+        service.shutdown()
+
+    assert not service._validation_timer.isActive()
+    assert not service._observers
+    assert service._active_workers == {}
+    assert service._on_metadata_changed not in metadata._observers
