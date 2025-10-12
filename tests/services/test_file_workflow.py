@@ -1,7 +1,10 @@
 import pytest
 
 from metaeditor_safetensors.models.metadata import Metadata
-from metaeditor_safetensors.services.file_workflow import FileWorkflow
+from metaeditor_safetensors.services.file_workflow import (
+    MODEL_SPEC_VERSION,
+    FileWorkflow,
+)
 from metaeditor_safetensors.services.utility import ModelType
 
 
@@ -357,7 +360,7 @@ def test_save_start_failure_returns_message(
     assert dispatch.message == "Save operation already in progress."
 
 
-def test_auto_detect_model_type_skips_when_already_set(
+def test_process_metadata_skips_detection_when_model_type_present(
     metadata, safetensors_service, config_service, detection_service
 ):
     workflow = FileWorkflow(
@@ -365,6 +368,25 @@ def test_auto_detect_model_type_skips_when_already_set(
     )
     metadata.set_value("metaeditor.model_type", ModelType.TEXT_PREDICTION.value)
 
-    workflow._auto_detect_model_type()
+    workflow._process_metadata_on_load(
+        {"metaeditor.model_type": ModelType.TEXT_PREDICTION.value}
+    )
 
     detection_service.detect_model_type.assert_not_called()
+
+
+def test_process_metadata_upgrades_modelspec_version(
+    metadata, safetensors_service, config_service, detection_service
+):
+    workflow = FileWorkflow(
+        metadata, safetensors_service, config_service, detection_service
+    )
+
+    incoming = {
+        "modelspec.sai_model_spec": "1.0.0",
+        "modelspec.title": "Test Model",
+    }
+
+    processed = workflow._process_metadata_on_load(incoming)
+
+    assert processed["modelspec.sai_model_spec"] == MODEL_SPEC_VERSION

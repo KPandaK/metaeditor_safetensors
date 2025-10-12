@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Tuple
 
+from packaging.version import Version
 from PySide6.QtCore import QObject, Signal, Slot
 
 from ..models.metadata import Metadata
@@ -10,6 +11,8 @@ from .config_service import ConfigService
 from .detection_service import ModelDetectionService
 from .safetensors_service import SafetensorsService
 from .utility import ModelType
+
+MODEL_SPEC_VERSION = "1.0.1"
 
 
 @dataclass
@@ -255,9 +258,12 @@ class FileWorkflow(QObject):
 
         def success(metadata: Dict[str, Any]) -> None:
             def runner() -> None:
-                self._metadata.load_data(metadata)
-                self._auto_detect_model_type()
+                loaded_metadata = dict(metadata)
+                processed_metadata = self._process_metadata_on_load(loaded_metadata)
+                self._metadata.load_data(processed_metadata)
+
                 self._config_service.add_recent_file(filepath)
+
                 self._current_file = filepath
                 if success_cb:
                     success_cb(
@@ -318,14 +324,24 @@ class FileWorkflow(QObject):
     def _update_current_file(self, filepath: str) -> None:
         self._current_file = filepath
 
-    def _auto_detect_model_type(self) -> None:
-        model_type_value = self._metadata.get_value("metaeditor.model_type")
-        if model_type_value:
-            return
-        data = self._metadata.get_all_data()
-        detected_type = self._model_detection_service.detect_model_type(data)
-        if detected_type != ModelType.UNKNOWN:
-            self._metadata.set_value(
-                "metaeditor.model_type",
-                detected_type.value,
-            )
+    def _process_metadata_on_load(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        processed = dict(metadata)
+        model_type_value = processed.get("metaeditor.model_type")
+        if not model_type_value:
+            detected_type = self._model_detection_service.detect_model_type(processed)
+            if detected_type != ModelType.UNKNOWN:
+                processed["metaeditor.model_type"] = detected_type.value
+
+        model_version = processed.get("modelspec.sai_model_spec")
+        needs_update = False
+        if not model_version:
+            needs_update = True
+        else:
+            try:
+                if Version(model_version) < Version(MODEL_SPEC_VERSION):
+                    needs_update = True
+            except Exception:
+                needs_update = True
+        if needs_update:
+            processed["modelspec.sai_model_spec"] = MODEL_SPEC_VERSION
+        return processed
