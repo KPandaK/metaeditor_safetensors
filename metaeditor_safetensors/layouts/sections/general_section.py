@@ -78,6 +78,30 @@ def build_general_section(ui, parent) -> QCollapsible:
     tag_layout.addWidget(ui.tags_edit)
     content_layout.addLayout(tag_layout)
 
+    arch_impl_layout = QHBoxLayout()
+
+    arch_layout = QVBoxLayout()
+    ui.arch_label = QLabel(content_widget)
+    ui.arch_label.setObjectName("architectureLabel")
+    arch_layout.addWidget(ui.arch_label)
+
+    ui.arch_edit = QLineEdit(content_widget)
+    ui.arch_edit.setObjectName("architectureEdit")
+    arch_layout.addWidget(ui.arch_edit)
+    arch_impl_layout.addLayout(arch_layout)
+
+    impl_layout = QVBoxLayout()
+    ui.impl_label = QLabel(content_widget)
+    ui.impl_label.setObjectName("implementationLabel")
+    impl_layout.addWidget(ui.impl_label)
+
+    ui.impl_edit = QLineEdit(content_widget)
+    ui.impl_edit.setObjectName("implementationEdit")
+    impl_layout.addWidget(ui.impl_edit)
+    arch_impl_layout.addLayout(impl_layout)
+
+    content_layout.addLayout(arch_impl_layout)
+
     section.setContent(content_widget)
 
     return section

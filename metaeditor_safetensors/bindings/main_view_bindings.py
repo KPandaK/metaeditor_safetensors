@@ -46,6 +46,20 @@ def build_main_view_bindings(ui: Any) -> List[FieldBinding]:
             from_metadata_converter=tags_to_string,
         ),
         FieldBinding(
+            "modelspec.architecture",
+            ui.arch_edit,
+            "text",
+            "setText",
+            "textChanged",
+        ),
+        FieldBinding(
+            "modelspec.implementation",
+            ui.impl_edit,
+            "text",
+            "setText",
+            "textChanged",
+        ),
+        FieldBinding(
             "modelspec.author",
             ui.author_edit,
             "text",

@@ -25,6 +25,10 @@ class Ui_EditorPanel(object):
         self.description_edit: Any = None
         self.tags_label: Any = None
         self.tags_edit: Any = None
+        self.arch_label: Any = None
+        self.arch_edit: Any = None
+        self.impl_label: Any = None
+        self.impl_edit: Any = None
         self.author_label: Any = None
         self.author_edit: Any = None
         self.date_label: Any = None
@@ -128,6 +132,24 @@ class Ui_EditorPanel(object):
         )
         self.tags_edit.setPlaceholderText(
             QCoreApplication.translate("EditorPanel", "comma, separated, tags", None)
+        )
+        self.arch_label.setText(
+            QCoreApplication.translate("EditorPanel", "Architecture:", None)
+        )
+        self.arch_edit.setPlaceholderText(
+            QCoreApplication.translate(
+                "EditorPanel",
+                "Model's architecture id (e.g. stable-diffusion-v1)",
+                None,
+            )
+        )
+        self.impl_label.setText(
+            QCoreApplication.translate("EditorPanel", "Implementation:", None)
+        )
+        self.impl_edit.setPlaceholderText(
+            QCoreApplication.translate(
+                "EditorPanel", "Codebase URL or identifier (e.g. sgm)", None
+            )
         )
         self.general_section.setText(
             QCoreApplication.translate("EditorPanel", "General", None)

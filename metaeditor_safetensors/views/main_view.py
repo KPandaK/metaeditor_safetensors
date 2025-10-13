@@ -233,6 +233,8 @@ class MainView(QMainWindow):
         self.ui.license_edit.setEnabled(enabled)
         self.ui.usage_hint_edit.setEnabled(enabled)
         self.ui.tags_edit.setEnabled(enabled)
+        self.ui.arch_edit.setEnabled(enabled)
+        self.ui.impl_edit.setEnabled(enabled)
         self.ui.merged_from_edit.setEnabled(enabled)
         self.ui.thumbnail_display.setEnabled(enabled)
         self.ui.set_thumbnail_btn.setEnabled(enabled)
